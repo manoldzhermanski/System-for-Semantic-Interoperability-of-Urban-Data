@@ -1,0 +1,9 @@
+certifi==2025.7.14
+charset-normalizer==3.4.2
+gtfs-realtime-bindings==1.0.0
+idna==3.10
+protobuf==6.31.1
+python-dotenv==1.1.1
+requests==2.32.4
+setuptools==80.9.0
+urllib3==2.5.0
