@@ -3,6 +3,7 @@ import config
 from gtfs_realtime_pb2 import FeedMessage
 from google.protobuf.message import DecodeError
 from google.protobuf.json_format import MessageToDict
+import json
 
 
 
@@ -42,4 +43,4 @@ if __name__ == "__main__":
     api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_VEHICLE_POSITION_URL)
     feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_VEHICLE_POSITION_URL)
     feed_dict = gtfs_realtime_feed(feed_data)
-    print(feed_dict)
+    print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
