@@ -5,6 +5,7 @@ from google.protobuf.message import DecodeError
 from google.protobuf.json_format import MessageToDict
 from typing import Any
 import json
+from datetime import datetime, timezone
 
 
 
@@ -140,12 +141,123 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
 
     return ngsi_ld_entities
 
+def unix_to_iso8601(ts: int) -> str:
+    """
+    Convert UNIX timestamp (seconds) to ISO8601 UTC string.
+    """
+    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
+    """
+    Converts a GTFS-Realtime trip updates feed (from MessageToDict) to a list of NGSI-LD entities.
+    Each entity in feed_dict['entity'] is converted to NGSI-LD format.
+    """
+    ngsi_ld_entities = []
+    entities = feed_dict.get("entity", [])
+    for entity in entities:
+        ngsi_entity = {
+            "id": f"urn:ngsi-ld:GtfsTripUpdate:{entity.get('id', 'Unknown')}",
+            "type": "GtfsTripUpdate"            
+        }
+
+        trip_update = entity.get("tripUpdate", {})
+        trip = trip_update.get("trip", {})
+        stop_time_updates = trip_update.get("stopTimeUpdate", [])
+
+        if "isDeleted" in entity:
+            ngsi_entity["is_deleted"] = {
+                "type": "Property",
+                "value": entity.get("isDeleted", "Unknown")
+            }
+
+        if "startTime" in trip:
+            ngsi_entity["start_time"] = {
+                "type": "Property",
+                "value": trip.get("startTime", "Unknown")
+            }
+
+        if "startDate" in trip:
+            ngsi_entity["start_date"] = {
+                "type": "Property",
+                "value": trip.get("startDate", "Unknown")
+            }
+        
+        if "scheduleRelationship" in trip:
+            ngsi_entity["schedule_relationship"] = {
+                "type": "Property",
+                "value": trip.get("scheduleRelationship", "Unknown")
+            }
+        
+        if "routeId" in trip:
+            ngsi_entity["route"] = {
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:GtfsRoute:{trip.get('routeId', 'Unknown')}"
+            }
+        
+        if "stopTimeUpdate" in trip_update:
+            stop_time_updates = trip_update.get("stopTimeUpdate", [])
+            stop_time_updates_list = []
+            for stop_time_update in stop_time_updates:
+                stop_time_entity = {}
+                if "arrival" in stop_time_update:
+                    iso_time = unix_to_iso8601(int(stop_time_update["arrival"]["time"]))
+                    stop_time_entity["arrival"] = {
+                        "type": "Property",
+                        "value": iso_time
+                    }
+
+                if "departure" in stop_time_update:
+                    iso_time = unix_to_iso8601(int(stop_time_update["departure"]["time"]))
+                    stop_time_entity["departure"] = {
+                        "type": "Property",
+                        "value": iso_time
+                    }
+
+                if "stopId" in stop_time_update:
+                    stop_time_entity["stop"] = {
+                        "type": "Relationship",
+                        "object": f"urn:ngsi-ld:GtfsStop:{stop_time_update['stopId']}"
+                    }
+
+                if "scheduleRelationship" in stop_time_update:
+                    stop_time_entity["schedule_relationship"] = {
+                        "type": "Property",
+                        "value": stop_time_update["scheduleRelationship"]
+                    }
+
+                stop_time_updates_list.append(stop_time_entity)
+            
+            ngsi_entity["stop_time_update"] = {
+                "type": "Property",
+                "value": stop_time_updates_list
+            }
+            
+        # Add @context as the last key
+        ngsi_entity["@context"] = [
+            "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+            "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+        ]
+        ngsi_ld_entities.append(ngsi_entity)
+    return ngsi_ld_entities
+    
 
 if __name__ == "__main__":
     api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_VEHICLE_POSITION_URL)
     feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_VEHICLE_POSITION_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_fed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
-    print(json.dumps(ngsi_ld_fed, indent=2, ensure_ascii=False))
+    #print(json.dumps(ngsi_ld_fed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
-    #print(ngsi_ld_fed)
+    #print(ngsi_ld_feed)
+
+    api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_TRIP_UPDATES_URL)
+    feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_TRIP_UPDATES_URL)
+    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    ngsi_ld_trip_updates = gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict)
+    print(json.dumps(ngsi_ld_trip_updates, indent=2, ensure_ascii=False))
+    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
+
+    api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_ALERTS_URL)
+    feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_ALERTS_URL)
+    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
