@@ -201,14 +201,14 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
                 stop_time_entity = {}
                 if "arrival" in stop_time_update:
                     iso_time = unix_to_iso8601(int(stop_time_update["arrival"]["time"]))
-                    stop_time_entity["arrival"] = {
+                    stop_time_entity["arrival_time"] = {
                         "type": "Property",
                         "value": iso_time
                     }
 
                 if "departure" in stop_time_update:
                     iso_time = unix_to_iso8601(int(stop_time_update["departure"]["time"]))
-                    stop_time_entity["departure"] = {
+                    stop_time_entity["departure_time"] = {
                         "type": "Property",
                         "value": iso_time
                     }
@@ -231,14 +231,19 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
                 "type": "Property",
                 "value": stop_time_updates_list
             }
-            
+        # Add observedAt attribute before @context
+        ngsi_entity["observedAt"] = {
+            "type": "Property",
+            "value": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        }
+
         # Add @context as the last key
         ngsi_entity["@context"] = [
             "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
             "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
         ]
         ngsi_ld_entities.append(ngsi_entity)
-    return ngsi_ld_entities
+        return ngsi_ld_entities
     
 
 if __name__ == "__main__":
