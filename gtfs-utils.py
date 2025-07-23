@@ -7,7 +7,11 @@ from typing import Any
 import json
 from datetime import datetime, timezone
 
-
+def unix_to_iso8601(ts: int) -> str:
+    """
+    Convert UNIX timestamp (seconds) to ISO8601 UTC string.
+    """
+    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def get_gtfs_realtime_feed(api_endpoint: str) -> bytes:
     """
@@ -57,20 +61,15 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
         trip = vehicle.get("trip", {})
         position = vehicle.get("position", {})
 
-        if "tripId" in trip:
-            ngsi_ld_entity["trip_id"] = {
-                "type": "Property",
-                "value": trip.get("tripId")
-            }
         if "scheduleRelationship" in trip:
             ngsi_ld_entity["schedule_relationship"] = {
                 "type": "Property",
                 "value": trip.get("scheduleRelationship")
             }
         if "routeId" in trip:
-            ngsi_ld_entity["route_id"] = {
-                "type": "Property",
-                "value": trip.get("routeId")
+            ngsi_ld_entity["route"] = {
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:GtfsRoute:{trip.get("routeId")}"
             }
         if "longitude" in position and "latitude" in position:
             ngsi_ld_entity["location"] = {
@@ -94,9 +93,10 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
                 "value": vehicle["currentStatus"]
             }
         if "timestamp" in vehicle:
+            iso_time = unix_to_iso8601(int(vehicle["timestamp"]))
             ngsi_ld_entity["timestamp"] = {
                 "type": "Property",
-                "value": vehicle["timestamp"]
+                "value": iso_time
             }
         if "congestionLevel" in vehicle:
             ngsi_ld_entity["congestion_level"] = {
@@ -104,14 +104,14 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
                 "value": vehicle["congestionLevel"]
             }
         if "stopId" in vehicle:
-            ngsi_ld_entity["stop_id"] = {
-                "type": "Property",
-                "value": vehicle["stopId"]
+            ngsi_ld_entity["stop"] = {
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:GtfsStop:{vehicle["stopId"]}"
             }
         if "vehicle" in vehicle and "id" in vehicle["vehicle"]:
-            ngsi_ld_entity["vehicle_id"] = {
-                "type": "Property",
-                "value": vehicle["vehicle"]["id"]
+            ngsi_ld_entity["vehicle"] = {
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:Vehicle:{vehicle["vehicle"]["id"]}"
             }
         if "occupancyStatus" in vehicle:
             ngsi_ld_entity["occupancy_status"] = {
@@ -140,12 +140,6 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
         ngsi_ld_entities.append(ngsi_ld_entity)
 
     return ngsi_ld_entities
-
-def unix_to_iso8601(ts: int) -> str:
-    """
-    Convert UNIX timestamp (seconds) to ISO8601 UTC string.
-    """
-    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
     """
@@ -251,7 +245,7 @@ if __name__ == "__main__":
     feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_VEHICLE_POSITION_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_fed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
-    #print(json.dumps(ngsi_ld_fed, indent=2, ensure_ascii=False))
+    print(json.dumps(ngsi_ld_fed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
     #print(ngsi_ld_feed)
 
@@ -259,7 +253,7 @@ if __name__ == "__main__":
     feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_TRIP_UPDATES_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_trip_updates = gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict)
-    print(json.dumps(ngsi_ld_trip_updates, indent=2, ensure_ascii=False))
+    #print(json.dumps(ngsi_ld_trip_updates, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
     api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_ALERTS_URL)
