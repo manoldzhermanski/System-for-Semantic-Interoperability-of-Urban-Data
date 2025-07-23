@@ -128,9 +128,6 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
                 "value": value
             }
 
-        # Remove keys with None values
-        ngsi_ld_entity = {k: v for k, v in ngsi_ld_entity.items() if v is not None}
-
         # Add @context as the last key
         ngsi_ld_entity["@context"] = [
             "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
@@ -237,15 +234,123 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
             "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
         ]
         ngsi_ld_entities.append(ngsi_entity)
-        return ngsi_ld_entities
-    
+
+    return ngsi_ld_entities
+
+def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
+    """Converts a GTFS-Realtime alerts feed (from MessageToDict) to a list of NGSI-LD entities.
+    Each entity in feed_dict['entity'] is converted to NGSI-LD format.
+    """
+    ngsi_ld_entities = []
+    entities = feed_dict.get("entity", [])
+    for entity in entities:
+        ngsi_entity = {
+            "id": f"urn:ngsi-ld:GtfsAlert:{entity.get('id', 'Unknown')}",
+            "type": "GtfsAlert"
+        }
+
+        alert = entity.get("alert", {})
+        urls = alert.get("url", [])
+        header_text = alert.get("headerText", {})
+        description_text = alert.get("descriptionText", {})
+        
+        if "activePeriod" in alert:
+            active_periods = []
+            for period in alert["activePeriod"]:
+                active_period = {}
+                if "start" in period:
+                    active_period["start"] = unix_to_iso8601(int(period["start"]))
+                if "end" in period:
+                    active_period["end"] = unix_to_iso8601(int(period["end"]))
+                if active_period:  # Only add if at least one is present
+                    active_periods.append(active_period)
+            
+            ngsi_entity["active_period"] = {
+                "type": "Property",
+                "value": active_periods
+            }
+
+        if "informedEntity" in alert:
+            informed_entities = []
+            for informed_entity in alert["informedEntity"]:
+                if "routeId" in informed_entity:
+                    informed_entities.append({
+                        "route": f"urn:ngsi-ld:GtfsRoute:{informed_entity['routeId']}"
+                    })
+            
+            ngsi_entity["informed_entity"] = {
+                "type": "Property",
+                "value": informed_entities
+            }
+
+        if "cause" in alert:
+            ngsi_entity["cause"] = {
+                "type": "Property",
+                "value": alert["cause"]
+            }
+
+        if "effect" in alert:
+            ngsi_entity["effect"] = {
+                "type": "Property",
+                "value": alert["effect"]
+            }
+
+        if "translation" in urls:
+            translations = []
+            for translation in urls["translation"]:
+                if "text" in translation and "language" in translation:
+                    translations.append({
+                        "text": translation["text"],
+                        "language": translation["language"]
+                    })
+            ngsi_entity["url"] = {
+                "type": "Property",
+                "value": translations
+            }
+        
+        if "translation" in header_text:
+            translations = []
+            for translation in header_text["translation"]:
+                if "text" in translation and "language" in translation:
+                    translations.append({
+                        "text": translation["text"],
+                        "language": translation["language"]
+                    })
+            ngsi_entity["header_text"] = {
+                "type": "Property",
+                "value": translations
+            }
+        
+        if "translation" in description_text:
+            translations = []
+            for translation in description_text["translation"]:
+                if "text" in translation and "language" in translation:
+                    translations.append({
+                        "text": translation["text"],
+                        "language": translation["language"]
+                    })
+            ngsi_entity["description_text"] = {
+                "type": "Property",
+                "value": translations
+            }
+
+        # Add @context as the last key
+        ngsi_entity["@context"] = [
+            "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+            "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+        ]
+        
+        ngsi_ld_entities.append(ngsi_entity)
+
+    return ngsi_ld_entities
+
 
 if __name__ == "__main__":
     api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_VEHICLE_POSITION_URL)
     feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_VEHICLE_POSITION_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_fed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
-    print(json.dumps(ngsi_ld_fed, indent=2, ensure_ascii=False))
+    #print(json.dumps(ngsi_ld_fed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
     #print(ngsi_ld_feed)
 
@@ -259,4 +364,6 @@ if __name__ == "__main__":
     api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_ALERTS_URL)
     feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_ALERTS_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    ngsi_ld_alerts = gtfs_realtime_alerts_to_ngsi_ld(feed_dict)
+    print(json.dumps(ngsi_ld_alerts, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
