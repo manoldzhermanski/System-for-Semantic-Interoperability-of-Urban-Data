@@ -1,13 +1,17 @@
-import io
-import zipfile
+import os
+import sys
+import json
 import requests
-import config
 from gtfs_realtime_pb2 import FeedMessage
 from google.protobuf.message import DecodeError
 from google.protobuf.json_format import MessageToDict
 from typing import Any
-import json
 from datetime import datetime, timezone
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import config
+
 
 def unix_to_iso8601(ts: int) -> str:
     """
@@ -401,7 +405,7 @@ if __name__ == "__main__":
     feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_VEHICLE_POSITION_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_fed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
-    #print(json.dumps(ngsi_ld_fed, indent=2, ensure_ascii=False))
+    print(json.dumps(ngsi_ld_fed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
     #print(ngsi_ld_feed)
 

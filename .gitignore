@@ -2,3 +2,4 @@
 /venv
 gtfs_realtime_pb2.py
 __pycache__/
+gtfs-static/data
