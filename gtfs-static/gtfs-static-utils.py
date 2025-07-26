@@ -2,7 +2,11 @@ import sys
 import requests
 import zipfile
 import os
+import csv
+import json
 from io import BytesIO
+from typing import Any
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
@@ -25,9 +29,392 @@ def download_and_extract_gtfs_zip(api_endpoint: str, base_dir: str = "gtfs-stati
     # Extract the ZIP file
     with zipfile.ZipFile(BytesIO(response.content)) as zip_file:
         zip_file.extractall(extract_to)
-
     
+    
+def read_gtfs_file(file_path: str) -> list[dict[str, Any]]:
+    """
+    Reads a GTFS file and returns its contents as a list of dictionaries.
+    Each dictionary corresponds to a row in the GTFS file, with keys from the header row.
+    """
+    with open(file_path, mode='r', encoding='utf-8-sig') as file:
+        reader = csv.DictReader(file)
+        return list(reader)
+    
+    
+def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static agency data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for agency in raw_data:
+        ngsi_ld_agency = {
+            "id": f"urn:ngsi-ld:GtfsAgency:{agency['agency_id']}",
+            "type": "GtfsAgency",
+            
+            "agency_name": {
+                "type": "Property", 
+                "value": agency.get("agency_name", "None")
+            },
+            
+            "agency_url": {
+                "type": "Property", 
+                "value": agency.get("agency_url", "None")
+            },
+            
+            "agency_timezone": {
+                "type": "Property", 
+                "value": agency.get("agency_timezone", "None")
+            },
+            
+            "agency_lang": {
+                "type": "Property", 
+                "value": agency.get("agency_lang", "None")
+            },
+            
+            "agency_phone": {
+                "type": "Property", 
+                "value": agency.get("agency_phone", "None")
+            },
+            
+            "agency_email": {
+                "type": "Property", 
+                "value": agency.get("agency_email", "None")
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_agency)
+    return ngsi_ld_data
+    
+    
+def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static fare attributes data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for fare in raw_data:
+        ngsi_ld_fare = {
+            "id": f"urn:ngsi-ld:GtfsFare:{fare['fare_id']}",
+            "type": "GtfsFare",
+            
+            "price": {
+                "type": "Property", 
+                "value": fare.get("price", 0.0)
+            },
+            
+            "currency_type": {
+                "type": "Property", 
+                "value": fare.get("currency_type", "None")
+            },
+            
+            "payment_method": {
+                "type": "Property", 
+                "value": fare.get("payment_method", "None")
+            },
+            
+            "transfers": {
+                "type": "Property", 
+                "value": fare.get("transfers", 0)
+            },
+            
+            "agency": {
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:GtfsAgency:{fare.get('agency_id', 'None')}"
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_fare)
+    return ngsi_ld_data
+
+
+def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static routes data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for route in raw_data:
+        ngsi_ld_route = {
+            "id": f"urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:{route['route_id']}",
+            "type": "GtfsRoute",
+            
+            "agency": {
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:GtfsAgency:{route.get("agency_id", "None")}"
+            },
+            
+            "route_short_name": {
+                "type": "Property", 
+                "value": route.get("route_short_name", "None")
+            },
+            
+            "route_long_name": {
+                "type": "Property", 
+                "value": route.get("route_long_name", "None")
+            },
+            
+            "route_desc": {
+                "type": "Property", 
+                "value": route.get("route_desc", "None")
+            },
+            
+            "route_type": {
+                "type": "Property", 
+                "value": route.get("route_type", "None")
+            },
+            
+            "route_url": {
+                "type": "Property", 
+                "value": route.get("route_url", "None")
+            },
+            
+            "route_color": {
+                "type": "Property", 
+                "value": route.get("route_color", "None")
+            },
+            
+            "route_text_color": {
+                "type": "Property", 
+                "value": route.get("route_text_color", "None")
+            },
+            
+            "route_sort_order": {
+                "type": "Property", 
+                "value": route.get("route_sort_order", "None")
+            },
+            
+            "continuous_pickup": {
+                "type": "Property", 
+                "value": route.get("continuous_pickup", "None")
+            },
+            
+            "continuous_drop_off": {
+                "type": "Property", 
+                "value": route.get("continuous_drop_off", "None")
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+            
+
+        }
+        ngsi_ld_data.append(ngsi_ld_route)
+    return ngsi_ld_data
+
+
+def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static shapes data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for shape in raw_data:
+        ngsi_ld_shape = {
+            "id": f"urn:ngsi-ld:GtfsShape:{shape['shape_id']}",
+            "type": "GtfsShape",
+            
+            "location": {
+                "type": "GeoProperty",
+                "value": {
+                    "type": "Point",
+                    "coordinates": [
+                        float(shape.get("shape_pt_lon", 0.0)),
+                        float(shape.get("shape_pt_lat", 0.0))
+                    ]
+                }
+            },
+            
+            "shape_pt_sequence": {
+                "type": "Property", 
+                "value": shape.get("shape_pt_sequence", 0)
+            },
+            
+            "distanceTravelled": {
+                "type": "Property", 
+                "value": []
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_shape)
+    return ngsi_ld_data
+
+
+def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static stop times data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for stop_time in raw_data:
+        ngsi_ld_stop_time = {
+            "id": f"urn:ngsi-ld:GtfsStopTime:{stop_time['trip_id']}",
+            "type": "GtfsStopTime",
+            
+            "arrivalTime": {
+                "type": "Property", 
+                "value": stop_time.get("arrival_time", "None")
+            },
+            
+            "departureTime": {
+                "type": "Property", 
+                "value": stop_time.get("departure_time", "None")
+            },
+            
+            "hasStop": {
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:GtfsStop:{stop_time.get('stop_id', 'None')}"
+            },
+
+            "stopSequence": {
+                "type": "Property", 
+                "value": stop_time.get("stop_sequence", 0)
+            },
+            
+            "stopHeadsign": {
+                "type": "Property", 
+                "value": stop_time.get("stop_headsign", "None")
+            },
+            
+            "pickupType": {
+                "type": "Property", 
+                "value": stop_time.get("pickup_type", "None")
+            },
+            
+            "dropOffType": {
+                "type": "Property", 
+                "value": stop_time.get("drop_off_type", "None")
+            },
+            
+            "shapeDistTraveled": {  
+                "type": "Property", 
+                "value": stop_time.get("shape_dist_traveled", [])
+            },
+            
+            "continuousPickup": {
+                "type": "Property", 
+                "value": stop_time.get("continuous_pickup", "None")
+            },
+            
+            "continuousDropOff": {
+                "type": "Property", 
+                "value": stop_time.get("continuous_drop_off", "None")
+            },
+            
+            "timepoint": {
+                "type": "Property", 
+                "value": stop_time.get("timepoint", "None")
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_stop_time)
+    return ngsi_ld_data
+
+
+def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static stops data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for stop in raw_data:
+        ngsi_ld_stop = {
+            "id": f"urn:ngsi-ld:GtfsStop:{stop['stop_id']}",
+            "type": "GtfsStop",
+            
+            "code": {
+                "type": "Property", 
+                "value": stop.get("stop_code", "None")
+            },
+            
+            "name": {
+                "type": "Property", 
+                "value": stop.get("stop_name", "None")
+            },
+            
+            "description": {
+                "type": "Property", 
+                "value": stop.get("stop_desc", "None")
+            },
+            
+            "location": {
+                "type": "GeoProperty",
+                "value": {
+                    "type": "Point",
+                    "coordinates": [
+                        float(stop.get("stop_lon", 0.0)),
+                        float(stop.get("stop_lat", 0.0))
+                    ]
+                }
+            },
+            
+            "locationType": {
+                "type": "Property", 
+                "value": stop.get("location_type", "None")
+            },
+            
+            "hasParentStation": {  
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:GtfsStop:{stop.get('parent_station', 'None')}"
+            },
+            
+            "stopTimezone": {
+                "type": "Property", 
+                "value": stop.get("stop_timezone", "None")
+            },
+            
+            "level": {
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:GtfsLevel:{stop.get('level_id', 'None')}"
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_stop)
+    return ngsi_ld_data
 
 
 if __name__ == "__main__":
-    download_and_extract_gtfs_zip(config.GTFS_STATIC_ZIP_URL)
+    #download_and_extract_gtfs_zip(config.GTFS_STATIC_ZIP_URL)
+    
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "agency.txt"))
+    #ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
+    
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "fare_attributes.txt"))
+    #ngsi_ld_data = gtfs_static_fare_attributes_to_ngsi_ld(feed_dict)
+    
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "routes.txt"))
+    #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
+    
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "shapes.txt"))
+    #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
+    
+    feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "stop_times.txt"))
+    ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
+    
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "stops.txt"))
+    #ngsi_ld_data = gtfs_static_stops_to_ngsi_ld(feed_dict)
+    
+    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
+    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
