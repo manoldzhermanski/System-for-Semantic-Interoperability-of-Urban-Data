@@ -401,8 +401,8 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
 
 
 if __name__ == "__main__":
-    api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_VEHICLE_POSITION_URL)
-    feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_VEHICLE_POSITION_URL)
+    api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_fed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
     print(json.dumps(ngsi_ld_fed, indent=2, ensure_ascii=False))
