@@ -332,8 +332,21 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     """
     ngsi_ld_data = []
     for route in raw_data:
+        
+        route_id = route.get("route_id") or str(uuid.uuid4())
+        route_short_name = route.get("route_short_name") or ""
+        route_long_name = route.get("route_long_name") or ""
+        route_desc = route.get("route_desc") or ""
+        route_type = route.get("route_type") or "0"
+        route_url = route.get("route_url") or ""
+        route_color = route.get("route_color") or ""
+        route_text_color = route.get("route_text_color") or ""
+        route_sort_order = route.get("route_sort_order") or ""
+        continuous_pickup = route.get("continuous_pickup") or ""
+        continuous_drop_off = route.get("continuous_drop_off") or ""
+        
         ngsi_ld_route = {
-            "id": f"urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:{route['route_id']}",
+            "id": f"urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:{route_id}",
             "type": "GtfsRoute",
             
             "agency": {
@@ -341,54 +354,54 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "object": f"urn:ngsi-ld:GtfsAgency:{route.get("agency_id", "None")}"
             },
             
-            "route_short_name": {
+            "shortName": {
                 "type": "Property", 
-                "value": route.get("route_short_name", "None")
+                "value": route_short_name
             },
             
-            "route_long_name": {
+            "name": {
                 "type": "Property", 
-                "value": route.get("route_long_name", "None")
+                "value": route_long_name
             },
             
-            "route_desc": {
+            "description": {
                 "type": "Property", 
-                "value": route.get("route_desc", "None")
+                "value": route_desc
             },
             
-            "route_type": {
+            "routeType": {
                 "type": "Property", 
-                "value": route.get("route_type", "None")
+                "value": route_type
             },
             
             "route_url": {
                 "type": "Property", 
-                "value": route.get("route_url", "None")
+                "value": route_url
             },
             
-            "route_color": {
+            "routeColor": {
                 "type": "Property", 
-                "value": route.get("route_color", "None")
+                "value": route_color
             },
             
-            "route_text_color": {
+            "routeTextColor": {
                 "type": "Property", 
-                "value": route.get("route_text_color", "None")
+                "value": route_text_color
             },
             
-            "route_sort_order": {
+            "routeSortOrder": {
                 "type": "Property", 
-                "value": route.get("route_sort_order", "None")
+                "value": route_sort_order
             },
             
             "continuous_pickup": {
                 "type": "Property", 
-                "value": route.get("continuous_pickup", "None")
+                "value": continuous_pickup
             },
             
             "continuous_drop_off": {
                 "type": "Property", 
-                "value": route.get("continuous_drop_off", "None")
+                "value": continuous_drop_off
             },
             
             "@context": 
@@ -396,8 +409,6 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
                 "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
                 ]
-            
-
         }
         ngsi_ld_data.append(ngsi_ld_route)
     return ngsi_ld_data
@@ -737,11 +748,11 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "levels.txt"))
     #ngsi_ld_data = gtfs_static_levels_to_ngsi_ld(feed_dict)
     
-    feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "pathways.txt"))
-    ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "pathways.txt"))
+    #ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "routes.txt"))
-    #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
+    feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "routes.txt"))
+    ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "shapes.txt"))
     #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
