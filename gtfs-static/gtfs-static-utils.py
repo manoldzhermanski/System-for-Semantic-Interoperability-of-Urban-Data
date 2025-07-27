@@ -115,13 +115,13 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
     ngsi_ld_data = []
     for calendar_date in raw_data:
         
-        generated_id = str(uuid.uuid4())
-        service_id = "" if calendar_date['service_id'] == "" else f"urn:ngsi-ld:GtfsService:{calendar_date['service_id']}"
-        formatted_date = datetime.strptime(calendar_date['date'], "%Y%m%d").date().isoformat()
-        exception_type = calendar_date['exception_type']
+        calendar_date_rule_id = str(uuid.uuid4())
+        service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get('service_id')}" if calendar_date.get('service_id') else ""
+        applies_on = datetime.strptime(calendar_date['date'], "%Y%m%d").date().isoformat() if calendar_date.get('date') else ""
+        exception_type = calendar_date.get("agency_email") or ""
         
         ngsi_ld_calendar_date = {
-            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{generated_id}",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{calendar_date_rule_id}",
             "type": "GtfsCalendarDateRule",
             
             "hasService": {
@@ -131,7 +131,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
             
             "appliesOn": {
                 "type": "Property",
-                "value": formatted_date
+                "value": applies_on
             },
             
             "exceptionType": {
@@ -700,8 +700,8 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
 if __name__ == "__main__":
     #gtfs_static_download_and_extract_zip(config.GTFS_STATIC_ZIP_URL)
     
-    feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "agency.txt"))
-    ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "agency.txt"))
+    #ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "calendar_dates.txt"))
     #ngsi_ld_data = gtfs_static_calendar_dates_to_ngsi_ld(feed_dict)
