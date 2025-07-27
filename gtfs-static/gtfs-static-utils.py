@@ -208,17 +208,22 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     """
     ngsi_ld_data = []
     for level in raw_data:
+        
+        level_id = level.get("level_id") or str(uuid.uuid4())
+        level_name = level.get("level_name") or ""
+        level_index = int(level.get("level_index")) or ""
+        
         ngsi_ld_level = {
-            "id": f"urn:ngsi-ld:GtfsLevel:{level['level_id']}",
+            "id": f"urn:ngsi-ld:GtfsLevel:{level_id}",
             "type": "GtfsLevel",
             "name": {
                 "type": "Property",
-                "value": level.get("level_name", "None")
+                "value": level_name
             },
             
             "level_index": {
                 "type": "Property",
-                "value": level.get("level_index", "None")
+                "value": level_index
             },
             
             "@context": 
