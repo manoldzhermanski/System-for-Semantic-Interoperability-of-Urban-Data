@@ -49,38 +49,53 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     """
     ngsi_ld_data = []
     for agency in raw_data:
+        
+        agency_id = agency.get("agency_id") or str(uuid.uuid4())
+        agency_name = agency.get("agency_name") or ""
+        source = agency.get("source") or ""
+        agency_url = agency.get("agency_url") or ""
+        agency_timezone = agency.get("agency_timezone") or ""
+        agency_lang = agency.get("agency_lang") or ""
+        agency_phone = agency.get("agency_phone") or ""
+        agency_email = agency.get("agency_email") or ""
+        
         ngsi_ld_agency = {
-            "id": f"urn:ngsi-ld:GtfsAgency:{agency['agency_id']}",
+            "id": f"urn:ngsi-ld:GtfsAgency:{agency_id}",
             "type": "GtfsAgency",
             
             "agency_name": {
                 "type": "Property", 
-                "value": agency.get("agency_name", "None")
+                "value": agency_name
+            },
+            
+            "source": {
+                "type": "Property",
+                "value": source
             },
             
             "agency_url": {
                 "type": "Property", 
-                "value": agency.get("agency_url", "None")
+                "value": agency_url
             },
             
             "agency_timezone": {
                 "type": "Property", 
-                "value": agency.get("agency_timezone", "None")
+                "value": agency_timezone
             },
             
             "agency_lang": {
                 "type": "Property", 
-                "value": agency.get("agency_lang", "None")
+                "value": agency_lang
             },
             
             "agency_phone": {
                 "type": "Property", 
-                "value": agency.get("agency_phone", "None")
+                "value": agency_phone
             },
             
             "agency_email": {
                 "type": "Property", 
-                "value": agency.get("agency_email", "None")
+                "value": agency_email
             },
             
             "@context": 
@@ -99,9 +114,11 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
     """
     ngsi_ld_data = []
     for calendar_date in raw_data:
+        
         generated_id = str(uuid.uuid4())
         service_id = "" if calendar_date['service_id'] == "" else f"urn:ngsi-ld:GtfsService:{calendar_date['service_id']}"
         formatted_date = datetime.strptime(calendar_date['date'], "%Y%m%d").date().isoformat()
+        exception_type = calendar_date['exception_type']
         
         ngsi_ld_calendar_date = {
             "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{generated_id}",
@@ -119,7 +136,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
             
             "exceptionType": {
                 "type": "Property",
-                "value": calendar_date['exception_type']
+                "value": exception_type
             },
             
             "@context": 
@@ -683,8 +700,8 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
 if __name__ == "__main__":
     #gtfs_static_download_and_extract_zip(config.GTFS_STATIC_ZIP_URL)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "agency.txt"))
-    #ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
+    feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "agency.txt"))
+    ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "calendar_dates.txt"))
     #ngsi_ld_data = gtfs_static_calendar_dates_to_ngsi_ld(feed_dict)
@@ -716,5 +733,5 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "trips.txt"))
     #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
     
-    #print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
+    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
