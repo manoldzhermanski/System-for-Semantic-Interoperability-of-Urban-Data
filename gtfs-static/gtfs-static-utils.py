@@ -156,7 +156,7 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
     ngsi_ld_data = []
     for fare in raw_data:
         
-        fare_id = fare.get("fare_id") or ""
+        fare_id = fare.get("fare_id") or str(uuid.uuid4())
         price = float(fare.get("price")) or 0.0
         currency_type = fare.get("currency_type") or ""
         payment_method = fare.get("payment_method") or "1"
@@ -243,11 +243,23 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
     
     ngsi_ld_data = []
     for pathway in raw_data:
-        from_stop_id = "" if pathway['from_stop_id'] == "" else f"urn:ngsi-ld:GtfsStop:{pathway['from_stop_id']}"
-        to_stop_id = "" if pathway['to_stop_id'] == "" else f"urn:ngsi-ld:GtfsStop:{pathway['to_stop_id']}"
+        
+        pathway_id = pathway.get("pathway_id") or str(uuid.uuid4())
+        from_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("from_stop_id")}" if pathway.get("from_stop_id") else ""
+        to_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get('to_stop_id')}" if pathway.get("to_stop_id") else ""
+        pathway_mode = int(pathway.get("pathway_mode")) if pathway.get("pathway_mode") else 0
+        is_bidirectional = int(pathway.get("is_bidirectional")) if pathway.get("is_bidirectional") else 0
+        length = float(pathway.get("length")) if pathway.get("length") else 0.0
+        traversal_time = float(pathway.get("traversal_time")) if pathway.get("traversal_time") else 0.0
+        stair_count = int(pathway.get("stair_count")) if pathway.get("stair_count") else 0
+        max_slope = float(pathway.get("max_slope")) if pathway.get("max_slope") else 0.0
+        min_width = float(pathway.get("min_width")) if pathway.get("min_width") else 0.0
+        signposted_as = pathway.get("signposted_as") or ""
+        reversed_signposted_as = pathway.get("reversed_signposted_as") or ""
+        
         ngsi_ld_pathway = {
-            "id": f"urn:ngsi-ld:GtfsPathway:{pathway['pathway_id']}",
-            "type": "GtfsTrip",
+            "id": f"urn:ngsi-ld:GtfsPathway:{pathway_id}",
+            "type": "GtfsPathway",
             
             "hasOrigin": {
                 "type": "Relationship",
@@ -261,47 +273,47 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
             
             "pathway_mode": {
                 "type": "Property",
-                "value": pathway['pathway_mode']
+                "value": pathway_mode
             },
             
             "isBidirectional": {
                 "type": "Property",
-                "value": pathway['is_bidirectional']
+                "value": is_bidirectional
             },
             
             "length": {
                 "type": "Property",
-                "value": pathway['length']
+                "value": length
             },
             
             "traversal_time": {
                 "type": "Property",
-                "value": pathway['traversal_time']
+                "value": traversal_time
             },
             
             "stair_count": {
                 "type": "Property",
-                "value": pathway['stair_count']
+                "value": stair_count
             },
             
             "max_slope": {
                 "type": "Property",
-                "value": pathway['max_slope']
+                "value": max_slope
             },
             
             "min_width": {
                 "type": "Property",
-                "value": pathway['min_width']
+                "value": min_width
             },
             
             "signposted_as": {
                 "type": "Property",
-                "value": pathway['signposted_as']
+                "value": signposted_as
             },
             
             "reversed_signposted_as": {
                 "type": "Property",
-                "value": pathway['reversed_signposted_as']
+                "value": reversed_signposted_as
             },
             
             "@context": 
@@ -725,8 +737,8 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "levels.txt"))
     #ngsi_ld_data = gtfs_static_levels_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "pathways.txt"))
-    #ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
+    feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "pathways.txt"))
+    ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
