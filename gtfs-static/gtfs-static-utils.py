@@ -349,7 +349,7 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             "id": f"urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:{route_id}",
             "type": "GtfsRoute",
             
-            "agency": {
+            "operatedBy": {
                 "type": "Relationship",
                 "object": f"urn:ngsi-ld:GtfsAgency:{route.get("agency_id", "None")}"
             },
