@@ -4,8 +4,10 @@ import zipfile
 import os
 import csv
 import json
+import uuid
 from io import BytesIO
 from typing import Any
+from datetime import datetime
 
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -91,6 +93,45 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     return ngsi_ld_data
     
     
+def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static Calendar Date Rule attributes data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for calendar_date in raw_data:
+        generated_id = str(uuid.uuid4())
+        service_id = "" if calendar_date['service_id'] == "" else f"urn:ngsi-ld:GtfsService:{calendar_date['service_id']}"
+        formatted_date = datetime.strptime(calendar_date['date'], "%Y%m%d").date().isoformat()
+        
+        ngsi_ld_calendar_date = {
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{generated_id}",
+            "type": "GtfsCalendarDateRule",
+            
+            "hasService": {
+                "type": "Relationship",
+                "object": service_id
+            },
+            
+            "appliesOn": {
+                "type": "Property",
+                "value": formatted_date
+            },
+            
+            "exceptionType": {
+                "type": "Property",
+                "value": calendar_date['exception_type']
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_calendar_date)
+    return ngsi_ld_data
+    
+    
 def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static fare attributes data to NGSI-LD format.
@@ -136,6 +177,113 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
     return ngsi_ld_data
 
 
+def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static level data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for level in raw_data:
+        ngsi_ld_level = {
+            "id": f"urn:ngsi-ld:GtfsLevel:{level['level_id']}",
+            "type": "GtfsLevel",
+            "name": {
+                "type": "Property",
+                "value": level.get("level_name", "None")
+            },
+            
+            "level_index": {
+                "type": "Property",
+                "value": level.get("level_index", "None")
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_level)
+    return ngsi_ld_data
+    
+    
+def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static pathways data to NGSI-LD format.
+    """
+    
+    ngsi_ld_data = []
+    for pathway in raw_data:
+        from_stop_id = "" if pathway['from_stop_id'] == "" else f"urn:ngsi-ld:GtfsStop:{pathway['from_stop_id']}"
+        to_stop_id = "" if pathway['to_stop_id'] == "" else f"urn:ngsi-ld:GtfsStop:{pathway['to_stop_id']}"
+        ngsi_ld_pathway = {
+            "id": f"urn:ngsi-ld:GtfsPathway:{pathway['pathway_id']}",
+            "type": "GtfsTrip",
+            
+            "hasOrigin": {
+                "type": "Relationship",
+                "object": from_stop_id
+            },
+            
+            "hasDestination": {
+                "type": "Relationship",
+                "object": to_stop_id
+            },
+            
+            "pathway_mode": {
+                "type": "Property",
+                "value": pathway['pathway_mode']
+            },
+            
+            "isBidirectional": {
+                "type": "Property",
+                "value": pathway['is_bidirectional']
+            },
+            
+            "length": {
+                "type": "Property",
+                "value": pathway['length']
+            },
+            
+            "traversal_time": {
+                "type": "Property",
+                "value": pathway['traversal_time']
+            },
+            
+            "stair_count": {
+                "type": "Property",
+                "value": pathway['stair_count']
+            },
+            
+            "max_slope": {
+                "type": "Property",
+                "value": pathway['max_slope']
+            },
+            
+            "min_width": {
+                "type": "Property",
+                "value": pathway['min_width']
+            },
+            
+            "signposted_as": {
+                "type": "Property",
+                "value": pathway['signposted_as']
+            },
+            
+            "reversed_signposted_as": {
+                "type": "Property",
+                "value": pathway['reversed_signposted_as']
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_pathway)
+    return ngsi_ld_data
+    
+    
 def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static routes data to NGSI-LD format.
@@ -395,14 +543,160 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     return ngsi_ld_data
 
 
+def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static transfers data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for transfer in raw_data:
+        generated_id = str(uuid.uuid4())
+        from_stop_id = "" if transfer['from_stop_id'] == "" else f"urn:ngsi-ld:GtfsStop:{transfer['from_stop_id']}"
+        to_stop_id = "" if transfer['to_stop_id'] == "" else f"urn:ngsi-ld:GtfsStop:{transfer['to_stop_id']}"
+        from_route_id = "" if transfer['from_route_id'] == "" else f"urn:ngsi-ld:GtfsRoute:{transfer['from_route_id']}"
+        to_route_id = "" if transfer['to_route_id'] == "" else f"urn:ngsi-ld:GtfsRoute:{transfer['to_route_id']}"
+        from_trip_id = "" if transfer['from_trip_id'] == "" else f"urn:ngsi-ld:GtfsTrip:{transfer['from_trip_id']}"
+        to_trip_id = "" if transfer['to_trip_id'] == "" else f"urn:ngsi-ld:GtfsTrip:{transfer['to_trip_id']}"
+        
+        ngsi_ld_transfer = {
+            "id": f"urn:ngsi-ld:GtfsTransferRule:{generated_id}",
+            "type": "GtfsTransferRule",
+            "hasOrigin": {
+                "type": "Relationship",
+                "object": from_stop_id
+            },
+            
+            "hasDestination": {
+                "type": "Relationship",
+                "object": to_stop_id
+            },
+            
+            "from_route_id": {
+                "type": "Relationship",
+                "object": from_route_id
+            },
+            
+            "to_route_id": {
+                "type": "Relationship",
+                "object": to_route_id
+            },
+            
+            "from_trip_id": {
+                "type": "Relationship",
+                "object": from_trip_id
+            },
+            
+            "to_trip_id": {
+                "type": "Relationship",
+                "object": to_trip_id
+            },
+            
+            "transferType": {
+                "type": "Property",
+                "value": transfer['transfer_type']
+            },
+            
+            "minimumTransferTime": {
+                "type": "Property",
+                "value": transfer['min_transfer_time']
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_transfer)
+    return ngsi_ld_data
+
+
+def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static trips data to NGSI-LD format.
+    """
+    ngsi_ld_data = []
+    for trip in raw_data:
+        
+        route_id = "" if trip['route_id'] == "" else f"urn:ngsi-ld:GtfsRoute:{trip['route_id']}"
+        service_id = "" if trip['service_id'] == "" else f"urn:ngsi-ld:GtfsService:{trip['service_id']}"
+        block_id = "" if trip['block_id'] == "" else f"urn:ngsi-ld:GtfsBlock:{trip['block_id']}"
+        shape_id = "" if trip['shape_id'] == "" else f"urn:ngsi-ld:GtfsShape:{trip['shape_id']}"
+        
+        ngsi_ld_trip = {
+            "id": f"urn:ngsi-ld:GtfsTrip:{trip['trip_id']}",
+            "type": "GtfsTrip",
+            "route": {
+                "type": "Relationship",
+                "object": route_id
+            },
+            
+            "service": {
+                "type": "Relationship",
+                "object": service_id
+            },
+            
+            "headSign": {
+                "type": "Property",
+                "value": trip['trip_headsign']
+            },
+            
+            "shortName": {
+                "type": "Property",
+                "value": trip['trip_short_name']
+            },
+            
+            "direction": {
+                "type": "Property",
+                "value": trip['direction_id']
+            },
+            
+            "block": {
+                "type": "Relationship",
+                "object": block_id
+            },
+            
+            "hasShape": {
+                "type": "Relationship",
+                "object": shape_id
+            },
+            
+            "wheelChairAccessible": {
+                "type": "Property",
+                "value": trip['wheelchair_accessible']
+            },
+            
+            "bikesAllowed": {
+                "type": "Property",
+                "value": trip['bikes_allowed']
+            },
+            
+            "@context": 
+                [
+                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+        }
+        ngsi_ld_data.append(ngsi_ld_trip)
+    return ngsi_ld_data
+    
+    
 if __name__ == "__main__":
     #download_and_extract_gtfs_zip(config.GTFS_STATIC_ZIP_URL)
     
     #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "agency.txt"))
     #ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
     
+    feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "calendar_dates.txt"))
+    ngsi_ld_data = gtfs_static_calendar_dates_to_ngsi_ld(feed_dict)
+    
     #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "fare_attributes.txt"))
     #ngsi_ld_data = gtfs_static_fare_attributes_to_ngsi_ld(feed_dict)
+    
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "levels.txt"))
+    #ngsi_ld_data = gtfs_static_levels_to_ngsi_ld(feed_dict)
+    
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "pathways.txt"))
+    #ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
     
     #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
@@ -410,11 +704,17 @@ if __name__ == "__main__":
     #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "shapes.txt"))
     #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
     
-    feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "stop_times.txt"))
-    ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "stop_times.txt"))
+    #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
     
     #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "stops.txt"))
     #ngsi_ld_data = gtfs_static_stops_to_ngsi_ld(feed_dict)
+    
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "transfers.txt"))
+    #ngsi_ld_data = gtfs_static_transfers_to_ngsi_ld(feed_dict)
+    
+    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "trips.txt"))
+    #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
     
     print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
