@@ -155,33 +155,41 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
     """
     ngsi_ld_data = []
     for fare in raw_data:
+        
+        fare_id = fare.get("fare_id") or ""
+        price = float(fare.get("price")) or 0.0
+        currency_type = fare.get("currency_type") or ""
+        payment_method = fare.get("payment_method") or "1"
+        transfers = int(fare.get("transfers")) or 0
+        agency = f"urn:ngsi-ld:GtfsAgency:{fare.get("agency_id")}" if fare.get("agency_id") else ""
+        
         ngsi_ld_fare = {
-            "id": f"urn:ngsi-ld:GtfsFare:{fare['fare_id']}",
-            "type": "GtfsFare",
+            "id": f"urn:ngsi-ld:GtfsFareAttributes:{fare_id}",
+            "type": "GtfsFareAttributes",
             
             "price": {
                 "type": "Property", 
-                "value": fare.get("price", 0.0)
+                "value": price
             },
             
             "currency_type": {
                 "type": "Property", 
-                "value": fare.get("currency_type", "None")
+                "value": currency_type
             },
             
             "payment_method": {
                 "type": "Property", 
-                "value": fare.get("payment_method", "None")
+                "value": payment_method
             },
             
             "transfers": {
                 "type": "Property", 
-                "value": fare.get("transfers", 0)
+                "value": transfers
             },
             
             "agency": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsAgency:{fare.get('agency_id', 'None')}"
+                "object": agency
             },
             
             "@context": 
