@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
 
 
-def download_and_extract_gtfs_zip(api_endpoint: str, base_dir: str = "gtfs-static") -> list[str]:
+def gtfs_static_download_and_extract_zip(api_endpoint: str, base_dir: str = "gtfs-static") -> list[str]:
     """
     Downloads a GTFS-Static ZIP file from the given API URL and extracts its contents to the specified directory.
     """
@@ -33,7 +33,7 @@ def download_and_extract_gtfs_zip(api_endpoint: str, base_dir: str = "gtfs-stati
         zip_file.extractall(extract_to)
     
     
-def read_gtfs_file(file_path: str) -> list[dict[str, Any]]:
+def gtfs_static_read_file(file_path: str) -> list[dict[str, Any]]:
     """
     Reads a GTFS file and returns its contents as a list of dictionaries.
     Each dictionary corresponds to a row in the GTFS file, with keys from the header row.
@@ -681,40 +681,40 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     
     
 if __name__ == "__main__":
-    #download_and_extract_gtfs_zip(config.GTFS_STATIC_ZIP_URL)
+    #gtfs_static_download_and_extract_zip(config.GTFS_STATIC_ZIP_URL)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "agency.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "agency.txt"))
     #ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
     
-    feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "calendar_dates.txt"))
-    ngsi_ld_data = gtfs_static_calendar_dates_to_ngsi_ld(feed_dict)
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "calendar_dates.txt"))
+    #ngsi_ld_data = gtfs_static_calendar_dates_to_ngsi_ld(feed_dict)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "fare_attributes.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "fare_attributes.txt"))
     #ngsi_ld_data = gtfs_static_fare_attributes_to_ngsi_ld(feed_dict)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "levels.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "levels.txt"))
     #ngsi_ld_data = gtfs_static_levels_to_ngsi_ld(feed_dict)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "pathways.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "pathways.txt"))
     #ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "routes.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "shapes.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "shapes.txt"))
     #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "stop_times.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "stop_times.txt"))
     #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "stops.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "stops.txt"))
     #ngsi_ld_data = gtfs_static_stops_to_ngsi_ld(feed_dict)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "transfers.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "transfers.txt"))
     #ngsi_ld_data = gtfs_static_transfers_to_ngsi_ld(feed_dict)
     
-    #feed_dict = read_gtfs_file(os.path.join("gtfs-static", "data", "trips.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "trips.txt"))
     #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
     
-    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
+    #print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
