@@ -420,8 +420,15 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     """
     ngsi_ld_data = []
     for shape in raw_data:
+        
+        shape_id = shape.get("shape_id") or str(uuid.uuid4())
+        location_logitude = float(shape.get("shape_pt_lon")) if shape.get("shape_pt_lon") else 0.0
+        location_latitude = float(shape.get("shape_pt_lat")) if shape.get("shape_pt_lat") else 0.0
+        shape_pt_sequence = int(shape.get("shape_pt_sequence")) if shape.get("shape_pt_sequence") else 0
+        shape_dist_traveled = float(shape.get("shape_dist_traveled")) if shape.get("shape_dist_traveled") else 0.0
+        
         ngsi_ld_shape = {
-            "id": f"urn:ngsi-ld:GtfsShape:{shape['shape_id']}",
+            "id": f"urn:ngsi-ld:GtfsShape:{shape_id}",
             "type": "GtfsShape",
             
             "location": {
@@ -429,20 +436,20 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "value": {
                     "type": "Point",
                     "coordinates": [
-                        float(shape.get("shape_pt_lon", 0.0)),
-                        float(shape.get("shape_pt_lat", 0.0))
+                        location_logitude,
+                        location_latitude
                     ]
                 }
             },
             
             "shape_pt_sequence": {
                 "type": "Property", 
-                "value": shape.get("shape_pt_sequence", 0)
+                "value": shape_pt_sequence
             },
             
             "distanceTravelled": {
                 "type": "Property", 
-                "value": []
+                "value": shape_dist_traveled
             },
             
             "@context": 
