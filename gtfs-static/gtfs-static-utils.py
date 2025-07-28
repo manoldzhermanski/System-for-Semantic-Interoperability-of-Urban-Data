@@ -118,7 +118,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
         calendar_date_rule_id = str(uuid.uuid4())
         service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get("service_id")}" if calendar_date.get("service_id") else ""
         applies_on = datetime.strptime(calendar_date["date"], "%Y%m%d").date().isoformat() if calendar_date.get("date") else ""
-        exception_type = calendar_date.get("agency_email") or ""
+        exception_type = calendar_date.get("agency_email") or "1"
         
         ngsi_ld_calendar_date = {
             "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{calendar_date_rule_id}",
@@ -159,10 +159,10 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
         fare_id = fare.get("fare_id") or str(uuid.uuid4())
         price = float(fare.get("price")) or 0.0
         currency_type = fare.get("currency_type") or ""
-        payment_method = fare.get("payment_method") or "1"
+        payment_method = int(fare.get("payment_method")) if fare.get("payment_method") else 1
         transfers = int(fare.get("transfers")) or 0
         agency = f"urn:ngsi-ld:GtfsAgency:{fare.get("agency_id")}" if fare.get("agency_id") else ""
-        
+        transfer_duration = int(fare.get("transfer_duration")) if fare.get("transfer_duration") else 0
         ngsi_ld_fare = {
             "id": f"urn:ngsi-ld:GtfsFareAttributes:{fare_id}",
             "type": "GtfsFareAttributes",
@@ -190,6 +190,11 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
             "agency": {
                 "type": "Relationship",
                 "object": agency
+            },
+            
+            "transfer_duration": {
+                "type" : "Property",
+                "value": transfer_duration
             },
             
             "@context": 
@@ -341,9 +346,9 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         route_url = route.get("route_url") or ""
         route_color = route.get("route_color") or ""
         route_text_color = route.get("route_text_color") or ""
-        route_sort_order = route.get("route_sort_order") or ""
-        continuous_pickup = route.get("continuous_pickup") or ""
-        continuous_drop_off = route.get("continuous_drop_off") or ""
+        route_sort_order = int(route.get("route_sort_order")) if route.get("route_sort_order") else 0
+        continuous_pickup = int(route.get("continuous_pickup")) if route.get("continuous_pickup") else 0
+        continuous_drop_off = int(route.get("continuous_drop_off")) if route.get("continuous_drop_off") else 0
         
         ngsi_ld_route = {
             "id": f"urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:{route_id}",
@@ -574,6 +579,7 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
         parent_station = f"urn:ngsi-ld:GtfsStop:{stop.get("parent_station")}" if stop.get("parent_station") else ""
         stop_timezone = stop.get("stop_timezone") or ""
         level = f"urn:ngsi-ld:GtfsLevel:{stop.get("level_id")}" if stop.get("level_id") else ""
+        
         ngsi_ld_stop = {
             "id": f"urn:ngsi-ld:GtfsStop:{stop_id}",
             "type": "GtfsStop",
@@ -614,7 +620,7 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
                 "object": parent_station
             },
             
-            "stop_timezone": {
+            "timezone": {
                 "type": "Property", 
                 "value": stop_timezone
             },
@@ -709,6 +715,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     """
     ngsi_ld_data = []
     for trip in raw_data:
+        
         trip_id = trip.get("trip_id") or str(uuid.uuid4())
         route_id = f"urn:ngsi-ld:GtfsRoute:{trip.get("route_id")}" if trip.get("route_id") else ""
         service_id = f"urn:ngsi-ld:GtfsService:{trip.get("service_id")}" if trip.get("service_id") else ""
@@ -719,6 +726,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
         shape_id = f"urn:ngsi-ld:GtfsShape:{trip.get("shape_id")}" if trip.get("shape_id") else ""
         wheelchair_accessible = int(trip.get("wheelchair_accessible")) if trip.get("wheelchair_accessible") else 0
         bikes_allowed = int(trip.get("bikes_allowed")) if trip.get("bikes_allowed") else 0
+        
         ngsi_ld_trip = {
             "id": f"urn:ngsi-ld:GtfsTrip:{trip_id}",
             "type": "GtfsTrip",
