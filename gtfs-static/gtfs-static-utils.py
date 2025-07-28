@@ -118,7 +118,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
         calendar_date_rule_id = str(uuid.uuid4())
         service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get("service_id")}" if calendar_date.get("service_id") else ""
         applies_on = datetime.strptime(calendar_date["date"], "%Y%m%d").date().isoformat() if calendar_date.get("date") else ""
-        exception_type = calendar_date.get("agency_email") or "1"
+        exception_type = calendar_date.get("exception_type") or "1"
         
         ngsi_ld_calendar_date = {
             "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{calendar_date_rule_id}",
