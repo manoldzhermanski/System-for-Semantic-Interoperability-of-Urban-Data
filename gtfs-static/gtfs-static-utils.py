@@ -116,8 +116,8 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
     for calendar_date in raw_data:
         
         calendar_date_rule_id = str(uuid.uuid4())
-        service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get('service_id')}" if calendar_date.get('service_id') else ""
-        applies_on = datetime.strptime(calendar_date['date'], "%Y%m%d").date().isoformat() if calendar_date.get('date') else ""
+        service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get("service_id")}" if calendar_date.get("service_id") else ""
+        applies_on = datetime.strptime(calendar_date["date"], "%Y%m%d").date().isoformat() if calendar_date.get("date") else ""
         exception_type = calendar_date.get("agency_email") or ""
         
         ngsi_ld_calendar_date = {
@@ -246,7 +246,7 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
         
         pathway_id = pathway.get("pathway_id") or str(uuid.uuid4())
         from_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("from_stop_id")}" if pathway.get("from_stop_id") else ""
-        to_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get('to_stop_id')}" if pathway.get("to_stop_id") else ""
+        to_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("to_stop_id")}" if pathway.get("to_stop_id") else ""
         pathway_mode = int(pathway.get("pathway_mode")) if pathway.get("pathway_mode") else 0
         is_bidirectional = int(pathway.get("is_bidirectional")) if pathway.get("is_bidirectional") else 0
         length = float(pathway.get("length")) if pathway.get("length") else 0.0
@@ -468,63 +468,83 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
     """
     ngsi_ld_data = []
     for stop_time in raw_data:
+        
+        stop_time_id = str(uuid.uuid4())
+        trip_id = f"urn:ngsi-ld:GtfsTrip:{stop_time.get("trip_id")}" if stop_time.get("trip_id") else ""
+        arrival_time = stop_time.get("arrival_time") or ""
+        departure_time = stop_time.get("departure_time") or ""
+        stop_id = f"urn:ngsi-ld:GtfsStop:{stop_time.get("stop_id")}" if stop_time.get("stop_id") else ""
+        stop_sequence = int(stop_time.get("stop_sequence")) if stop_time.get("stop_sequence") else 1
+        stop_headsign = stop_time.get("stop_headsign") or ""
+        pickup_type = stop_time.get("pickup_type") or "0"
+        drop_off_type = stop_time.get("drop_off_type") or "0"
+        shape_dist_traveled = float(stop_time.get("shape_dist_traveled")) if stop_time.get("shape_dist_traveled") else 0.0
+        continuous_pickup = int(stop_time.get("continuous_pickup")) if stop_time.get("continuous_pickup") else 0
+        continuous_drop_off = int(stop_time.get("continuous_drop_off")) if stop_time.get("continuous_drop_off") else 0
+        timepoint = stop_time.get("timepoint") or "1"
+        
         ngsi_ld_stop_time = {
             "id": f"urn:ngsi-ld:GtfsStopTime:{stop_time['trip_id']}",
             "type": "GtfsStopTime",
             
+            "hasTrip": {
+                "type": "Relationship",
+                "object": trip_id
+            },
+            
             "arrivalTime": {
                 "type": "Property", 
-                "value": stop_time.get("arrival_time", "None")
+                "value": arrival_time
             },
             
             "departureTime": {
                 "type": "Property", 
-                "value": stop_time.get("departure_time", "None")
+                "value": departure_time
             },
             
             "hasStop": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsStop:{stop_time.get('stop_id', 'None')}"
+                "object": stop_id
             },
 
             "stopSequence": {
                 "type": "Property", 
-                "value": stop_time.get("stop_sequence", 0)
+                "value": stop_sequence
             },
             
             "stopHeadsign": {
                 "type": "Property", 
-                "value": stop_time.get("stop_headsign", "None")
+                "value": stop_headsign
             },
             
             "pickupType": {
                 "type": "Property", 
-                "value": stop_time.get("pickup_type", "None")
+                "value": pickup_type
             },
             
             "dropOffType": {
                 "type": "Property", 
-                "value": stop_time.get("drop_off_type", "None")
+                "value": drop_off_type
             },
             
             "shapeDistTraveled": {  
                 "type": "Property", 
-                "value": stop_time.get("shape_dist_traveled", [])
+                "value": shape_dist_traveled
             },
             
             "continuousPickup": {
                 "type": "Property", 
-                "value": stop_time.get("continuous_pickup", "None")
+                "value": continuous_pickup
             },
             
             "continuousDropOff": {
                 "type": "Property", 
-                "value": stop_time.get("continuous_drop_off", "None")
+                "value": continuous_drop_off
             },
             
             "timepoint": {
                 "type": "Property", 
-                "value": stop_time.get("timepoint", "None")
+                "value": timepoint
             },
             
             "@context": 
@@ -543,23 +563,34 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     """
     ngsi_ld_data = []
     for stop in raw_data:
+        
+        stop_id = stop.get("stop_id") or str(uuid.uuid4())
+        stop_code = stop.get("stop_code") or ""
+        stop_name = stop.get("stop_name") or ""
+        stop_desc = stop.get("stop_desc") or ""
+        stop_logitude = float(stop.get("stop_lon")) if stop.get("stop_lon") else 0.0
+        stop_latitude = float(stop.get("stop_lat")) if stop.get("stop_lat") else 0.0
+        location_type = int(stop.get("location_type")) if stop.get("location_type") else 0
+        parent_station = f"urn:ngsi-ld:GtfsStop:{stop.get("parent_station")}" if stop.get("parent_station") else ""
+        stop_timezone = stop.get("stop_timezone") or ""
+        level = f"urn:ngsi-ld:GtfsLevel:{stop.get("level_id")}" if stop.get("level_id") else ""
         ngsi_ld_stop = {
-            "id": f"urn:ngsi-ld:GtfsStop:{stop['stop_id']}",
+            "id": f"urn:ngsi-ld:GtfsStop:{stop_id}",
             "type": "GtfsStop",
             
             "code": {
                 "type": "Property", 
-                "value": stop.get("stop_code", "None")
+                "value": stop_code
             },
             
             "name": {
                 "type": "Property", 
-                "value": stop.get("stop_name", "None")
+                "value": stop_name
             },
             
             "description": {
                 "type": "Property", 
-                "value": stop.get("stop_desc", "None")
+                "value": stop_desc
             },
             
             "location": {
@@ -567,30 +598,30 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
                 "value": {
                     "type": "Point",
                     "coordinates": [
-                        float(stop.get("stop_lon", 0.0)),
-                        float(stop.get("stop_lat", 0.0))
+                        stop_logitude,
+                        stop_latitude
                     ]
                 }
             },
             
             "locationType": {
                 "type": "Property", 
-                "value": stop.get("location_type", "None")
+                "value": location_type
             },
             
             "hasParentStation": {  
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsStop:{stop.get('parent_station', 'None')}"
+                "object": parent_station
             },
             
-            "stopTimezone": {
+            "stop_timezone": {
                 "type": "Property", 
-                "value": stop.get("stop_timezone", "None")
+                "value": stop_timezone
             },
             
             "level": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsLevel:{stop.get('level_id', 'None')}"
+                "object": level
             },
             
             "@context": 
@@ -610,12 +641,14 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
     ngsi_ld_data = []
     for transfer in raw_data:
         generated_id = str(uuid.uuid4())
-        from_stop_id = "" if transfer['from_stop_id'] == "" else f"urn:ngsi-ld:GtfsStop:{transfer['from_stop_id']}"
-        to_stop_id = "" if transfer['to_stop_id'] == "" else f"urn:ngsi-ld:GtfsStop:{transfer['to_stop_id']}"
-        from_route_id = "" if transfer['from_route_id'] == "" else f"urn:ngsi-ld:GtfsRoute:{transfer['from_route_id']}"
-        to_route_id = "" if transfer['to_route_id'] == "" else f"urn:ngsi-ld:GtfsRoute:{transfer['to_route_id']}"
-        from_trip_id = "" if transfer['from_trip_id'] == "" else f"urn:ngsi-ld:GtfsTrip:{transfer['from_trip_id']}"
-        to_trip_id = "" if transfer['to_trip_id'] == "" else f"urn:ngsi-ld:GtfsTrip:{transfer['to_trip_id']}"
+        from_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get("from_stop_id")}" if transfer.get("from_stop_id") else ""
+        to_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get("to_stop_id")}" if transfer.get("to_stop_id") else ""
+        from_route_id = f"urn:ngsi-ld:GtfsRoute:{transfer.get("from_route_id")}" if transfer.get("from_route_id") else ""
+        to_route_id = f"urn:ngsi-ld:GtfsRoute:{transfer.get("to_route_id")}" if transfer.get("to_route_id") else ""
+        from_trip_id = f"urn:ngsi-ld:GtfsTrip:{transfer.get("from_trip_id")}" if transfer.get("from_trip_id") else ""        
+        to_trip_id = f"urn:ngsi-ld:GtfsTrip:{transfer.get("to_trip_id")}" if transfer.get("to_trip_id") else ""
+        transfer_type = transfer.get("transfer_type") or "0"
+        min_transfer_time = int(transfer.get("min_transfer_time")) if transfer.get("min_transfer_time") else 1
         
         ngsi_ld_transfer = {
             "id": f"urn:ngsi-ld:GtfsTransferRule:{generated_id}",
@@ -652,12 +685,12 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
             
             "transferType": {
                 "type": "Property",
-                "value": transfer['transfer_type']
+                "value": transfer_type
             },
             
             "minimumTransferTime": {
                 "type": "Property",
-                "value": transfer['min_transfer_time']
+                "value": min_transfer_time
             },
             
             "@context": 
@@ -676,15 +709,20 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     """
     ngsi_ld_data = []
     for trip in raw_data:
-        
-        route_id = "" if trip['route_id'] == "" else f"urn:ngsi-ld:GtfsRoute:{trip['route_id']}"
-        service_id = "" if trip['service_id'] == "" else f"urn:ngsi-ld:GtfsService:{trip['service_id']}"
-        block_id = "" if trip['block_id'] == "" else f"urn:ngsi-ld:GtfsBlock:{trip['block_id']}"
-        shape_id = "" if trip['shape_id'] == "" else f"urn:ngsi-ld:GtfsShape:{trip['shape_id']}"
-        
+        trip_id = trip.get("trip_id") or str(uuid.uuid4())
+        route_id = f"urn:ngsi-ld:GtfsRoute:{trip.get("route_id")}" if trip.get("route_id") else ""
+        service_id = f"urn:ngsi-ld:GtfsService:{trip.get("service_id")}" if trip.get("service_id") else ""
+        trip_headsign = trip.get("trip_headsign") or ""
+        trip_short_name = trip.get("trip_short_name") or ""
+        direction_id = int(trip.get("direction_id")) if trip.get("direction_id") else 0
+        block_id = f"urn:ngsi-ld:GtfsBlock:{trip.get("block_id")}" if trip.get("block_id") else ""
+        shape_id = f"urn:ngsi-ld:GtfsShape:{trip.get("shape_id")}" if trip.get("shape_id") else ""
+        wheelchair_accessible = int(trip.get("wheelchair_accessible")) if trip.get("wheelchair_accessible") else 0
+        bikes_allowed = int(trip.get("bikes_allowed")) if trip.get("bikes_allowed") else 0
         ngsi_ld_trip = {
-            "id": f"urn:ngsi-ld:GtfsTrip:{trip['trip_id']}",
+            "id": f"urn:ngsi-ld:GtfsTrip:{trip_id}",
             "type": "GtfsTrip",
+            
             "route": {
                 "type": "Relationship",
                 "object": route_id
@@ -697,17 +735,17 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
             
             "headSign": {
                 "type": "Property",
-                "value": trip['trip_headsign']
+                "value": trip_headsign
             },
             
             "shortName": {
                 "type": "Property",
-                "value": trip['trip_short_name']
+                "value": trip_short_name
             },
             
             "direction": {
                 "type": "Property",
-                "value": trip['direction_id']
+                "value": direction_id
             },
             
             "block": {
@@ -722,12 +760,12 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
             
             "wheelChairAccessible": {
                 "type": "Property",
-                "value": trip['wheelchair_accessible']
+                "value": wheelchair_accessible
             },
             
             "bikesAllowed": {
                 "type": "Property",
-                "value": trip['bikes_allowed']
+                "value": bikes_allowed
             },
             
             "@context": 
@@ -758,8 +796,8 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "pathways.txt"))
     #ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
     
-    feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "routes.txt"))
-    ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "routes.txt"))
+    #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "shapes.txt"))
     #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
