@@ -146,7 +146,7 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
                     "type": "Property",
                     "value": vehicle_position_occupancy_status
                 }
-            }
+            },
             
             "@context":
                 [
@@ -468,7 +468,7 @@ if __name__ == "__main__":
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
-    print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
+    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
 
     api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_TRIP_UPDATES_URL)
