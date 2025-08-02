@@ -283,12 +283,7 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
     # Iterate through each entity and convert to NGSI-LD format
     for entity in entities:
         # Create the base NGSI-LD entity structure 
-        
-        alert_cause = entity.get('alert').get('cause')
-        alert_effect = entity.get('alert').get('effect')
-        alert_url_translations = entity.get('alert').get('url').get('translation')
-        alert_header_translations = entity.get('alert').get('headerText').get('translation')
-        alert_description_translations = entity.get('alert').get('descriptionText').get('translation')
+        alert_id = entity.get('id') or str(uuid.uuid4())
         alert_active_periods = entity.get('alert').get('activePeriod')
         
         active_periods_list = []
@@ -326,6 +321,10 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
 
             informed_entities_list.append(entity_obj)
         
+        alert_cause = entity.get('alert').get('cause')
+        alert_effect = entity.get('alert').get('effect')
+        
+        alert_url_translations = entity.get('alert').get('url').get('translation')
         alert_url_translation_list = []
         for alert_url_translation in alert_url_translations:
             alert_url_translations_text = alert_url_translation.get('text') or ""
@@ -345,7 +344,7 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
             
             alert_url_translation_list.append(translation)
             
-        
+        alert_header_translations = entity.get('alert').get('headerText').get('translation')
         alert_header_translation_list = []
         for alert_header_translation in alert_header_translations:
             alert_header_translations_text = alert_header_translation.get('text') or ""
@@ -365,7 +364,7 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
             
             alert_header_translation_list.append(translation)
             
-        
+        alert_description_translations = entity.get('alert').get('descriptionText').get('translation')
         alert_description_translation_list = []
         for alert_description_translation in alert_description_translations:
             alert_description_translations_text = alert_description_translation.get('text') or ""
@@ -386,7 +385,7 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
             alert_description_translation_list.append(translation)
         
         ngsi_entity = {
-            "id": f"urn:ngsi-ld:GtfsAlert:{entity.get('id', 'Unknown')}",
+            "id": f"urn:ngsi-ld:GtfsAlert:{alert_id}",
             "type": "GtfsRealtimeAlert",
             "alert": {
                 "type": "Property",
