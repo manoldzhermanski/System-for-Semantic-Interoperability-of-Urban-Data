@@ -80,67 +80,73 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
         ngsi_ld_entity = {
             "id": f"urn:ngsi-ld:GtfsRealtimeVehiclePosition:{vehicle_position_id}",
             "type": "GtfsRealtimeVehiclePosition",
-            
-            "trip_id": {
-                "type": "Relationship",
-                "object": vehicle_position_trip_id
-            },
-            
-            "schedule_relationship": {
-                "type": "Property",
-                "value": vehicle_position_trip_schedule_relationship
-            },
-            
-            "route_id": {
-                "type": "Property",
-                "value": vehicle_position_trip_route_id
-            },
-            
-            "location": {
-                "type": "GeoProperty",
-                "value": {
-                    "type": "Point",
-                    "coordinates": [
-                        longitude,
-                        latitude
-                    ]
-                }
-            },
-            
-            "speed": {
-                "type": "Property",
-                "value": vehicle_position_speed
-            },
-            
-            "current_status": {
-                "type": "Property",
-                "value": vehicle_position_current_status
-            },
-            
-            "timestamp": {
-                "type": "Property",
-                "value": vehicle_position_timestamp
-            },
-            
-            "congestion_level": {
-                "type": "Property",
-                "value": vehicle_position_congestion_level
-            },
-            
-            "stop_id": {
-                "type": "Relationship",
-                "object": vehicle_position_stop_id
-            },
-            
             "vehicle": {
-                "type": "Relationship",
-                "object": vehicle_position_vehicle_id
-            },
-            
-            "occupancy_status": {
-                "type": "Property",
-                "value": vehicle_position_occupancy_status
-            },
+                "trip": {
+                    "trip_id": {
+                        "type": "Relationship",
+                        "object": vehicle_position_trip_id
+                    },
+                    
+                    "schedule_relationship": {
+                        "type": "Property",
+                        "value": vehicle_position_trip_schedule_relationship
+                    },
+                    
+                    "route_id": {
+                        "type": "Relationship",
+                        "object": vehicle_position_trip_route_id
+                    }
+                },
+                "position": {
+                    "type": "Property",
+                    "value": {
+                        "latitude": {
+                            "type": "Property",
+                            "value": latitude
+                        },
+                        
+                        "longitude": {
+                            "type": "Property",
+                            "value": longitude
+                        },
+                        
+                        "speed": {
+                            "type": "Property",
+                            "value": vehicle_position_speed
+                        }
+                    }
+                },
+                
+                "current_status": {
+                    "type": "Property",
+                    "value": vehicle_position_current_status
+                },
+                
+                "timestamp": {
+                    "type": "Property",
+                    "value": vehicle_position_timestamp
+                },
+                
+                "congestion_level": {
+                    "type": "Property",
+                    "value": vehicle_position_congestion_level
+                },
+                
+                "stop_id": {
+                    "type": "Relationship",
+                    "value": vehicle_position_stop_id
+                },
+                
+                "vehicle_id": {
+                    "type": "Relationship",
+                    "object": vehicle_position_vehicle_id
+                },
+                
+                "occupancy_status": {
+                    "type": "Property",
+                    "value": vehicle_position_occupancy_status
+                }
+            }
             
             "@context":
                 [
@@ -462,7 +468,7 @@ if __name__ == "__main__":
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
-    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
+    print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
 
     api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_TRIP_UPDATES_URL)
@@ -477,4 +483,4 @@ if __name__ == "__main__":
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_alerts = gtfs_realtime_alerts_to_ngsi_ld(feed_dict)
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
-    print(json.dumps(ngsi_ld_alerts, indent=2, ensure_ascii=False))
+    #print(json.dumps(ngsi_ld_alerts, indent=2, ensure_ascii=False))

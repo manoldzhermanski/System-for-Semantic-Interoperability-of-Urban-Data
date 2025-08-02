@@ -30,9 +30,9 @@
         "is_deleted": "https://manoldzhermanski.github.io/dataModel.GTFSRealtime/terms/is_deleted",
         "language": "https://smartdatamodels.org/dataModel.UrbanMobility/language",
         "latitude": "https://smartdatamodels.org/dataModel.UrbanMobility/latitude",
-        "location": "https://uri.etsi.org/ngsi-ld/location",
         "longitude": "https://smartdatamodels.org/dataModel.UrbanMobility/longitude",
         "occupancy_status": "https://smartdatamodels.org/dataModel.UrbanMobility/occupancy_status",
+        "position": "https://smartdatamodels.org/dataModel.UrbanMobility/position",
         "route": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsRoute",
         "route_id": "https://smartdatamodels.org/dataModel.UrbanMobility/route_id",
         "schedule_relationship": "https://smartdatamodels.org/dataModel.UrbanMobility/schedule_relationship",
@@ -46,6 +46,7 @@
         "trip_update": "https://smartdatamodels.org/dataModel.UrbanMobility/trip_update",
         "trip": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsTrip",
         "uncertainty": "https://smartdatamodels.org/dataModel.UrbanMobility/uncertainty",
-        "vehicle": "https://smartdatamodels.org/dataModel.Transportation/Vehicle"
+        "vehicle": "https://smartdatamodels.org/dataModel.Transportation/Vehicle",
+        "vehicle_id": "https://smartdatamodels.org/dataModel.UrbanMobility/vehicle_id"
     }
 }
