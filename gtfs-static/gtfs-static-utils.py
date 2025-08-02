@@ -573,7 +573,7 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
         stop_code = stop.get("stop_code") or ""
         stop_name = stop.get("stop_name") or ""
         stop_desc = stop.get("stop_desc") or ""
-        stop_logitude = float(stop.get("stop_lon")) if stop.get("stop_lon") else 0.0
+        stop_longitude = float(stop.get("stop_lon")) if stop.get("stop_lon") else 0.0
         stop_latitude = float(stop.get("stop_lat")) if stop.get("stop_lat") else 0.0
         location_type = int(stop.get("location_type")) if stop.get("location_type") else 0
         parent_station = f"urn:ngsi-ld:GtfsStop:{stop.get("parent_station")}" if stop.get("parent_station") else ""
@@ -604,7 +604,7 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
                 "value": {
                     "type": "Point",
                     "coordinates": [
-                        stop_logitude,
+                        stop_longitude,
                         stop_latitude
                     ]
                 }
