@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
 
 
-def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs-static") -> None:
+def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs_static") -> None:
     """
     Downloads a GTFS-Static ZIP file from the given API URL and extracts its contents to the specified directory.
     """
@@ -103,13 +103,6 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "type": "Property", 
                 "value": agency_email
             },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
         }
         
         # Append every NGSI-LD entity after transformation
