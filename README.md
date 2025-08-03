@@ -8,7 +8,7 @@ The backbone of the system is **FIWARE Orion-LD**, which ensures semantic intero
 
 The system is design to have as input **heterogeneous urban data** from various sources, both static and realtime. Each data source is carefully transformed and semantically annotated to **ensure interoperability and compliance with NGSI-LD, a standard used by the FIWARE ecosystem.** 
 
-Where official FIWARE data models or contexts are missing, we define **custom @context** files to bridge the gap and provide semantic clarity in the transformation from raw formats to NGSI-LD.
+Where official FIWARE data models or contexts are missing, we define **custom data models and @context files** to bridge the gap and provide semantic clarity in the transformation from raw formats to NGSI-LD.
 
 Currently, the system integrates the following type of data:
 
