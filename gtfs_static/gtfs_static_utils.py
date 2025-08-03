@@ -9,11 +9,9 @@ from io import BytesIO
 from typing import Any
 from datetime import datetime
 
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
-
-
+    
 def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs_static") -> None:
     """
     Downloads a GTFS-Static ZIP file from the given API URL and extracts its contents to the specified directory.
@@ -102,7 +100,7 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             "agency_email": {
                 "type": "Property", 
                 "value": agency_email
-            },
+            }
         }
         
         # Append every NGSI-LD entity after transformation
@@ -147,14 +145,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
             "exceptionType": {
                 "type": "Property",
                 "value": exception_type
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         
         # Append every NGSI-LD entity after transformation
@@ -217,14 +208,7 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
             "transfer_duration": {
                 "type" : "Property",
                 "value": transfer_duration
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         
         # Append every NGSI-LD entity after transformation
@@ -262,14 +246,7 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             "level_index": {
                 "type": "Property",
                 "value": level_index
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_level)
@@ -362,14 +339,7 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
             "reversed_signposted_as": {
                 "type": "Property",
                 "value": reversed_signposted_as
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         
         # Append every NGSI-LD entity after transformation
@@ -461,14 +431,7 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             "continuous_drop_off": {
                 "type": "Property", 
                 "value": continuous_drop_off
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_route)
@@ -519,14 +482,7 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             "distanceTravelled": {
                 "type": "Property", 
                 "value": shape_dist_traveled
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         
         # Append every NGSI-LD entity after transformation
@@ -625,14 +581,7 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
             "timepoint": {
                 "type": "Property", 
                 "value": timepoint
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_stop_time)
@@ -713,14 +662,7 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
             "level": {
                 "type": "Relationship",
                 "object": level
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_stop)
@@ -793,14 +735,7 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
             "minimumTransferTime": {
                 "type": "Property",
                 "value": min_transfer_time
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         
         # Append every NGSI-LD entity after transformation
@@ -881,14 +816,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
             "bikesAllowed": {
                 "type": "Property",
                 "value": bikes_allowed
-            },
-            
-            "@context": 
-                [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
-                ]
+            }
         }
         
         # Append every NGSI-LD entity after transformation
@@ -897,6 +825,45 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     # Return the list of NGSI-LD GtfsTrip
     return ngsi_ld_data
     
+    
+def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
+    """
+    Based on the given file_type, the function reads the correct file type
+    and calls the appropriate function for NGSI-LD tranformation
+    Args:
+        file_type: string which specifies which .txt file to be read
+    Allowed values: 
+        agency, calendar_dates, fare_attributes, levels, pathways, routes,
+        shapes, stop_times, stops, transfers, trips
+    Returns:
+        List of the data in the .txt file in NGSI-LD format
+
+    :param file_type: Един от 'agency', 'routes', 'stops' и т.н.
+    :return: Списък с NGSI-LD ентитети (list of dicts)
+    """
+    
+    mapping = {
+        "agency": ("agency.txt", gtfs_static_agency_to_ngsi_ld),
+        "calendar_dates": ("calendar_dates.txt", gtfs_static_calendar_dates_to_ngsi_ld),
+        "fare_attributes": ("fare_attributes.txt", gtfs_static_fare_attributes_to_ngsi_ld),
+        "levels": ("levels.txt", gtfs_static_levels_to_ngsi_ld),
+        "pathways": ("pathways.txt", gtfs_static_pathways_to_ngsi_ld),
+        "routes": ("routes.txt", gtfs_static_routes_to_ngsi_ld),
+        "shapes": ("shapes.txt", gtfs_static_shapes_to_ngsi_ld),
+        "stop_times": ("stop_times.txt", gtfs_static_stop_times_to_ngsi_ld),
+        "stops": ("stops.txt", gtfs_static_stops_to_ngsi_ld),
+        "transfers": ("transfers.txt", gtfs_static_transfers_to_ngsi_ld),
+        "trips": ("trips.txt", gtfs_static_trips_to_ngsi_ld)
+    }
+
+    if file_type not in mapping:
+        raise ValueError(f"Unsupported GTFS static file type: {file_type}")
+
+    filename, transformer = mapping[file_type]
+    filepath = os.path.join("gtfs_static", "data", filename)
+
+    raw_data = gtfs_static_read_file(filepath)
+    return transformer(raw_data)
     
 if __name__ == "__main__":
     #gtfs_static_download_and_extract_zip(config.GTFS_STATIC_ZIP_URL)

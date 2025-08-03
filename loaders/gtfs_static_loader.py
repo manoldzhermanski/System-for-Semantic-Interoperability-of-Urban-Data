@@ -7,7 +7,7 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', 'gtfs_static'))
 sys.path.append(project_root)
 
 from typing import List, Dict, Any
-from gtfs_static_utils import gtfs_static_read_file, gtfs_static_agency_to_ngsi_ld
+from gtfs_static_utils import gtfs_static_get_ngsi_ld_data
 
 ORION_LD_URL = "http://localhost:1026/ngsi-ld/v1/entities"
 HEADERS = {
@@ -31,8 +31,9 @@ def load_entities(entities: List[Dict[str, Any]]):
     for entity in entities:
         post_gtfs_static_entity(entity)
 
-# Примерна употреба
 if __name__ == "__main__":
-    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "agency.txt"))
-    ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
+    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
     load_entities(ngsi_ld_data)
+    
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
+    #load_entities(ngsi_ld_data)
