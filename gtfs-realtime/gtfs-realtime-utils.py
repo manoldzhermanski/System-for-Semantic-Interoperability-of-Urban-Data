@@ -151,7 +151,8 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
             "@context":
                 [
                     "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                    "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-realtime/gtfs-realtime-context.jsonld"
                 ]
             
         }
@@ -268,7 +269,8 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
                       
             "@context": [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-realtime/gtfs-realtime-context.jsonld"
             ]            
         }
         # Append the NGSI-LD entity to the list
@@ -448,7 +450,8 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
                     
                     "@context": [
                         "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                        "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-realtime/gtfs-realtime-context.jsonld"
                     ]
                 },
             }

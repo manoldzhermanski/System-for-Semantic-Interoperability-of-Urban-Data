@@ -101,7 +101,8 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_agency)
@@ -142,7 +143,8 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_calendar_date)
@@ -200,7 +202,8 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_fare)
@@ -234,7 +237,8 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_level)
@@ -324,7 +328,8 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_pathway)
@@ -412,7 +417,8 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_route)
@@ -460,7 +466,8 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_shape)
@@ -555,7 +562,8 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_stop_time)
@@ -633,7 +641,8 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_stop)
@@ -702,7 +711,8 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
         ngsi_ld_data.append(ngsi_ld_transfer)
@@ -712,10 +722,15 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
 def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static trips data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trips.
     """
     ngsi_ld_data = []
     for trip in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         trip_id = trip.get("trip_id") or str(uuid.uuid4())
         route_id = f"urn:ngsi-ld:GtfsRoute:{trip.get("route_id")}" if trip.get("route_id") else ""
         service_id = f"urn:ngsi-ld:GtfsService:{trip.get("service_id")}" if trip.get("service_id") else ""
@@ -727,6 +742,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
         wheelchair_accessible = int(trip.get("wheelchair_accessible")) if trip.get("wheelchair_accessible") else 0
         bikes_allowed = int(trip.get("bikes_allowed")) if trip.get("bikes_allowed") else 0
         
+        # Create the base for the NGSI-LD transformation based on FIWARE's data model and populate it
         ngsi_ld_trip = {
             "id": f"urn:ngsi-ld:GtfsTrip:{trip_id}",
             "type": "GtfsTrip",
@@ -779,10 +795,15 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
             "@context": 
                 [
                 "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_trip)
+        
+    # Return the list of NGSI-LD GtfsTrip
     return ngsi_ld_data
     
     
