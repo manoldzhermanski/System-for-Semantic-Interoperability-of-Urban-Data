@@ -943,3 +943,4 @@ if __name__ == "__main__":
     
     #print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
+    pass
