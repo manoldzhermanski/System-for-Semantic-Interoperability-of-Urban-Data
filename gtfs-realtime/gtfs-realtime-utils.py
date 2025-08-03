@@ -19,18 +19,18 @@ def unix_to_iso8601(ts: int) -> str:
     """
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-def get_gtfs_realtime_feed(api_endpoint: str) -> bytes:
+def get_gtfs_realtime_feed(api_endpoint: config.GtfsSource) -> bytes:
     """
     Based on the API endpoint, sends a GET request to fetch the GTFS-Realtime feed.
     """
     try:
-        response = requests.get(api_endpoint)
+        response = requests.get(api_endpoint.value)
         response.raise_for_status()
         return response.content
     except requests.exceptions.RequestException as e:
-        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint}: {e}")
+        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}")
         
-def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: str = None) -> FeedMessage:
+def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: config.GtfsSource) -> FeedMessage:
     """
     Parses the GTFS-Realtime feed data into a FeedMessage object.
     Provide an optional api_endpoint for debugging purposes.
@@ -39,7 +39,7 @@ def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: str = None) -> Feed
     try:
         feed.ParseFromString(feed_data)
     except DecodeError as e:
-        endpoint_info = f" from {api_endpoint}" if api_endpoint else ""
+        endpoint_info = f" from {api_endpoint.name}" if api_endpoint else ""
         raise ValueError(f"Error parsing GTFS-Realtime feed data from {endpoint_info}: {e}")
     return feed
 
@@ -463,23 +463,23 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
 
 
 if __name__ == "__main__":
-    api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
 
-    api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_TRIP_UPDATES_URL)
-    feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_TRIP_UPDATES_URL)
+    api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_trip_updates = gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_trip_updates, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
-    api_response = get_gtfs_realtime_feed(config.GTFS_REALTIME_ALERTS_URL)
-    feed_data = parse_gtfs_realtime_feed(api_response, config.GTFS_REALTIME_ALERTS_URL)
+    api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
+    feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     ngsi_ld_alerts = gtfs_realtime_alerts_to_ngsi_ld(feed_dict)
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))

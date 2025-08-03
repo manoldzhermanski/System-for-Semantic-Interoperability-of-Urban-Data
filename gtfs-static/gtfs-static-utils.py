@@ -14,15 +14,15 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
 
 
-def gtfs_static_download_and_extract_zip(api_endpoint: str, base_dir: str = "gtfs-static") -> list[str]:
+def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs-static") -> list[str]:
     """
     Downloads a GTFS-Static ZIP file from the given API URL and extracts its contents to the specified directory.
     """
     try:
-        response = requests.get(api_endpoint)
+        response = requests.get(api_endpoint.value)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
-        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint}: {e}") from e
+        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}") from e
 
     # Make directory if it does not exist
     extract_to = os.path.join(base_dir, "data")
