@@ -5,7 +5,7 @@ import requests
 from gtfs_realtime_pb2 import FeedMessage
 from google.protobuf.message import DecodeError
 from google.protobuf.json_format import MessageToDict
-from typing import Any
+from typing import Any, Optional
 from datetime import datetime, timezone
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -15,13 +15,17 @@ import config
 
 def unix_to_iso8601(ts: int) -> str:
     """
-    Convert UNIX timestamp (seconds) to ISO8601 UTC string.
+    Convert UNIX timestamp (seconds) to ISO 8601 UTC string.
     """
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def get_gtfs_realtime_feed(api_endpoint: config.GtfsSource) -> bytes:
     """
     Based on the API endpoint, sends a GET request to fetch the GTFS-Realtime feed.
+    Args:
+        api_endpoint (config.GtfsSource): enum behid which stays an API endpoint for GTFS Realtime data
+    Returns:
+        GTFS Realtime data as .pb
     """
     try:
         response = requests.get(api_endpoint.value)
@@ -30,10 +34,15 @@ def get_gtfs_realtime_feed(api_endpoint: config.GtfsSource) -> bytes:
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}")
         
-def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: config.GtfsSource) -> FeedMessage:
+def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: Optional[config.GtfsSource] = None) -> FeedMessage:
     """
     Parses the GTFS-Realtime feed data into a FeedMessage object.
     Provide an optional api_endpoint for debugging purposes.
+    Args:
+        feed_data (bytes): the .pb data received from the API endpoint
+        api_endpoint (config.GtfsSource): optional parameter to know which API endpoint was tried to be accessed
+    Returns:
+        FeedMessage: GTFS Realtime Feed data
     """
     feed = FeedMessage()
     try:
@@ -46,6 +55,10 @@ def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: config.GtfsSource) 
 def gtfs_realtime_feed_to_dict(feed_data: FeedMessage) -> MessageToDict:
     """
     Converts a FeedMessage object to a dictionary using MessageToDict.
+    Args:
+        feed_data (FeedMessage): GTFS Realtime Feed Data
+    Returns:
+        MessageToDict: Dictionary of GTFS Realtime Feed Data
     """
     feed_dict = MessageToDict(feed_data)
     return feed_dict
@@ -53,6 +66,10 @@ def gtfs_realtime_feed_to_dict(feed_data: FeedMessage) -> MessageToDict:
 def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Converts a GTFS-Realtime Vehicle Position Feed (from MessageToDict) to a list of NGSI-LD entities.
+    Args:
+        feed_dict (dict[str, Any]): Dictionary of feed data
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS Realtime Alert data.
     """
     ngsi_ld_entities = []
 
@@ -62,6 +79,7 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
     # Iterate through each entity and convert to NGSI-LD format
     for entity in entities:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         vehicle_position_id = entity.get("id")  or str(uuid.uuid4())
         vehicle_position_trip_id = f"urn:ngsi-ld:GtfsTrip:{entity.get('vehicle').get('trip').get('tripId')}" if entity.get('vehicle').get('trip').get('tripId') else ""
         vehicle_position_trip_schedule_relationship = entity.get('vehicle').get('trip').get('scheduleRelationship') or ""
@@ -76,7 +94,7 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
         vehicle_position_vehicle_id = f"urn:ngsi-ld:Vehicle:{entity.get('vehicle').get('vehicle').get('id')}" if entity.get('vehicle').get('vehicle').get('id') else ""
         vehicle_position_occupancy_status = entity.get('vehicle').get('occupancyStatus') or ""
         
-        # Create the base NGSI-LD entity structure
+        # Create custom data model and populate it
         ngsi_ld_entity = {
             "id": f"urn:ngsi-ld:GtfsRealtimeVehiclePosition:{vehicle_position_id}",
             "type": "GtfsRealtimeVehiclePosition",
@@ -165,6 +183,10 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
 def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Converts a GTFS-Realtime Trip Update feed (from MessageToDict) to a list of NGSI-LD entities.
+    Args:
+        feed_dict (dict[str, Any]): Dictionary of feed data
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS Realtime Alert data.
     """
     ngsi_ld_entities = []
 
@@ -174,6 +196,7 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
     # Iterate through each entity and convert to NGSI-LD format
     for entity in entities:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         trip_update_id = entity.get('id') or str(uuid.uuid4())
         trip_update_is_deleted = entity.get('isDeleted') or False
         trip_udate_trip_id = f"urn:ngsi-ld:GtfsTrip:{entity.get('tripUpdate').get('trip').get('tripId')}" if entity.get('tripUpdate').get('trip').get('tripId') else ""
@@ -227,7 +250,7 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
             # Append the stop time entity to the list
             stop_time_updates_list.append(stop_time_entity)
                 
-        # Create the base NGSI-LD entity structure
+        # Create custom data model and populate it
         ngsi_entity = {
             "id": f"urn:ngsi-ld:GtfsTripUpdate:{trip_update_id}",
             "type": "GtfsRealtimeTripUpdate",
@@ -282,6 +305,11 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
 def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Converts a GTFS-Realtime alerts feed (from MessageToDict) to a list of NGSI-LD entities.
+    Args:
+        feed_dict (dict[str, Any]): Dictionary of feed data
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS Realtime Alert data.
+    
     """
     ngsi_ld_entities = []
 
@@ -290,13 +318,19 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
 
     # Iterate through each entity and convert to NGSI-LD format
     for entity in entities:
-        # Create the base NGSI-LD entity structure 
+        
+        # Set alert id
         alert_id = entity.get('id') or str(uuid.uuid4())
+        
+        # Get alert active periods
         alert_active_periods = entity.get('alert').get('activePeriod')
         
         active_periods_list = []
+        
+        # Traverse through all start and end active periods
         for active_period in alert_active_periods:
-                
+            
+            # Turn into ISO 8601 date format    
             start_of_period = unix_to_iso8601(int(active_period.get('start'))) if active_period.get('start') else ""
             end_of_period = unix_to_iso8601(int(active_period.get('end'))) if active_period.get('end') else ""
                 
@@ -311,11 +345,14 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
                 }
             }
 
+            # Append active periods
             active_periods_list.append(period)
         
+        # Get informed entities
         informed_entities = entity.get('alert').get('informedEntity')
         informed_entities_list = []
         
+        # Iterate through all routes in the informedEntity
         for informed_entity in informed_entities:
             
             route_id = f"urn:ngsi-ld:GtfsRoute:{informed_entity.get('routeId')}" if informed_entity.get('routeId') else ""
@@ -326,15 +363,20 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
                     "object": route_id
                 }
             }
-
+            # Append the routes from informedEntity
             informed_entities_list.append(entity_obj)
         
+        # Get cause and effect of the alert
         alert_cause = entity.get('alert').get('cause')
         alert_effect = entity.get('alert').get('effect')
         
+        # Get Url text translation    
         alert_url_translations = entity.get('alert').get('url').get('translation')
         alert_url_translation_list = []
+        
+        # Iterate through url translations
         for alert_url_translation in alert_url_translations:
+            
             alert_url_translations_text = alert_url_translation.get('text') or ""
             alert_url_translations_language = alert_url_translation.get('language') or ""
             
@@ -349,12 +391,16 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
                     "value": alert_url_translations_language
                 }
             }
-            
+            # Append trnaslation
             alert_url_translation_list.append(translation)
             
+        # Get Header text translation    
         alert_header_translations = entity.get('alert').get('headerText').get('translation')
         alert_header_translation_list = []
+        
+        # Iterate through the header translations
         for alert_header_translation in alert_header_translations:
+            
             alert_header_translations_text = alert_header_translation.get('text') or ""
             alert_header_translations_language = alert_header_translation.get('language') or ""
             
@@ -370,11 +416,16 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
                 }
             }
             
+            # Append translation
             alert_header_translation_list.append(translation)
-            
+        
+        # Get Description text translation    
         alert_description_translations = entity.get('alert').get('descriptionText').get('translation')
         alert_description_translation_list = []
+        
+        # Iterate though the alert description translations
         for alert_description_translation in alert_description_translations:
+            
             alert_description_translations_text = alert_description_translation.get('text') or ""
             alert_description_translations_language = alert_description_translation.get('language') or ""
             
@@ -389,9 +440,11 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
                     "value": alert_description_translations_language
                 }
             }
-            
+
+            # Append translation
             alert_description_translation_list.append(translation)
         
+        # Create custom data model
         ngsi_entity = {
             "id": f"urn:ngsi-ld:GtfsAlert:{alert_id}",
             "type": "GtfsRealtimeAlert",
@@ -457,7 +510,6 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
             }
         }
 
-        
         # Append the NGSI-LD entity to the list
         ngsi_ld_entities.append(ngsi_entity)
 

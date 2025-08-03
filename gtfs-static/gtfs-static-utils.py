@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
 
 
-def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs-static") -> list[str]:
+def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs-static") -> None:
     """
     Downloads a GTFS-Static ZIP file from the given API URL and extracts its contents to the specified directory.
     """
@@ -46,10 +46,15 @@ def gtfs_static_read_file(file_path: str) -> list[dict[str, Any]]:
 def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static agency data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
     for agency in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         agency_id = agency.get("agency_id") or str(uuid.uuid4())
         agency_name = agency.get("agency_name") or ""
         source = agency.get("source") or ""
@@ -59,6 +64,7 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         agency_phone = agency.get("agency_phone") or ""
         agency_email = agency.get("agency_email") or ""
         
+        # Populate FIWARE's data model
         ngsi_ld_agency = {
             "id": f"urn:ngsi-ld:GtfsAgency:{agency_id}",
             "type": "GtfsAgency",
@@ -105,22 +111,32 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_agency)
+        
+    # Return the list of NGSI-LD GtfsAgency
     return ngsi_ld_data
     
     
 def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static Calendar Date Rule attributes data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
     for calendar_date in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         calendar_date_rule_id = str(uuid.uuid4())
         service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get("service_id")}" if calendar_date.get("service_id") else ""
         applies_on = datetime.strptime(calendar_date["date"], "%Y%m%d").date().isoformat() if calendar_date.get("date") else ""
         exception_type = calendar_date.get("exception_type") or "1"
         
+        # Populate FIWARE's data model
         ngsi_ld_calendar_date = {
             "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{calendar_date_rule_id}",
             "type": "GtfsCalendarDateRule",
@@ -147,17 +163,26 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_calendar_date)
+        
+    # Return the list of NGSI-LD GtfsCalendarDateRule
     return ngsi_ld_data
     
     
 def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static fare attributes data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
     for fare in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         fare_id = fare.get("fare_id") or str(uuid.uuid4())
         price = float(fare.get("price")) or 0.0
         currency_type = fare.get("currency_type") or ""
@@ -165,6 +190,8 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
         transfers = int(fare.get("transfers")) or 0
         agency = f"urn:ngsi-ld:GtfsAgency:{fare.get("agency_id")}" if fare.get("agency_id") else ""
         transfer_duration = int(fare.get("transfer_duration")) if fare.get("transfer_duration") else 0
+        
+        # Create custom NGSI-LD data model and populate it
         ngsi_ld_fare = {
             "id": f"urn:ngsi-ld:GtfsFareAttributes:{fare_id}",
             "type": "GtfsFareAttributes",
@@ -206,21 +233,31 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_fare)
+        
+    # Return the list of NGSI-LD GtfsFareAttributes
     return ngsi_ld_data
 
 
 def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static level data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
     for level in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         level_id = level.get("level_id") or str(uuid.uuid4())
         level_name = level.get("level_name") or ""
         level_index = int(level.get("level_index")) or ""
         
+        # Create custom NGSI-LD data model and populate it
         ngsi_ld_level = {
             "id": f"urn:ngsi-ld:GtfsLevel:{level_id}",
             "type": "GtfsLevel",
@@ -241,18 +278,26 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_level)
+        
+    # Return the list of NGSI-LD GtfsLevel
     return ngsi_ld_data
     
     
 def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static pathways data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     
     ngsi_ld_data = []
     for pathway in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         pathway_id = pathway.get("pathway_id") or str(uuid.uuid4())
         from_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("from_stop_id")}" if pathway.get("from_stop_id") else ""
         to_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("to_stop_id")}" if pathway.get("to_stop_id") else ""
@@ -266,6 +311,7 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
         signposted_as = pathway.get("signposted_as") or ""
         reversed_signposted_as = pathway.get("reversed_signposted_as") or ""
         
+        # Create custom NGSI-LD data model and populate it
         ngsi_ld_pathway = {
             "id": f"urn:ngsi-ld:GtfsPathway:{pathway_id}",
             "type": "GtfsPathway",
@@ -332,17 +378,26 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_pathway)
+        
+    # Return the list of NGSI-LD GtfsPathway
     return ngsi_ld_data
     
     
 def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static routes data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
     for route in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         route_id = route.get("route_id") or str(uuid.uuid4())
         route_short_name = route.get("route_short_name") or ""
         route_long_name = route.get("route_long_name") or ""
@@ -355,6 +410,7 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         continuous_pickup = int(route.get("continuous_pickup")) if route.get("continuous_pickup") else 0
         continuous_drop_off = int(route.get("continuous_drop_off")) if route.get("continuous_drop_off") else 0
         
+        # Populate FIWARE's data model
         ngsi_ld_route = {
             "id": f"urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:{route_id}",
             "type": "GtfsRoute",
@@ -421,23 +477,32 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_route)
+        
+    # Return the list of NGSI-LD GtfsRoute
     return ngsi_ld_data
 
 
 def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static shapes data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
     for shape in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         shape_id = shape.get("shape_id") or str(uuid.uuid4())
         location_logitude = float(shape.get("shape_pt_lon")) if shape.get("shape_pt_lon") else 0.0
         location_latitude = float(shape.get("shape_pt_lat")) if shape.get("shape_pt_lat") else 0.0
         shape_pt_sequence = int(shape.get("shape_pt_sequence")) if shape.get("shape_pt_sequence") else 0
         shape_dist_traveled = float(shape.get("shape_dist_traveled")) if shape.get("shape_dist_traveled") else 0.0
         
+        # Populate FIWARE's data model
         ngsi_ld_shape = {
             "id": f"urn:ngsi-ld:GtfsShape:{shape_id}",
             "type": "GtfsShape",
@@ -470,17 +535,26 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_shape)
+        
+    # Return the list of NGSI-LD GtfsShape
     return ngsi_ld_data
 
 
 def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static stop times data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
     for stop_time in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         stop_time_id = str(uuid.uuid4())
         trip_id = f"urn:ngsi-ld:GtfsTrip:{stop_time.get("trip_id")}" if stop_time.get("trip_id") else ""
         arrival_time = stop_time.get("arrival_time") or ""
@@ -495,6 +569,7 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
         continuous_drop_off = int(stop_time.get("continuous_drop_off")) if stop_time.get("continuous_drop_off") else 0
         timepoint = stop_time.get("timepoint") or "1"
         
+        # Populate FIWARE's data model
         ngsi_ld_stop_time = {
             "id": f"urn:ngsi-ld:GtfsStopTime:{stop_time['trip_id']}",
             "type": "GtfsStopTime",
@@ -566,17 +641,25 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_stop_time)
+        
+    # Return the list of NGSI-LD GtfsStopTime
     return ngsi_ld_data
 
 
 def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static stops data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
     for stop in raw_data:
         
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         stop_id = stop.get("stop_id") or str(uuid.uuid4())
         stop_code = stop.get("stop_code") or ""
         stop_name = stop.get("stop_name") or ""
@@ -588,6 +671,7 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
         stop_timezone = stop.get("stop_timezone") or ""
         level = f"urn:ngsi-ld:GtfsLevel:{stop.get("level_id")}" if stop.get("level_id") else ""
         
+        # Populate FIWARE's data model
         ngsi_ld_stop = {
             "id": f"urn:ngsi-ld:GtfsStop:{stop_id}",
             "type": "GtfsStop",
@@ -645,16 +729,25 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_stop)
+    
+    # Return the list of NGSI-LD GtfsStop
     return ngsi_ld_data
 
 
 def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static transfers data to NGSI-LD format.
+    Args:
+        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+    Returns:
+        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trips
     """
     ngsi_ld_data = []
     for transfer in raw_data:
+        
+        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         generated_id = str(uuid.uuid4())
         from_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get("from_stop_id")}" if transfer.get("from_stop_id") else ""
         to_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get("to_stop_id")}" if transfer.get("to_stop_id") else ""
@@ -665,6 +758,7 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
         transfer_type = transfer.get("transfer_type") or "0"
         min_transfer_time = int(transfer.get("min_transfer_time")) if transfer.get("min_transfer_time") else 1
         
+        # Populate FIWARE's data model
         ngsi_ld_transfer = {
             "id": f"urn:ngsi-ld:GtfsTransferRule:{generated_id}",
             "type": "GtfsTransferRule",
@@ -715,7 +809,11 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
                 "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
                 ]
         }
+        
+        # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_transfer)
+        
+    # Return the list of NGSI-LD GtfsTransferRule
     return ngsi_ld_data
 
 
@@ -742,7 +840,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
         wheelchair_accessible = int(trip.get("wheelchair_accessible")) if trip.get("wheelchair_accessible") else 0
         bikes_allowed = int(trip.get("bikes_allowed")) if trip.get("bikes_allowed") else 0
         
-        # Create the base for the NGSI-LD transformation based on FIWARE's data model and populate it
+        # Populate FIWARE's data model
         ngsi_ld_trip = {
             "id": f"urn:ngsi-ld:GtfsTrip:{trip_id}",
             "type": "GtfsTrip",
@@ -843,5 +941,5 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "trips.txt"))
     #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
     
-    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
+    #print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
