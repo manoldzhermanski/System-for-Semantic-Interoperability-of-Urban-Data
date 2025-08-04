@@ -868,37 +868,37 @@ def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
 if __name__ == "__main__":
     gtfs_static_download_and_extract_zip(config.GtfsSource.GTFS_STATIC_ZIP_URL)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "agency.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "agency.txt"))
     #ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "calendar_dates.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "calendar_dates.txt"))
     #ngsi_ld_data = gtfs_static_calendar_dates_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "fare_attributes.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "fare_attributes.txt"))
     #ngsi_ld_data = gtfs_static_fare_attributes_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "levels.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "levels.txt"))
     #ngsi_ld_data = gtfs_static_levels_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "pathways.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "pathways.txt"))
     #ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "routes.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "shapes.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
     #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "stop_times.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stop_times.txt"))
     #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "stops.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stops.txt"))
     #ngsi_ld_data = gtfs_static_stops_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "transfers.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "transfers.txt"))
     #ngsi_ld_data = gtfs_static_transfers_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "trips.txt"))
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "trips.txt"))
     #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
     
     #print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
