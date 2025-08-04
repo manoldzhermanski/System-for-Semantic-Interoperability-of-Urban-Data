@@ -866,7 +866,7 @@ def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
     return transformer(raw_data)
     
 if __name__ == "__main__":
-    #gtfs_static_download_and_extract_zip(config.GTFS_STATIC_ZIP_URL)
+    gtfs_static_download_and_extract_zip(config.GtfsSource.GTFS_STATIC_ZIP_URL)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs-static", "data", "agency.txt"))
     #ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
