@@ -1,6 +1,7 @@
 import requests
 import sys
 import os
+import json
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', 'gtfs_static'))
@@ -31,9 +32,54 @@ def load_entities(entities: List[Dict[str, Any]]):
     for entity in entities:
         post_gtfs_static_entity(entity)
 
+# GET functions
+
+def get_gtfs_static_entities_by_gtfs_type() -> None:
+
+    params = {
+    "type": "GtfsCalendarDateRule",
+    "options": "count"
+    }
+
+    try:
+        response = requests.get(ORION_LD_URL, headers=HEADERS, params=params)
+        response.raise_for_status()
+        data = response.json()
+        print(json.dumps(data, indent=2, ensure_ascii=False))
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP грешка: {http_err} - Отговор: {response.text}")
+
+    except requests.exceptions.ConnectionError:
+        print("Грешка: Няма връзка с Orion-LD брокера.")
+
+    except requests.exceptions.Timeout:
+        print("Грешка: Времето за отговор изтече.")
+
+    except requests.exceptions.RequestException as err:
+        print(f"Непредвидена грешка при заявката: {err}")
+
+# DELETE functions
+
+
 if __name__ == "__main__":
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
-    load_entities(ngsi_ld_data)
-    
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
-    #load_entities(ngsi_ld_data)
+    
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("calendar_dates")
+
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("fare_attributes")
+
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("levels")
+
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("pathways")
+
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
+
+    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
+
+    load_entities(ngsi_ld_data)
+
+
+
+    #get_gtfs_static_entities_by_gtfs_type()
+    pass

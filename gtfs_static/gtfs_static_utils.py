@@ -122,14 +122,13 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
     for calendar_date in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        calendar_date_rule_id = str(uuid.uuid4())
         service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get("service_id")}" if calendar_date.get("service_id") else ""
         applies_on = datetime.strptime(calendar_date["date"], "%Y%m%d").date().isoformat() if calendar_date.get("date") else ""
         exception_type = calendar_date.get("exception_type") or "1"
         
         # Populate FIWARE's data model
         ngsi_ld_calendar_date = {
-            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{calendar_date_rule_id}",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:Sofia:{calendar_date.get("service_id")}:{calendar_date.get("date")}",
             "type": "GtfsCalendarDateRule",
             
             "hasService": {
@@ -460,9 +459,14 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         
         # Populate FIWARE's data model
         ngsi_ld_shape = {
-            "id": f"urn:ngsi-ld:GtfsShape:{shape_id}",
+            "id": f"urn:ngsi-ld:GtfsShape:{shape_id}:{shape_pt_sequence}",
             "type": "GtfsShape",
             
+            "name": {
+                "type": "Property",
+                "value": shape_id
+            },
+
             "location": {
                 "type": "GeoProperty",
                 "value": {
@@ -886,8 +890,8 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
-    #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
+    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
+    ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stop_times.txt"))
     #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
@@ -901,6 +905,5 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "trips.txt"))
     #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
     
-    #print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
+    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
-    pass
