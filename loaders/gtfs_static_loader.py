@@ -75,7 +75,9 @@ if __name__ == "__main__":
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
+
+    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
 
     load_entities(ngsi_ld_data)
 

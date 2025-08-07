@@ -890,8 +890,8 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
-    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
-    ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
+    #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stop_times.txt"))
     #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
@@ -905,5 +905,6 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "trips.txt"))
     #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
     
-    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
+    #print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
+    pass
