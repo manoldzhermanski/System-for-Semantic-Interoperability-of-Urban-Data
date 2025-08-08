@@ -1,7 +1,7 @@
 import requests
 
 ORION_LD_URL = "http://localhost:1026"
-ENTITY_TYPE = "GtfsShape"
+ENTITY_TYPE = "GtfsStopTime"
 CONTEXT_URL = "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld"
 
 HEADERS_GET = {
@@ -37,6 +37,6 @@ def delete_all_entities_of_type(entity_type):
             print(f"❌ Неуспех при изтриване: {entity_id}")
 
 if __name__ == "__main__":
-    for i in range(0, 60):
+    for i in range(0, 180):
         print(f"Iteration {i + 1}")
         delete_all_entities_of_type(ENTITY_TYPE)
