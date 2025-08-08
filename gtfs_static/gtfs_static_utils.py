@@ -524,7 +524,7 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
         
         # Populate FIWARE's data model
         ngsi_ld_stop_time = {
-            "id": f"urn:ngsi-ld:GtfsStopTime:{stop_time['trip_id']}",
+            "id": f"urn:ngsi-ld:GtfsStopTime:{stop_time['trip_id']}:{stop_time['stop_sequence']}",
             "type": "GtfsStopTime",
             
             "hasTrip": {

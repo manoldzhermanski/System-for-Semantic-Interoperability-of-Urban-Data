@@ -1,5 +1,5 @@
 .env
-/venv
+venv
 gtfs_realtime_pb2.py
 gtfs_static/data
 __pycache__
