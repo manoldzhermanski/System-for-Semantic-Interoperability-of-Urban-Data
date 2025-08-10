@@ -5,8 +5,10 @@ import json
 import time
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(script_dir, '..', 'gtfs_static'))
-sys.path.append(project_root)
+project_root = os.path.abspath(os.path.join(script_dir, '..'))
+
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from typing import List, Dict, Any
 from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
@@ -20,23 +22,6 @@ HEADERS = {
 
 # POST Requests
 
-def post_gtfs_static_entity(entity: Dict[str, Any]) -> None:
-    try:
-        response = requests.post(ORION_LD_BATCH_CREATE_URL, json=entity, headers=HEADERS)
-        if response.status_code == 201:
-            print(f"Entity {entity['id']} created successfully.")
-        elif response.status_code == 409:
-            print(f"Entity {entity['id']} already exists.")
-        else:
-            print(f"Failed to create {entity['id']}: {response.status_code} {response.text}")
-    except requests.RequestException as e:
-        print(f"Request error while creating entity {entity.get('id')}: {e}")
-
-def load_entities(entities: List[Dict[str, Any]], delay: float = 0):
-    for entity in entities:
-        post_gtfs_static_entity(entity)
-        time.sleep(delay)
-
 def gtfs_static_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]]):
     entities_ids = [entity['id'] for entity in batch_ngsi_ld_data]
     entities_ids = "\n".join(entities_ids)
@@ -45,7 +30,7 @@ def gtfs_static_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]]):
         if response.status_code == 201:
             print(f"Created batch of {len(batch_ngsi_ld_data)} entities:\n{entities_ids}\n")
         else:
-            print(f"Failed to create entities {response.status_code}")
+            print(f"Failed to create entities {response.status_code} {response.text}")
     except  requests.RequestException as e:
         print(f"GTFS Static Batch POST Request Error: {e}")
     
@@ -77,11 +62,15 @@ if __name__ == "__main__":
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
+    
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stops")
+    
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("transfers")
+    
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("trips")
 
-    #load_entities(ngsi_ld_data)
-
-    gtfs_static_batch_load_to_context_broker(ngsi_ld_data)
+    #gtfs_static_batch_load_to_context_broker(ngsi_ld_data)
 
 
     #get_gtfs_static_entities_by_gtfs_type()

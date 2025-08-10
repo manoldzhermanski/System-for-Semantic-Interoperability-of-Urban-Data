@@ -17,7 +17,10 @@ def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_d
     Downloads a GTFS-Static ZIP file from the given API URL and extracts its contents to the specified directory.
     """
     try:
-        response = requests.get(api_endpoint.value)
+        url = api_endpoint.value or ""
+        if url == "":
+            raise ValueError(f"API endpoint for {api_endpoint.name} is not set.")
+        response = requests.get(url)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}") from e
@@ -53,14 +56,14 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     for agency in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        agency_id = agency.get("agency_id") or str(uuid.uuid4())
-        agency_name = agency.get("agency_name") or ""
-        source = agency.get("source") or ""
-        agency_url = agency.get("agency_url") or ""
-        agency_timezone = agency.get("agency_timezone") or ""
-        agency_lang = agency.get("agency_lang") or ""
-        agency_phone = agency.get("agency_phone") or ""
-        agency_email = agency.get("agency_email") or ""
+        agency_id = agency.get("agency_id")
+        agency_name = agency.get("agency_name") or None
+        source = agency.get("source") or None
+        agency_url = agency.get("agency_url") or None
+        agency_timezone = agency.get("agency_timezone") or None
+        agency_lang = agency.get("agency_lang") or None
+        agency_phone = agency.get("agency_phone") or None 
+        agency_email = agency.get("agency_email") or None
         
         # Populate FIWARE's data model
         ngsi_ld_agency = {
@@ -103,6 +106,12 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             }
         }
         
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_agency = {
+            k: v for k, v in ngsi_ld_agency.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_agency)
         
@@ -122,13 +131,13 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
     for calendar_date in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get("service_id")}" if calendar_date.get("service_id") else ""
-        applies_on = datetime.strptime(calendar_date["date"], "%Y%m%d").date().isoformat() if calendar_date.get("date") else ""
-        exception_type = calendar_date.get("exception_type") or "1"
+        service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get("service_id")}" if calendar_date.get("service_id") else None
+        applies_on = datetime.strptime(calendar_date["date"], "%Y%m%d").date().isoformat() if calendar_date.get("date") else None
+        exception_type = calendar_date.get("exception_type") or None
         
         # Populate FIWARE's data model
         ngsi_ld_calendar_date = {
-            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:Sofia:{calendar_date.get("service_id")}:{calendar_date.get("date")}",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:Sofia:{calendar_date.get("service_id")}:{applies_on}",
             "type": "GtfsCalendarDateRule",
             
             "hasService": {
@@ -145,6 +154,12 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
                 "type": "Property",
                 "value": exception_type
             }
+        }
+        
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_calendar_date = {
+            k: v for k, v in ngsi_ld_calendar_date.items()
+            if not (isinstance(v, dict) and None in v.values())
         }
         
         # Append every NGSI-LD entity after transformation
@@ -166,13 +181,13 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
     for fare in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        fare_id = fare.get("fare_id") or str(uuid.uuid4())
-        price = float(fare.get("price")) or 0.0
-        currency_type = fare.get("currency_type") or ""
-        payment_method = int(fare.get("payment_method")) if fare.get("payment_method") else 1
-        transfers = int(fare.get("transfers")) or 0
-        agency = f"urn:ngsi-ld:GtfsAgency:{fare.get("agency_id")}" if fare.get("agency_id") else ""
-        transfer_duration = int(fare.get("transfer_duration")) if fare.get("transfer_duration") else 0
+        fare_id = fare.get("fare_id")
+        price = float(fare["price"]) if fare.get("price") not in (None, "") else None
+        currency_type = fare.get("currency_type") or None
+        payment_method = int(fare["payment_method"]) if fare.get("payment_method") not in (None, "") else None
+        transfers = int(fare["transfers"]) if fare.get("transfers") not in (None, "") else None
+        agency = f"urn:ngsi-ld:GtfsAgency:{fare.get("agency_id")}" if fare.get("agency_id") else None
+        transfer_duration = int(fare["transfer_duration"]) if fare.get("transfer_duration") not in (None, "") else None
         
         # Create custom NGSI-LD data model and populate it
         ngsi_ld_fare = {
@@ -210,6 +225,12 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
             }
         }
         
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_fare = {
+            k: v for k, v in ngsi_ld_fare.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_fare)
         
@@ -229,9 +250,9 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     for level in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        level_id = level.get("level_id") or str(uuid.uuid4())
-        level_name = level.get("level_name") or ""
-        level_index = int(level.get("level_index")) or ""
+        level_id = level.get("level_id")
+        level_name = level.get("level_name") or None
+        level_index = int(level["level_index"]) if level.get("level_index") not in (None, "") else None
         
         # Create custom NGSI-LD data model and populate it
         ngsi_ld_level = {
@@ -247,6 +268,13 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "value": level_index
             }
         }
+        
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_level = {
+            k: v for k, v in ngsi_ld_level.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_level)
         
@@ -267,18 +295,18 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
     for pathway in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        pathway_id = pathway.get("pathway_id") or str(uuid.uuid4())
-        from_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("from_stop_id")}" if pathway.get("from_stop_id") else ""
-        to_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("to_stop_id")}" if pathway.get("to_stop_id") else ""
-        pathway_mode = int(pathway.get("pathway_mode")) if pathway.get("pathway_mode") else 0
-        is_bidirectional = int(pathway.get("is_bidirectional")) if pathway.get("is_bidirectional") else 0
-        length = float(pathway.get("length")) if pathway.get("length") else 0.0
-        traversal_time = float(pathway.get("traversal_time")) if pathway.get("traversal_time") else 0.0
-        stair_count = int(pathway.get("stair_count")) if pathway.get("stair_count") else 0
-        max_slope = float(pathway.get("max_slope")) if pathway.get("max_slope") else 0.0
-        min_width = float(pathway.get("min_width")) if pathway.get("min_width") else 0.0
-        signposted_as = pathway.get("signposted_as") or ""
-        reversed_signposted_as = pathway.get("reversed_signposted_as") or ""
+        pathway_id = pathway.get("pathway_id")
+        from_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("from_stop_id")}" if pathway.get("from_stop_id") else None
+        to_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("to_stop_id")}" if pathway.get("to_stop_id") else None
+        pathway_mode = int(pathway["pathway_mode"]) if pathway.get("pathway_mode") not in (None, "") else None
+        is_bidirectional = int(pathway["is_bidirectional"]) if pathway.get("is_bidirectional") not in (None, "") else None
+        length = float(pathway["length"]) if pathway.get("length") not in (None, "") else None
+        traversal_time = float(pathway["traversal_time"]) if pathway.get("traversal_time") not in (None, "") else None
+        stair_count = int(pathway["stair_count"]) if pathway.get("stair_count") not in (None, "") else None
+        max_slope = float(pathway["max_slope"]) if pathway.get("max_slope") not in (None, "") else None
+        min_width = float(pathway["min_width"]) if pathway.get("min_width") not in (None, "") else None
+        signposted_as = pathway.get("signposted_as") or None
+        reversed_signposted_as = pathway.get("reversed_signposted_as") or None
         
         # Create custom NGSI-LD data model and populate it
         ngsi_ld_pathway = {
@@ -341,6 +369,12 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
             }
         }
         
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_pathway = {
+            k: v for k, v in ngsi_ld_pathway.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_pathway)
         
@@ -360,17 +394,17 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     for route in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        route_id = route.get("route_id") or str(uuid.uuid4())
-        route_short_name = route.get("route_short_name") or ""
-        route_long_name = route.get("route_long_name") or ""
-        route_desc = route.get("route_desc") or ""
-        route_type = route.get("route_type") or "0"
-        route_url = route.get("route_url") or ""
-        route_color = route.get("route_color") or ""
-        route_text_color = route.get("route_text_color") or ""
-        route_sort_order = int(route.get("route_sort_order")) if route.get("route_sort_order") else 0
-        continuous_pickup = int(route.get("continuous_pickup")) if route.get("continuous_pickup") else 0
-        continuous_drop_off = int(route.get("continuous_drop_off")) if route.get("continuous_drop_off") else 0
+        route_id = route.get("route_id")
+        route_short_name = route.get("route_short_name") or None
+        route_long_name = route.get("route_long_name") or None
+        route_desc = route.get("route_desc") or None
+        route_type = route.get("route_type") or None
+        route_url = route.get("route_url") or None
+        route_color = route.get("route_color") or None
+        route_text_color = route.get("route_text_color") or None
+        route_sort_order = int(route["route_sort_order"]) if route.get("route_sort_order") not in (None, "") else None
+        continuous_pickup = int(route["continuous_pickup"]) if route.get("continuous_pickup") not in (None, "") else None
+        continuous_drop_off = int(route["continuous_drop_off"]) if route.get("continuous_drop_off") not in (None, "") else None
         
         # Populate FIWARE's data model
         ngsi_ld_route = {
@@ -432,6 +466,13 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "value": continuous_drop_off
             }
         }
+        
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_route = {
+            k: v for k, v in ngsi_ld_route.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_route)
         
@@ -451,11 +492,11 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     for shape in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        shape_id = shape.get("shape_id") or str(uuid.uuid4())
-        location_logitude = float(shape.get("shape_pt_lon")) if shape.get("shape_pt_lon") else 0.0
-        location_latitude = float(shape.get("shape_pt_lat")) if shape.get("shape_pt_lat") else 0.0
-        shape_pt_sequence = int(shape.get("shape_pt_sequence")) if shape.get("shape_pt_sequence") else 0
-        shape_dist_traveled = float(shape.get("shape_dist_traveled")) if shape.get("shape_dist_traveled") else 0.0
+        shape_id = shape.get("shape_id")
+        location_logitude = float(shape["shape_pt_lon"]) if shape.get("shape_pt_lon") not in (None, "") else None
+        location_latitude = float(shape["shape_pt_lat"]) if shape.get("shape_pt_lat") not in (None, "") else None
+        shape_pt_sequence = int(shape["shape_pt_sequence"]) if shape.get("shape_pt_sequence") not in (None, "") else None
+        shape_dist_traveled = float(shape["shape_dist_traveled"]) if shape.get("shape_dist_traveled") not in (None, "") else None
         
         # Populate FIWARE's data model
         ngsi_ld_shape = {
@@ -489,6 +530,12 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             }
         }
         
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_shape = {
+            k: v for k, v in ngsi_ld_shape.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_shape)
         
@@ -508,19 +555,18 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
     for stop_time in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        stop_time_id = str(uuid.uuid4())
-        trip_id = f"urn:ngsi-ld:GtfsTrip:{stop_time.get("trip_id")}" if stop_time.get("trip_id") else ""
-        arrival_time = stop_time.get("arrival_time") or ""
-        departure_time = stop_time.get("departure_time") or ""
-        stop_id = f"urn:ngsi-ld:GtfsStop:{stop_time.get("stop_id")}" if stop_time.get("stop_id") else ""
-        stop_sequence = int(stop_time.get("stop_sequence")) if stop_time.get("stop_sequence") else 1
-        stop_headsign = stop_time.get("stop_headsign") or ""
-        pickup_type = stop_time.get("pickup_type") or "0"
-        drop_off_type = stop_time.get("drop_off_type") or "0"
-        shape_dist_traveled = float(stop_time.get("shape_dist_traveled")) if stop_time.get("shape_dist_traveled") else 0.0
-        continuous_pickup = int(stop_time.get("continuous_pickup")) if stop_time.get("continuous_pickup") else 0
-        continuous_drop_off = int(stop_time.get("continuous_drop_off")) if stop_time.get("continuous_drop_off") else 0
-        timepoint = stop_time.get("timepoint") or "1"
+        trip_id = f"urn:ngsi-ld:GtfsTrip:{stop_time.get("trip_id")}" if stop_time.get("trip_id") else None
+        arrival_time = stop_time.get("arrival_time") or None
+        departure_time = stop_time.get("departure_time") or None
+        stop_id = f"urn:ngsi-ld:GtfsStop:{stop_time.get("stop_id")}" if stop_time.get("stop_id") else None
+        stop_sequence = int(stop_time["stop_sequence"]) if stop_time.get("stop_sequence") not in (None, "") else None
+        stop_headsign = stop_time.get("stop_headsign") or None
+        pickup_type = stop_time.get("pickup_type") or None
+        drop_off_type = stop_time.get("drop_off_type") or None
+        shape_dist_traveled = float(stop_time["shape_dist_traveled"]) if stop_time.get("shape_dist_traveled") not in (None, "") else None
+        continuous_pickup = int(stop_time["continuous_pickup"]) if stop_time.get("continuous_pickup") not in (None, "") else None
+        continuous_drop_off = int(stop_time["continuous_drop_off"]) if stop_time.get("continuous_drop_off") not in (None, "") else None
+        timepoint = stop_time.get("timepoint") or None
         
         # Populate FIWARE's data model
         ngsi_ld_stop_time = {
@@ -587,6 +633,13 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
                 "value": timepoint
             }
         }
+        
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_stop_time = {
+            k: v for k, v in ngsi_ld_stop_time.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_stop_time)
         
@@ -606,16 +659,16 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     for stop in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        stop_id = stop.get("stop_id") or str(uuid.uuid4())
-        stop_code = stop.get("stop_code") or ""
-        stop_name = stop.get("stop_name") or ""
-        stop_desc = stop.get("stop_desc") or ""
-        stop_longitude = float(stop.get("stop_lon")) if stop.get("stop_lon") else 0.0
-        stop_latitude = float(stop.get("stop_lat")) if stop.get("stop_lat") else 0.0
-        location_type = int(stop.get("location_type")) if stop.get("location_type") else 0
-        parent_station = f"urn:ngsi-ld:GtfsStop:{stop.get("parent_station")}" if stop.get("parent_station") else ""
-        stop_timezone = stop.get("stop_timezone") or ""
-        level = f"urn:ngsi-ld:GtfsLevel:{stop.get("level_id")}" if stop.get("level_id") else ""
+        stop_id = stop.get("stop_id")
+        stop_code = stop.get("stop_code") or None
+        stop_name = stop.get("stop_name") or None
+        stop_desc = stop.get("stop_desc") or None
+        stop_longitude = float(stop["stop_lon"]) if stop.get("stop_lon") not in (None, "") else None
+        stop_latitude = float(stop["stop_lat"]) if stop.get("stop_lat") not in (None, "") else None
+        location_type = int(stop["location_type"]) if stop.get("location_type") not in (None, "") else None
+        parent_station = f"urn:ngsi-ld:GtfsStop:{stop.get("parent_station")}" if stop.get("parent_station") else None
+        stop_timezone = stop.get("stop_timezone") or None
+        level = f"urn:ngsi-ld:GtfsLevel:{stop.get("level_id")}" if stop.get("level_id") else None
         
         # Populate FIWARE's data model
         ngsi_ld_stop = {
@@ -668,6 +721,13 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
                 "object": level
             }
         }
+        
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_stop = {
+            k: v for k, v in ngsi_ld_stop.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_stop)
     
@@ -685,67 +745,60 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
     """
     ngsi_ld_data = []
     for transfer in raw_data:
-        
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        generated_id = str(uuid.uuid4())
-        from_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get("from_stop_id")}" if transfer.get("from_stop_id") else ""
-        to_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get("to_stop_id")}" if transfer.get("to_stop_id") else ""
-        from_route_id = f"urn:ngsi-ld:GtfsRoute:{transfer.get("from_route_id")}" if transfer.get("from_route_id") else ""
-        to_route_id = f"urn:ngsi-ld:GtfsRoute:{transfer.get("to_route_id")}" if transfer.get("to_route_id") else ""
-        from_trip_id = f"urn:ngsi-ld:GtfsTrip:{transfer.get("from_trip_id")}" if transfer.get("from_trip_id") else ""        
-        to_trip_id = f"urn:ngsi-ld:GtfsTrip:{transfer.get("to_trip_id")}" if transfer.get("to_trip_id") else ""
-        transfer_type = transfer.get("transfer_type") or "0"
-        min_transfer_time = int(transfer.get("min_transfer_time")) if transfer.get("min_transfer_time") else 1
-        
-        # Populate FIWARE's data model
+        from_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get('from_stop_id')}" if transfer.get("from_stop_id") else None
+        to_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get('to_stop_id')}" if transfer.get("to_stop_id") else None
+        from_route_id = f"urn:ngsi-ld:GtfsRoute:{transfer.get('from_route_id')}" if transfer.get("from_route_id") else None
+        to_route_id = f"urn:ngsi-ld:GtfsRoute:{transfer.get('to_route_id')}" if transfer.get("to_route_id") else None
+        from_trip_id = f"urn:ngsi-ld:GtfsTrip:{transfer.get('from_trip_id')}" if transfer.get("from_trip_id") else None     
+        to_trip_id = f"urn:ngsi-ld:GtfsTrip:{transfer.get('to_trip_id')}" if transfer.get("to_trip_id") else None
+        transfer_type = transfer.get("transfer_type") or None
+        min_transfer_time = int(transfer["min_transfer_time"]) if transfer.get("min_transfer_time") not in (None, "") else None
+
         ngsi_ld_transfer = {
-            "id": f"urn:ngsi-ld:GtfsTransferRule:{generated_id}",
+            "id": f"urn:ngsi-ld:GtfsTransferRule:{transfer.get('from_stop_id', 'None')}-{transfer.get('to_stop_id', 'None')}",
             "type": "GtfsTransferRule",
             "hasOrigin": {
                 "type": "Relationship",
                 "object": from_stop_id
             },
-            
             "hasDestination": {
                 "type": "Relationship",
                 "object": to_stop_id
             },
-            
             "from_route_id": {
                 "type": "Relationship",
                 "object": from_route_id
             },
-            
             "to_route_id": {
                 "type": "Relationship",
                 "object": to_route_id
             },
-            
             "from_trip_id": {
                 "type": "Relationship",
                 "object": from_trip_id
             },
-            
             "to_trip_id": {
                 "type": "Relationship",
                 "object": to_trip_id
             },
-            
             "transferType": {
                 "type": "Property",
                 "value": transfer_type
             },
-            
             "minimumTransferTime": {
                 "type": "Property",
                 "value": min_transfer_time
             }
         }
-        
-        # Append every NGSI-LD entity after transformation
+
+        # Only filter dict values, not strings (id/type)
+        ngsi_ld_transfer = {
+            k: v for k, v in ngsi_ld_transfer.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+
         ngsi_ld_data.append(ngsi_ld_transfer)
-        
-    # Return the list of NGSI-LD GtfsTransferRule
+
     return ngsi_ld_data
 
 
@@ -761,16 +814,16 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     for trip in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        trip_id = trip.get("trip_id") or str(uuid.uuid4())
-        route_id = f"urn:ngsi-ld:GtfsRoute:{trip.get("route_id")}" if trip.get("route_id") else ""
-        service_id = f"urn:ngsi-ld:GtfsService:{trip.get("service_id")}" if trip.get("service_id") else ""
-        trip_headsign = trip.get("trip_headsign") or ""
-        trip_short_name = trip.get("trip_short_name") or ""
-        direction_id = int(trip.get("direction_id")) if trip.get("direction_id") else 0
-        block_id = f"urn:ngsi-ld:GtfsBlock:{trip.get("block_id")}" if trip.get("block_id") else ""
-        shape_id = f"urn:ngsi-ld:GtfsShape:{trip.get("shape_id")}" if trip.get("shape_id") else ""
-        wheelchair_accessible = int(trip.get("wheelchair_accessible")) if trip.get("wheelchair_accessible") else 0
-        bikes_allowed = int(trip.get("bikes_allowed")) if trip.get("bikes_allowed") else 0
+        trip_id = trip.get("trip_id")
+        route_id = f"urn:ngsi-ld:GtfsRoute:{trip.get("route_id")}" if trip.get("route_id") else None
+        service_id = f"urn:ngsi-ld:GtfsService:{trip.get("service_id")}" if trip.get("service_id") else None
+        trip_headsign = trip.get("trip_headsign") or None
+        trip_short_name = trip.get("trip_short_name") or None
+        direction_id = int(trip["direction_id"]) if trip.get("direction_id") not in (None, "") else None
+        block_id = f"urn:ngsi-ld:GtfsBlock:{trip.get("block_id")}" if trip.get("block_id") else None
+        shape_id = f"urn:ngsi-ld:GtfsShape:{trip.get("shape_id")}" if trip.get("shape_id") else None
+        wheelchair_accessible = int(trip["wheelchair_accessible"]) if trip.get("wheelchair_accessible") not in (None, "") else None
+        bikes_allowed = int(trip["bikes_allowed"]) if trip.get("bikes_allowed") not in (None, "") else None
         
         # Populate FIWARE's data model
         ngsi_ld_trip = {
@@ -791,7 +844,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
                 "type": "Property",
                 "value": trip_headsign
             },
-            
+
             "shortName": {
                 "type": "Property",
                 "value": trip_short_name
@@ -801,7 +854,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
                 "type": "Property",
                 "value": direction_id
             },
-            
+
             "block": {
                 "type": "Relationship",
                 "object": block_id
@@ -823,6 +876,12 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
             }
         }
         
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_trip = {
+            k: v for k, v in ngsi_ld_trip.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_trip)
         
@@ -842,8 +901,8 @@ def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
     Returns:
         List of the data in the .txt file in NGSI-LD format
 
-    :param file_type: Един от 'agency', 'routes', 'stops' и т.н.
-    :return: Списък с NGSI-LD ентитети (list of dicts)
+    :param file_type: Name of GTFS Static file - 'agency', 'routes', 'stops' etc.
+    :return: Function Call Result
     """
     
     mapping = {
