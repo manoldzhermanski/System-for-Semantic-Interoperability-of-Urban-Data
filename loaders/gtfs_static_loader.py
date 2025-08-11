@@ -3,7 +3,7 @@ import sys
 import os
 import json
 import time
-import urllib.parse
+import codecs
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -45,6 +45,26 @@ def gtfs_static_batch_load_to_context_broker(ngsi_ld_data: List[Dict[str, Any]],
         
 # GET functions
 
+def gtfs_static_get_entity(entity_id: str) -> List[Dict[str, Any]]:
+    """
+    Send GET request for a specific GTFS Static Entity based on its ID
+    Args:
+        entity_id (str): GTFS Static Entity ID
+
+    Returns:
+        List[Dict[str, Any]]: GTFS Static Entity Data in JSON format
+    """
+    # Send GET request to Orion-LD by modifying the API request to point to the specific entity ID
+    try:
+        response = requests.get(ORION_LD_URL + '/' + entity_id, headers=HEADERS)
+        response.raise_for_status()
+        data = response.json()
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"Error when sending GET request: {e}")
+        return []
+
+
 def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expression: str) -> List[Dict[str, Any]]:
     """
     Send a GET request for specific GTFS Static Entity type and filter it with a query expression
@@ -59,7 +79,7 @@ def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expressio
         List[Dict[str, Any]]: List of filtered GTFS Static entities
     """
     
-    # Specify the GTFS Static type and the attribute-value pairs we are searching for
+    # Specify the GTFS Static type and the query expression based on which we filter the entities
     params = {
         "type": gtfs_type,
         "q": query_expression
@@ -102,9 +122,11 @@ if __name__ == "__main__":
 
     #gtfs_static_batch_load_to_context_broker(ngsi_ld_data)
     
-    get_request_response = gtfs_static_get_entities_by_query_expression("GtfsRoute", "routeColor==\"BE1E2D\"")
-    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+    #get_request_response = gtfs_static_get_entities_by_query_expression("GtfsRoute", "routeColor==\"BE1E2D\"")
+    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
-    
+    #get_request_response = gtfs_static_get_entity("urn:ngsi-ld:GtfsStop:TB1874")
+    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+
 
     pass
