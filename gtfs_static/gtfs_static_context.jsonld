@@ -53,7 +53,7 @@
         "max_slope": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/max_slope",
         "minimumTransferTime": "https://smartdatamodels.org/dataModel.UrbanMobility/minimumTransferTime",
         "min_width": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/min_width",
-        "name": "https://smartdatamodels.org/name",
+        "name": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/name",
         "operatedBy": "https://smartdatamodels.org/dataModel.UrbanMobility/operatedBy",
         "pathway_mode": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/pathway_mode",
         "payment_method": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/payment_method",

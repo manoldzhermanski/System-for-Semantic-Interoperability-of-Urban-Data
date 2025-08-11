@@ -4,6 +4,7 @@ import os
 import json
 import time
 import codecs
+from urllib.parse import unquote
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -59,6 +60,10 @@ def gtfs_static_get_entity(entity_id: str) -> List[Dict[str, Any]]:
         response = requests.get(ORION_LD_URL + '/' + entity_id, headers=HEADERS)
         response.raise_for_status()
         data = response.json()
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, dict) and "value" in value and isinstance(value["value"], str):
+                    value["value"] = codecs.decode(value["value"], 'unicode_escape')
         return data
     except requests.exceptions.RequestException as e:
         print(f"Error when sending GET request: {e}")
@@ -78,16 +83,17 @@ def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expressio
     Returns:
         List[Dict[str, Any]]: List of filtered GTFS Static entities
     """
-    
+    decoded_query_expression = unquote(query_expression)
     # Specify the GTFS Static type and the query expression based on which we filter the entities
     params = {
         "type": gtfs_type,
-        "q": query_expression
+        "q": decoded_query_expression
     }
 
     # Send GET request
     try:
         response = requests.get(ORION_LD_URL, headers=HEADERS, params=params)
+        print(response.url)
         response.raise_for_status()
         data = response.json()
         return data
@@ -122,10 +128,10 @@ if __name__ == "__main__":
 
     #gtfs_static_batch_load_to_context_broker(ngsi_ld_data)
     
-    #get_request_response = gtfs_static_get_entities_by_query_expression("GtfsRoute", "routeColor==\"BE1E2D\"")
-    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+    get_request_response = gtfs_static_get_entities_by_query_expression("GtfsStop", 'name=="МАНАСТИР СВ. ЙОАКИМ И АНА - ПО ЖЕЛАНИЕ"')
+    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
-    #get_request_response = gtfs_static_get_entity("urn:ngsi-ld:GtfsStop:TB1874")
+    #get_request_response = gtfs_static_get_entity("urn:ngsi-ld:GtfsStop:A1009")
     #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
 
