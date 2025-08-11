@@ -45,17 +45,27 @@ def gtfs_static_batch_load_to_context_broker(ngsi_ld_data: List[Dict[str, Any]],
         
 # GET functions
 
-def gtfs_static_get_entities_by_attribute(gtfs_type: str, attribute: str, value: str) -> List[Dict[str, Any]]:
-    if isinstance(value, str):
-        query_value = f'{attribute}=="{value}"'
-    else:
-        query_value= f'{attribute}=={value}'
+def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expression: str) -> List[Dict[str, Any]]:
+    """
+    Send a GET request for specific GTFS Static Entity type and filter it with a query expression
+
+    Args:
+        gtfs_type (str): GTFS Static Entity Type.
+        Allowed values: GtfsAgency, GtfsCalendarDateRule, GtfsFareAttributes, GtfsLevel,
+                        GtfsPathway, GtfsRoute, GtfsShape, GtfsStopTime, GtfsStop, GtfsTransferRule, GtfsTrip
+        query_expression (str): Expression to filter out the GTFS Static Entities
+
+    Returns:
+        List[Dict[str, Any]]: List of filtered GTFS Static entities
+    """
     
+    # Specify the GTFS Static type and the attribute-value pairs we are searching for
     params = {
         "type": gtfs_type,
-        "q": query_value
+        "q": query_expression
     }
-    
+
+    # Send GET request
     try:
         response = requests.get(ORION_LD_URL, headers=HEADERS, params=params)
         response.raise_for_status()
@@ -64,7 +74,6 @@ def gtfs_static_get_entities_by_attribute(gtfs_type: str, attribute: str, value:
     except requests.exceptions.RequestException as e:
         print(f"Error when sending GET request: {e}")
         return []
-    
 # DELETE functions
 
 
@@ -92,8 +101,10 @@ if __name__ == "__main__":
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("trips")
 
     #gtfs_static_batch_load_to_context_broker(ngsi_ld_data)
+    
+    get_request_response = gtfs_static_get_entities_by_query_expression("GtfsRoute", "routeColor==\"BE1E2D\"")
+    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
-    #get_request_response = gtfs_static_get_entities_by_attribute("GtfsRoute", "routeColor", "BE1E2D")
-    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
-    #get_gtfs_static_entities_by_gtfs_type()
+    
+
     pass
