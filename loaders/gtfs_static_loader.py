@@ -6,9 +6,6 @@ import time
 import codecs
 from urllib.parse import unquote
 
-
-
-
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
 
@@ -72,6 +69,29 @@ def gtfs_static_get_entity(entity_id: str) -> List[Dict[str, Any]]:
         print(f"Error when sending GET request: {e}")
         return []
 
+def gtfs_static_get_entities_by_type(gtfs_static_type: str) -> List[Dict[str, Any]]:
+    """
+    Send GET Request for all entities of a specific GTFS Static Type
+    Args:
+        gtfs_static_type (str): GTFS Static Type
+        Allowed values: GtfsAgency, GtfsCalendarDateRule, GtfsFareAttributes, GtfsLevel, GtfsPathway
+                        GtfsRoute, GtfsShape, GtfsStopTime, GtfsStop, GtfsTransferRule, GtfsTrip
+    Returns:
+        List[Dict[str, Any]]: List of all GTFS Static Entities of the specified type
+    """
+    try:
+        response = requests.get(f'{ORION_LD_URL}/?type={gtfs_static_type}', headers=HEADERS)
+        print(response.url)
+        response.raise_for_status()
+        data = response.json()
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, dict) and "value" in value and isinstance(value["value"], str):
+                    value["value"] = codecs.decode(value["value"], 'unicode_escape')
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"Error when sending GET request: {e}")
+        return []
 
 def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expression: str) -> List[Dict[str, Any]]:
     """
@@ -101,7 +121,7 @@ def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expressio
         print(f"Error when sending GET request: {e}")
         return []
 
-def gtfs_static_get_entities_with_attributes(entity_ids: List[str], attribute_list: List[str]) -> List[Dict[str, Any]]:
+def gtfs_static_get_attribute_values_from_etities(entity_ids: List[str], attribute_list: List[str]) -> List[Dict[str, Any]]:
     """
     Send a GET request to fetch specific GTFS Static Entitis and filter their attributes
     Args:
@@ -121,8 +141,9 @@ def gtfs_static_get_entities_with_attributes(entity_ids: List[str], attribute_li
     except requests.exceptions.RequestException as e:
         print(f"Error when sending GET request: {e}")
         return []
-    pass
+
 # DELETE functions
+
 
 
 if __name__ == "__main__":
@@ -156,7 +177,10 @@ if __name__ == "__main__":
     #get_request_response = gtfs_static_get_entity("urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:TB25")
     #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
-    get_request_response = gtfs_static_get_entities_with_attributes(["urn:ngsi-ld:GtfsStop:TB6408", "urn:ngsi-ld:GtfsStop:A1157"], ["location", "code"])
-    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+    #get_request_response = gtfs_static_get_attribute_values_from_etities(["urn:ngsi-ld:GtfsStop:TB6408", "urn:ngsi-ld:GtfsStop:A1157"], ["location", "code"])
+    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+
+    #get_request_response = gtfs_static_get_entities_by_type("GtfsStopTime")
+    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
     pass
