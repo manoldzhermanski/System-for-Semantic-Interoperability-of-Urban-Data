@@ -7,6 +7,8 @@ import codecs
 from urllib.parse import unquote
 
 
+
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
 
@@ -57,7 +59,7 @@ def gtfs_static_get_entity(entity_id: str) -> List[Dict[str, Any]]:
     """
     # Send GET request to Orion-LD by modifying the API request to point to the specific entity ID
     try:
-        response = requests.get(ORION_LD_URL + '/' + entity_id, headers=HEADERS)
+        response = requests.get(f'{ORION_LD_URL}/{entity_id}', headers=HEADERS)
         print(response.url)
         response.raise_for_status()
         data = response.json()
@@ -93,13 +95,33 @@ def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expressio
 
     try:
         response = requests.get(ORION_LD_URL, headers=HEADERS, params=params)
-        print(response.url)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error when sending GET request: {e}")
         return []
 
+def gtfs_static_get_entities_with_attributes(entity_ids: List[str], attribute_list: List[str]) -> List[Dict[str, Any]]:
+    """
+    Send a GET request to fetch specific GTFS Static Entitis and filter their attributes
+    Args:
+        entity_ids List[str]:  List of specific GTFS Static Entities to be fetched.
+        attribute_list: List[str]: Attributes that to be filtered from the fetched GTFS Static Entities.
+
+    Returns:
+        List[Dict[str, Any]]: List of filtered GTFS Static entities.
+    """
+    entities = ",".join(entity_ids)
+    attributes = ",".join(attribute_list)
+
+    try:
+        response = requests.get(f'{ORION_LD_URL}/?id={entities}&attrs={attributes}', headers=HEADERS)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error when sending GET request: {e}")
+        return []
+    pass
 # DELETE functions
 
 
@@ -114,7 +136,7 @@ if __name__ == "__main__":
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("pathways")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
 
@@ -128,11 +150,13 @@ if __name__ == "__main__":
 
     #gtfs_static_batch_load_to_context_broker(ngsi_ld_data)
     
-    get_request_response = gtfs_static_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
-    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+    #get_request_response = gtfs_static_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
+    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
     #get_request_response = gtfs_static_get_entity("urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:TB25")
     #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
+    get_request_response = gtfs_static_get_entities_with_attributes(["urn:ngsi-ld:GtfsStop:TB6408", "urn:ngsi-ld:GtfsStop:A1157"], ["location", "code"])
+    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
     pass
