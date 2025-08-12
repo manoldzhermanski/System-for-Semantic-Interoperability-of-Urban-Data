@@ -58,6 +58,7 @@ def gtfs_static_get_entity(entity_id: str) -> List[Dict[str, Any]]:
     # Send GET request to Orion-LD by modifying the API request to point to the specific entity ID
     try:
         response = requests.get(ORION_LD_URL + '/' + entity_id, headers=HEADERS)
+        print(response.url)
         response.raise_for_status()
         data = response.json()
         if isinstance(data, dict):
@@ -72,34 +73,33 @@ def gtfs_static_get_entity(entity_id: str) -> List[Dict[str, Any]]:
 
 def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expression: str) -> List[Dict[str, Any]]:
     """
-    Send a GET request for specific GTFS Static Entity type and filter it with a query expression
+    Send a GET request for specific GTFS Static Entity type and filter it with a query expression.
+    Automatically converts any non-ASCII characters in the query to Unicode escape format.
 
     Args:
         gtfs_type (str): GTFS Static Entity Type.
-        Allowed values: GtfsAgency, GtfsCalendarDateRule, GtfsFareAttributes, GtfsLevel,
-                        GtfsPathway, GtfsRoute, GtfsShape, GtfsStopTime, GtfsStop, GtfsTransferRule, GtfsTrip
-        query_expression (str): Expression to filter out the GTFS Static Entities
+        query_expression (str): Expression to filter out the GTFS Static Entities.
 
     Returns:
-        List[Dict[str, Any]]: List of filtered GTFS Static entities
+        List[Dict[str, Any]]: List of filtered GTFS Static entities.
     """
     decoded_query_expression = unquote(query_expression)
-    # Specify the GTFS Static type and the query expression based on which we filter the entities
+    escaped_query_expression = decoded_query_expression.encode('unicode_escape').decode('ascii')
+
     params = {
         "type": gtfs_type,
-        "q": decoded_query_expression
+        "q": escaped_query_expression
     }
 
-    # Send GET request
     try:
         response = requests.get(ORION_LD_URL, headers=HEADERS, params=params)
         print(response.url)
         response.raise_for_status()
-        data = response.json()
-        return data
+        return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error when sending GET request: {e}")
         return []
+
 # DELETE functions
 
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("pathways")
 
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
+    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
 
@@ -128,10 +128,10 @@ if __name__ == "__main__":
 
     #gtfs_static_batch_load_to_context_broker(ngsi_ld_data)
     
-    get_request_response = gtfs_static_get_entities_by_query_expression("GtfsStop", 'name=="МАНАСТИР СВ. ЙОАКИМ И АНА - ПО ЖЕЛАНИЕ"')
+    get_request_response = gtfs_static_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
     print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
-    #get_request_response = gtfs_static_get_entity("urn:ngsi-ld:GtfsStop:A1009")
+    #get_request_response = gtfs_static_get_entity("urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:TB25")
     #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
 
