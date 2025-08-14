@@ -80,7 +80,7 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
     for entity in entities:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        vehicle_position_id = entity.get("id")  or str(uuid.uuid4())
+        vehicle_position_id = entity.get("id")
         vehicle_position_trip_id = f"urn:ngsi-ld:GtfsTrip:{entity.get('vehicle').get('trip').get('tripId')}" if entity.get('vehicle').get('trip').get('tripId') else ""
         vehicle_position_trip_schedule_relationship = entity.get('vehicle').get('trip').get('scheduleRelationship') or ""
         vehicle_position_trip_route_id = f"urn:ngsi-ld:GtfsRoute:{entity.get('vehicle').get('trip').get('routeId')}" if entity.get('vehicle').get('trip').get('routeId') else ""
@@ -197,7 +197,7 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
     for entity in entities:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        trip_update_id = entity.get('id') or str(uuid.uuid4())
+        trip_update_id = entity.get('id')
         trip_update_is_deleted = entity.get('isDeleted') or False
         trip_udate_trip_id = f"urn:ngsi-ld:GtfsTrip:{entity.get('tripUpdate').get('trip').get('tripId')}" if entity.get('tripUpdate').get('trip').get('tripId') else ""
         trip_update_schedule_relationship = entity.get('tripUpdate').get('trip').get('scheduleRelationship') or ""
@@ -320,7 +320,7 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
     for entity in entities:
         
         # Set alert id
-        alert_id = entity.get('id') or str(uuid.uuid4())
+        alert_id = entity.get('id')
         
         # Get alert active periods
         alert_active_periods = entity.get('alert').get('activePeriod')
@@ -518,11 +518,11 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
 
 
 if __name__ == "__main__":
-    #api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    #feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
-    #ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
-    #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
+    api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
+    print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
 
