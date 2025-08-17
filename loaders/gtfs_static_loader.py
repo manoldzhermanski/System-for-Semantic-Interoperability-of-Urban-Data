@@ -16,7 +16,7 @@ from typing import List, Dict, Any
 from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
 
 ORION_LD_URL = "http://localhost:1026/ngsi-ld/v1/entities"
-ORION_LD_BATCH_CREATE_URL= "http://localhost:1026/ngsi-ld/v1/entityOperations/create"
+ORION_LD_BATCH_CREATE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/create"
 ORION_LD_BATCH_DELETE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/delete"
 HEADERS = {
     "Content-Type": "application/json",
@@ -44,10 +44,12 @@ def gtfs_static_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]]) -> 
 
         # If successful, report which enteties were created
         if response.status_code == 201:
-            print(f"Created batch of {len(batch_ngsi_ld_data)} entities:\n{entities_ids}\n")
+            pass
+            #print(f"Created batch of {len(batch_ngsi_ld_data)} entities:\n{entities_ids}\n")
         # If failed, explain why
         else:
-            print(f"Failed to create entities {response.status_code} {response.text}")
+            pass
+            #print(f"Failed to create entities {response.status_code} {response.text}")
     except  requests.exceptions.RequestException as e:
         print(f"GTFS Static Batch POST Request Error: {e}")
     
@@ -61,9 +63,13 @@ def gtfs_static_batch_load_to_context_broker(ngsi_ld_data: List[Dict[str, Any]],
     Returns:
         None: The function does not return anything, but prints the result of each batch request.
     """
+    # Create batches of the NGSI-LD data and send them to the context broker
     for i in range(0, len(ngsi_ld_data), batch_size):
+        
         batch = ngsi_ld_data[i: i + batch_size]
         gtfs_static_post_batch_request(batch)
+        
+        # delay the POST Request, so to not break the Orion-LD architecture
         time.sleep(delay)
         
 # GET functions
@@ -90,8 +96,10 @@ def gtfs_static_get_entity_by_id(entity_id: str) -> List[Dict[str, Any]]:
 
         # For every dictionary value in the data, check if it has a "value" key and if its value is a string.
         # If so, decode it using unicode_escape to handle any escaped characters (like cyrilic).
-        for value in (v for v in data.values() if isinstance(v, dict) and "value" in v and isinstance(v["value"], str)):
-            value["value"] = codecs.decode(value["value"], 'unicode_escape')
+        for entity in data:
+            for v in entity.values():
+                if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
+                    v["value"] = codecs.decode(v["value"], 'unicode_escape')
 
         # Return the data after the transformation
         return data
@@ -101,11 +109,13 @@ def gtfs_static_get_entity_by_id(entity_id: str) -> List[Dict[str, Any]]:
         # If an exception is raised, return []
         return []
 
+
 def gtfs_static_get_entities_by_type(gtfs_static_type: str) -> List[Dict[str, Any]]:
     """
     Send GET Request for all entities of a specific GTFS Static Type
     Orion-LD allows to GET 1000 entities at a time - configured though the limit parameter
     Orion-LD  allows to choose from what index to start getting entities - configured through the offset parameter
+    IMPORTANT: Orion-LD allows to GET up to 34 000 entities total. Use this function more as a helper function.
     Args:
         gtfs_static_type (str): GTFS Static Type
         Allowed values: GtfsAgency, GtfsCalendarDateRule, GtfsFareAttributes, GtfsLevel, GtfsPathway
@@ -118,16 +128,18 @@ def gtfs_static_get_entities_by_type(gtfs_static_type: str) -> List[Dict[str, An
 
     # Current index from which to start getting entitites
     offset = 0
+    limit = 1000
 
     # While there are entities of the desired type, get 1000 at a time
     while True:
         params = {
-            "limit": 1000,
+            "type": gtfs_static_type,
+            "limit": limit,
             "offset": offset
             }
         try:
             # Send a GET request to extract entities of type 'gtfs_static_type'
-            response = requests.get(f'{ORION_LD_URL}/?type={gtfs_static_type}', headers=HEADERS, params=params)
+            response = requests.get(f'{ORION_LD_URL}', headers=HEADERS, params=params)
             # Raise exception, if unsuccessful
             response.raise_for_status()
 
@@ -138,16 +150,18 @@ def gtfs_static_get_entities_by_type(gtfs_static_type: str) -> List[Dict[str, An
             if not data:
                 break
 
-            # For every dictionary value in the data, check if it has a "value" key and if its value is a string.
+            # For every dictionary in the data list, check its values for a "value" key that is a string.
             # If so, decode it using unicode_escape to handle any escaped characters (like cyrilic).
-            for value in (v for v in data.values() if isinstance(v, dict) and "value" in v and isinstance(v["value"], str)):
-                value["value"] = codecs.decode(value["value"], 'unicode_escape')
+            for entity in data:
+                for v in entity.values():
+                    if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
+                        v["value"] = codecs.decode(v["value"], 'unicode_escape')
 
-            # Append enitites
-            all_entities.append(data)
+            # Append entities
+            all_entities.extend(data)
 
             # Update index for getting entities
-            offset += 1000        
+            offset += limit
         except requests.exceptions.RequestException as e:
             print(f"Error when sending GET request: {e}")
         
@@ -170,6 +184,7 @@ def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expressio
     """
     # Decode the URL-encoded strings, living is as the original variant
     decoded_query_expression = unquote(query_expression)
+    
     # Turn all non-ASCII symbols into escape sequences which are then turned into a string.
     # This is needed to allow to send query expressions that contain cyrilic.
     # Orion-LD stores the cyrilic values as escape sequences
@@ -207,8 +222,10 @@ def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expressio
 
             # For every dictionary value in the data, check if it has a "value" key and if its value is a string.
             # If so, decode it using unicode_escape to handle any escaped characters (like cyrilic).
-            for value in (v for v in data.values() if isinstance(v, dict) and "value" in v and isinstance(v["value"], str)):
-                value["value"] = codecs.decode(value["value"], 'unicode_escape')
+            for entity in data:
+                for v in entity.values():
+                    if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
+                        v["value"] = codecs.decode(v["value"], 'unicode_escape')
 
             # Append enitites
             all_entities.append(data)
@@ -221,6 +238,7 @@ def gtfs_static_get_entities_by_query_expression(gtfs_type: str, query_expressio
     
     # Return all entities
     return all_entities
+
 
 def gtfs_static_get_attribute_values_from_etities(entity_ids: List[str], attribute_list: List[str]) -> List[Dict[str, Any]]:
     """
@@ -251,7 +269,8 @@ def gtfs_static_get_attribute_values_from_etities(entity_ids: List[str], attribu
         # If exception is raised, return []
         return []
 
-def gtfs_static_count_entities(entity_type: str) -> int:
+
+def gtfs_static_get_count_of_entities_by_type(entity_type: str) -> int:
     """
     Returns the number of NGSI-LD entities of a given GTFS Static type from Orion-LD.
 
@@ -263,6 +282,8 @@ def gtfs_static_count_entities(entity_type: str) -> int:
     Returns:
         int: Number of entities of the specified type.
     """
+    # Limit is 0, just so it doesn't return an entity
+    # We set the count option, to get the number of enitites of the desired type
     params = {
         "type": entity_type,
         "limit": 0,
@@ -270,10 +291,17 @@ def gtfs_static_count_entities(entity_type: str) -> int:
     }
 
     try:
+        # Send a GET request to get the number of elements of type 'entity_type'
         response = requests.get(ORION_LD_URL, headers=HEADERS, params=params)
+        
+        # Raise exception, if unsuccessful
         response.raise_for_status()
+        
+        # Get the value of the key 'NGSILD-Results-Count' and parse it as int.
+        # If the key is not found, return 0
         count = int(response.headers.get("NGSILD-Results-Count", 0))
         return count
+    
     except requests.RequestException as e:
         print(f"Error getting entity count: {e}")
         return 0
@@ -281,22 +309,56 @@ def gtfs_static_count_entities(entity_type: str) -> int:
 # DELETE functions
 
 def gtfs_static_delete_entity(entity_id: str) -> None:
-        try:
-            response = requests.delete(f"{ORION_LD_URL}/{entity_id}", headers=HEADERS)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            print(f"Error when sending DELETE request: {e}")
+    """
+    Delete an entity by its id
+    Args:
+        entity_id (str): ID of an NGSI-LD enity
+    """
+    
+    try:
+        # Send a DELETE request to Orion-LD to delete the entity with the specified ID
+        response = requests.delete(f"{ORION_LD_URL}/{entity_id}", headers=HEADERS)
+        
+        # Raise exception, if unsuccessful
+        response.raise_for_status()
+        
+        print(f"Deleted entity with id: {entity_id}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error when sending DELETE request for entity {entity_id}: {e}")
 
 def gtfs_static_batch_delete_entities_by_type(gtfs_static_type: str) -> None:
-    entities = gtfs_static_get_entities_by_type(gtfs_static_type)
-    enitities_ids = [f"{entity['id']}" for entity in entities]
-
-    try:
-        response = requests.post(ORION_LD_BATCH_DELETE_URL, json=enitities_ids, headers=HEADERS)
-        response.raise_for_status()
-        print(f"Deleted batch of {len(enitities_ids)} entities of type {gtfs_static_type}")
-    except requests.exceptions.RequestException as e:
-        print(f"GTFS Static Batch DELETE Request Error: {e}")
+    
+    # Get number of entities
+    entity_count = gtfs_static_get_count_of_entities_by_type(gtfs_static_type)
+    print(f'Total entities: {entity_count}')
+    
+    while entity_count != 0:
+        # Will return max 34 000 entities in 1 function call
+        # Experimentally found
+        entities = gtfs_static_get_entities_by_type(gtfs_static_type)
+        
+        # Get a list of the entities ID
+        entity_ids = [entity['id'] for entity in entities]
+        
+        # Split entity_ids into batches of max 1000
+        batch_size = 1000
+        batches = [entity_ids[i:i + batch_size] for i in range(0, len(entity_ids), batch_size)]
+        
+        for batch in batches:
+            try:
+                # Send a Batch Delete request to Orion-LD with the IDs in the current batch
+                response = requests.post(ORION_LD_BATCH_DELETE_URL, json=batch, headers=HEADERS)
+                
+                # Raise exception, if unsuccessful
+                response.raise_for_status()
+                print(f"Deleted batch of {len(batch)} entities of type {gtfs_static_type}")
+                
+            except requests.exceptions.RequestException as e:
+                print(f"GTFS Static Batch DELETE Request Error: {e}")
+        
+        # Update count        
+        entity_count = gtfs_static_get_count_of_entities_by_type(gtfs_static_type)
+        print(f'Remaining entities: {entity_count}')
     pass
 
 if __name__ == "__main__":
@@ -334,11 +396,13 @@ if __name__ == "__main__":
     #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
     #get_request_response = gtfs_static_get_entities_by_type("GtfsCalendarDateRule")
+    #print(len(get_request_response))
     #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
     #gtfs_static_delete_entity("urn:ngsi-ld:GtfsAgency:A")
 
     #gtfs_static_batch_delete_entities_by_type("GtfsCalendarDateRule")
+    
 
-    #print(gtfs_static_count_entities("GtfsRoute"))
+
     pass
