@@ -18,6 +18,7 @@ from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
 ORION_LD_URL = "http://localhost:1026/ngsi-ld/v1/entities"
 ORION_LD_BATCH_CREATE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/create"
 ORION_LD_BATCH_DELETE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/delete"
+ORION_LD_BATCH_UPDATE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/upsert?options=update"
 HEADERS = {
     "Content-Type": "application/json",
     "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
@@ -44,12 +45,10 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]]) -> Non
 
         # If successful, report which enteties were created
         if response.status_code == 201:
-            pass
-            #print(f"Created batch of {len(batch_ngsi_ld_data)} entities:\n{entities_ids}\n")
+            print(f"Created batch of {len(batch_ngsi_ld_data)} entities:\n{entities_ids}\n")
         # If failed, explain why
         else:
-            pass
-            #print(f"Failed to create entities {response.status_code} {response.text}")
+            print(f"Failed to create entities {response.status_code} {response.text}")
     except  requests.exceptions.RequestException as e:
         print(f" Batch POST Request Error: {e}")
     
@@ -301,6 +300,33 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str) -> int:
         print(f"Error getting entity count: {e}")
         return 0
     
+# UPDATE functions
+
+def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: List[Dict[str, Any]]) -> None:
+    """
+    Send a POST request to ORION-LD's endpoint for batch replace of entities.
+    Args:
+        batch_ngsi_ld_data (List[Dict[str, Any]]): List of entities in NGSI-LD format to be updated.
+    Returns:
+        None: The function does not return anything, but prints the result of the POST request.
+    """
+    # Get ids of the entities from the batch
+    entities_ids = [entity['id'] for entity in batch_ngsi_ld_data]
+
+    # Concatenate them with '\n'
+    entities_ids = "\n".join(entities_ids)
+    try:
+        # Send a POST request to ORION-LD's endpoint for batch create where we the data is already in NGSI-LD format
+        response = requests.post(ORION_LD_BATCH_UPDATE_URL, json=batch_ngsi_ld_data, headers=HEADERS)
+
+        # If successful, report which enteties were created
+        if response.status_code == 201:
+            print(f"Replaced entity data for the following {len(batch_ngsi_ld_data)} entities:\n{entities_ids}\n")
+        # If failed, explain why
+        else:
+            print(f"Failed to replace entity data {response.status_code} {response.text}")
+    except  requests.exceptions.RequestException as e:
+        print(f"POST Request Error: {e}")
 # DELETE functions
 
 def orion_ld_delete_entity(entity_id: str) -> None:
