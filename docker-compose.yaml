@@ -28,16 +28,21 @@ services:
       - mongo-db:/data
 
   grafana:
-    image: grafana/grafana-enterprise
+    image: grafana/grafana:latest   # преминаваме на open-source версията
     hostname: grafana
     container_name: grafana
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - GF_SERVER_ROOT_URL=http://localhost:3000/
+      - GF_PATHS_PLUGINS=/var/lib/grafana/plugins
+      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=ngsild-grafana-datasource
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_SERVER_DOMAIN=localhost
     volumes:
       - grafana-storage:/var/lib/grafana
+      - ./ngsild-grafana-datasource:/var/lib/grafana/plugins/ngsild-grafana-datasource:ro
     depends_on:
       - orion
 
