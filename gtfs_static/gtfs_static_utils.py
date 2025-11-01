@@ -899,10 +899,7 @@ def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
         agency, calendar_dates, fare_attributes, levels, pathways, routes,
         shapes, stop_times, stops, transfers, trips
     Returns:
-        List of the data in the .txt file in NGSI-LD format
-
-    :param file_type: Name of GTFS Static file - 'agency', 'routes', 'stops' etc.
-    :return: Function Call Result
+        list[dict[str, Any]]: Function call from different functions which handle GTFS Static to NGSI-LD transformation
     """
     
     mapping = {
