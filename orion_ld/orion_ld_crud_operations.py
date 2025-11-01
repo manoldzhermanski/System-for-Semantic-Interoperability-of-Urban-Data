@@ -24,6 +24,30 @@ HEADERS = {
     "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
 }
 
+def orion_ld_define_header(keyword: str) -> dict[str, str]:
+    """
+    Define headers for Orion-LD requests based on the provided keyword.
+    Args:
+        keyword (str): Keyword to determine the type of headers to return.
+    Returns:
+        dict[str, str]: Headers dictionary for the specified keyword.
+    """
+    if keyword == "gtfs_static":
+        return {
+            "Content-Type": "application/json",
+            "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+        }
+    elif keyword == "pois":
+        return {
+            "Content-Type": "application/json",
+            "Link": '<https://raw.githubusercontent.com/smart-data-models/dataModel.PointOfInterest/master/context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+        }
+    else:
+        return {
+            "Content-Type": "application/json",
+            "Link": '<https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+        }
+
 # POST Requests
 
 def orion_ld_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]]) -> None:
