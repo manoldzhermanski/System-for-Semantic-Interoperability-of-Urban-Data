@@ -7,7 +7,6 @@ from google.protobuf.message import DecodeError
 from google.protobuf.json_format import MessageToDict
 from typing import Any, Optional
 from datetime import datetime, timezone
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import config
@@ -28,11 +27,14 @@ def get_gtfs_realtime_feed(api_endpoint: config.GtfsSource) -> bytes:
         GTFS Realtime data as .pb
     """
     try:
-        response = requests.get(api_endpoint.value)
+        url = api_endpoint.value
+        if url is None:
+            raise ValueError(f"API endpoint {api_endpoint.name} has no URL configured")
+        response = requests.get(url)
         response.raise_for_status()
         return response.content
     except requests.exceptions.RequestException as e:
-        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}")
+        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}") from e
         
 def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: Optional[config.GtfsSource] = None) -> FeedMessage:
     """
