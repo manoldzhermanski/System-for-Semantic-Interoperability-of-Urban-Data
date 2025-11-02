@@ -2,7 +2,7 @@ import os
 import json
 from typing import Any
 
-def pois_read_file(file_path: str) -> list[dict[str, Any]]:
+def json_ld_read_file(file_path: str) -> list[dict[str, Any]]:
     """
     Extract NGSI-LD Entities from PoI file
     Args:
@@ -31,7 +31,7 @@ def pois_read_file(file_path: str) -> list[dict[str, Any]]:
     # Returned entities or []
     return entities
 
-def pois_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
+def json_ld_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
     """
     Based on a given keyword, the function extracts PoI data from different files
     Args:
@@ -62,12 +62,12 @@ def pois_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
     file_path = os.path.join("PoIs", "data", file_name)
     
     # Function call to pois_read_file with the extracted file path
-    ngsi_ld_data = pois_read_file(file_path)
+    ngsi_ld_data = json_ld_read_file(file_path)
     
     # Returned PoI entites from specified file
     return ngsi_ld_data
 
 
 if __name__ == "__main__":
-    ngsi_ld_data = pois_get_ngsi_ld_data("parks_gardens")
+    ngsi_ld_data = json_ld_get_ngsi_ld_data("parks_gardens")
     print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
