@@ -1,0 +1,12 @@
+{
+  "initialCamera": {
+    "west": -180,
+    "south": -90,
+    "east": 180,
+    "north": 90
+  },
+  "catalog": [],
+  "branding": {
+    "applicationName": "My Minimal TerriaJS Map"
+  }
+}

@@ -14,7 +14,7 @@ services:
     healthcheck:
       test: curl --fail -s http://orion:1026/version || exit 1
 
-  # Databases
+  # MongoDB database
   mongo-db:
     image: mongo:3.6
     hostname: mongo-db
@@ -27,6 +27,15 @@ services:
     volumes:
       - mongo-db:/data
 
+  # TerriaJS viewer (TerriaMap)
+  terriamap:
+    image: ghcr.io/terriajs/terriamap:latest
+    container_name: terriamap
+    hostname: terriamap
+    ports:
+      - "8080:3001"
+    restart: unless-stopped
+
+
 volumes:
-  mongo-db: ~
-  grafana-storage: ~
+  mongo-db:
