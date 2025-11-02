@@ -27,15 +27,15 @@ services:
     volumes:
       - mongo-db:/data
 
-  # TerriaJS viewer (TerriaMap)
   terriamap:
     image: ghcr.io/terriajs/terriamap:latest
     container_name: terriamap
     hostname: terriamap
     ports:
       - "8080:3001"
+    volumes:
+      - ./terria/config:/app/wwwroot/config
     restart: unless-stopped
-
 
 volumes:
   mongo-db:

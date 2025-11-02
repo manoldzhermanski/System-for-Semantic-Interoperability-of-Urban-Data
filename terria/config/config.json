@@ -1,12 +1,18 @@
 {
-  "initialCamera": {
-    "west": -180,
-    "south": -90,
-    "east": 180,
-    "north": 90
+  "name": "TerriaMap Sofia",
+  "description": "Interactive map of Sofia",
+  "initialView": {
+    "lookAt": {
+      "targetLongitude": 23.3219,
+      "targetLatitude": 42.6977,
+      "distance": 50000
+    }
   },
-  "catalog": [],
-  "branding": {
-    "applicationName": "My Minimal TerriaJS Map"
-  }
+  "catalog": [
+    {
+      "name": "OpenStreetMap",
+      "type": "open-street-map",
+      "isEnabled": true
+    }
+  ]
 }
