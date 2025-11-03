@@ -1,0 +1,17 @@
+{
+  "catalog": [
+    {
+      "id": "osm",
+      "type": "open-street-map",
+      "name": "OpenStreetMap"
+    }
+  ],
+  "baseMapName": "OpenStreetMap",
+  "homeCamera": {
+    "west": 23.25,
+    "south": 42.63,
+    "east": 23.40,
+    "north": 42.73
+  },
+  "viewerMode": "3d"
+}

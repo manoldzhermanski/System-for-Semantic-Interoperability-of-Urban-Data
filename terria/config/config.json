@@ -1,18 +1,6 @@
 {
-  "name": "TerriaMap Sofia",
-  "description": "Interactive map of Sofia",
-  "initialView": {
-    "lookAt": {
-      "targetLongitude": 23.3219,
-      "targetLatitude": 42.6977,
-      "distance": 50000
-    }
-  },
-  "catalog": [
-    {
-      "name": "OpenStreetMap",
-      "type": "open-street-map",
-      "isEnabled": true
-    }
+  "name": "Sofia Map",
+  "initializationUrls": [
+    "init/simple.json"
   ]
 }
