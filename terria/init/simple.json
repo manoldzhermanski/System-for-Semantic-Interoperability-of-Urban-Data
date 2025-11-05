@@ -1,17 +1,25 @@
 {
-  "catalog": [
-    {
-      "id": "osm",
-      "type": "open-street-map",
-      "name": "OpenStreetMap"
-    }
-  ],
-  "baseMapName": "OpenStreetMap",
   "homeCamera": {
     "west": 23.25,
     "south": 42.63,
     "east": 23.40,
     "north": 42.73
   },
-  "viewerMode": "3d"
+  "baseMaps": {
+    "items": [
+      {
+        "item": {
+          "id": "sofia-map",
+          "name": "Sofia Map",
+          "type": "open-street-map",
+          "url": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+          "attribution": "© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>, © <a href='https://carto.com/attributions'>CARTO</a>",
+          "subdomains": ["a", "b", "c", "d"],
+          "opacity": 1.0
+        },
+        "image": "build/TerriaJS/images/sofia.png"
+      }
+    ],
+    "defaultBaseMapId": "sofia-map"
+  }
 }
