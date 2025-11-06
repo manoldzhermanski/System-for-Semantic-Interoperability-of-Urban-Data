@@ -405,9 +405,15 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str) -> None:
         entity_count = orion_ld_get_count_of_entities_by_type(entity_type)
         print(f'Remaining entities: {entity_count}')
 
+
 if __name__ == "__main__":
     HEADERS = orion_ld_define_header("gtfs_static")
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
+
+    entities = orion_ld_get_entities_by_type("GtfsStop")
+    print(len(entities))
+    if entities:
+        print(json.dumps(entities[0], indent=2))
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("calendar_dates")
 
@@ -429,7 +435,7 @@ if __name__ == "__main__":
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("trips")
 
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
     #get_request_response = orion_ld_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
     #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
