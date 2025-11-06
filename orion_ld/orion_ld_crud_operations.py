@@ -21,7 +21,7 @@ ORION_LD_BATCH_DELETE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/d
 ORION_LD_BATCH_UPDATE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/upsert?options=update"
 HEADERS = {
     "Content-Type": "application/json",
-    "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+    "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs_static/gtfs_static_context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
 }
 
 def orion_ld_define_header(keyword: str) -> dict[str, str]:
@@ -35,7 +35,7 @@ def orion_ld_define_header(keyword: str) -> dict[str, str]:
     if keyword == "gtfs_static":
         return {
             "Content-Type": "application/json",
-            "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-static/gtfs-static-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+            "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs_static/gtfs_static_context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
         }
     elif keyword == "pois":
         return {
@@ -406,46 +406,47 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str) -> None:
         print(f'Remaining entities: {entity_count}')
 
 if __name__ == "__main__":
+    HEADERS = orion_ld_define_header("gtfs_static")
     ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
     
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("calendar_dates")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("calendar_dates")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("fare_attributes")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("fare_attributes")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("levels")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("levels")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("pathways")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("pathways")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
     
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stops")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stops")
     
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("transfers")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("transfers")
     
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("trips")
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("trips")
 
     orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
-    get_request_response = orion_ld_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
-    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+    #get_request_response = orion_ld_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
+    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
-    get_request_response = orion_ld_get_entity_by_id("urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:TB25")
-    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+    #get_request_response = orion_ld_get_entity_by_id("urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:TB25")
+    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
-    get_request_response = orion_ld_get_attribute_values_from_etities(["urn:ngsi-ld:GtfsStop:TB6408", "urn:ngsi-ld:GtfsStop:A1157"], ["location", "code"])
-    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+    #get_request_response = orion_ld_get_attribute_values_from_etities(["urn:ngsi-ld:GtfsStop:TB6408", "urn:ngsi-ld:GtfsStop:A1157"], ["location", "code"])
+    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
-    get_request_response = orion_ld_get_entities_by_type("GtfsCalendarDateRule")
-    print(len(get_request_response))
-    print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
+    #get_request_response = orion_ld_get_entities_by_type("GtfsCalendarDateRule")
+    #print(len(get_request_response))
+    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
 
-    orion_ld_delete_entity("urn:ngsi-ld:GtfsAgency:A")
+    #orion_ld_delete_entity("urn:ngsi-ld:GtfsAgency:A")
 
-    orion_ld_batch_delete_entities_by_type("GtfsCalendarDateRule")
+    #orion_ld_batch_delete_entities_by_type("GtfsCalendarDateRule")
     
 
 
