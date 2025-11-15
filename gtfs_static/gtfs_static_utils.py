@@ -513,7 +513,7 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         coords = [p["coords"] for p in points]
         
         line = LineString(coords)
-        simplified = line.simplify(0.001, preserve_topology=True)
+        simplified = line.simplify(0.00055, preserve_topology=True)
         simplified_coords = list(simplified.coords)
         
         # Populate FIWARE's data model         
