@@ -20,7 +20,7 @@ def get_gtfs_stops():
     features = [
         ngsi_ld_entity_to_geojson_feature(entity)
         for entity in entities
-        if "location" in entity and entity["location"].get("value")  # само със геометрия
+        if "location" in entity and entity["location"].get("value")
     ]
 
     return {
@@ -28,6 +28,21 @@ def get_gtfs_stops():
         "features": features
     }
 
+@app.get("/api/gtfs/shapes.geojson")
+def get_gtfs_shape():
+    """Return GTFS Shapes as GeoJSON."""
+    entities = orion_ld_get_entities_by_type("GtfsShape")
+
+    features = [
+        ngsi_ld_entity_to_geojson_feature(entity)
+        for entity in entities
+        if "location" in entity and entity["location"].get("value")
+    ]
+
+    return {
+        "type": "FeatureCollection",
+        "features": features
+    }
 
 def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
     """Transform NGSI-LD entity to GeoJSON Feature."""

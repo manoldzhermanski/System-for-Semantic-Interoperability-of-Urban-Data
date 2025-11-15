@@ -409,11 +409,6 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str) -> None:
 if __name__ == "__main__":
     HEADERS = orion_ld_define_header("gtfs_static")
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
-
-    entities = orion_ld_get_entities_by_type("GtfsStop")
-    print(len(entities))
-    if entities:
-        print(json.dumps(entities[0], indent=2))
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("calendar_dates")
 
@@ -452,8 +447,8 @@ if __name__ == "__main__":
 
     #orion_ld_delete_entity("urn:ngsi-ld:GtfsAgency:A")
 
-    #orion_ld_batch_delete_entities_by_type("GtfsCalendarDateRule")
+    #orion_ld_batch_delete_entities_by_type("GtfsShape")
     
-
+    print(orion_ld_get_count_of_entities_by_type("GtfsShape"))
 
     pass
