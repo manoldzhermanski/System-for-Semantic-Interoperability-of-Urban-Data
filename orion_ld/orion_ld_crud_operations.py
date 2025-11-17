@@ -420,7 +420,7 @@ if __name__ == "__main__":
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
 
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
+    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
     
@@ -430,7 +430,7 @@ if __name__ == "__main__":
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("trips")
 
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
     #get_request_response = orion_ld_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
     #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
@@ -449,6 +449,6 @@ if __name__ == "__main__":
 
     #orion_ld_batch_delete_entities_by_type("GtfsShape")
     
-    print(orion_ld_get_count_of_entities_by_type("GtfsShape"))
+    #print(orion_ld_get_count_of_entities_by_type("GtfsShape"))
 
     pass

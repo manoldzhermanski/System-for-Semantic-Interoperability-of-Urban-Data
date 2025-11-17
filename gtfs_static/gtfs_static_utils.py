@@ -511,11 +511,7 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     for shape_id, points in shapes_dict.items():
         points.sort(key=lambda p: p["seq"])
         coords = [p["coords"] for p in points]
-        
-        line = LineString(coords)
-        simplified = line.simplify(0.00055, preserve_topology=True)
-        simplified_coords = list(simplified.coords)
-        
+                
         # Populate FIWARE's data model         
         ngsi_ld_shape = {
             "id": f"urn:ngsi-ld:GtfsShape:{shape_id}",
@@ -530,7 +526,7 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "type": "GeoProperty",
                 "value": {
                     "type": "LineString",
-                    "coordinates": simplified_coords
+                    "coordinates": coords
                 }
             }
         }

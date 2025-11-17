@@ -10,7 +10,7 @@ services:
       - "1026"
     ports:
       - "1026:1026"
-    command: -dbhost mongo-db -logLevel DEBUG
+    command: -dbhost mongo-db -logLevel DEBUG -inReqPayloadMaxSize 21579400 -outReqMsgMaxSize 21579400
     healthcheck:
       test: curl --fail -s http://orion:1026/version || exit 1
 
