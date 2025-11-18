@@ -477,5 +477,7 @@ if __name__ == "__main__":
     #orion_ld_batch_delete_entities_by_type("GtfsShape")
     
     #print(orion_ld_get_count_of_entities_by_type("GtfsShape"))
+    
+    print(orion_ld_get_entities_by_type("PointOfInterest"))
 
     pass

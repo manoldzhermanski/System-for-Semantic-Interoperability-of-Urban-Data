@@ -34,6 +34,12 @@
       "type": "geojson",
       "url": "http://localhost:8000/api/gtfs/shapes.geojson",
       "description": "This dataset contains all public transport shapes in Sofia, Bulgaria, based on GTFS data."
+    },
+    {
+      "name": "PoIs in Sofia",
+      "type": "geojson",
+      "url": "http://localhost:8000/api/pois/pois.geojson",
+      "description": "This dataset contains different types of Points Of Interest in Sofia, Bulgaria."
     }
   ]
 }

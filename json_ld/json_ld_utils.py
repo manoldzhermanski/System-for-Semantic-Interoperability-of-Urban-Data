@@ -1,6 +1,7 @@
 import os
 import json
 from typing import Any
+from pyproj import Transformer
 
 def json_ld_read_file(file_path: str) -> list[dict[str, Any]]:
     """
@@ -30,6 +31,21 @@ def json_ld_read_file(file_path: str) -> list[dict[str, Any]]:
 
     # Returned entities or []
     return entities
+
+def json_ld_transform_coordinates_to_wgs84_coordinates(raw_data: list[dict[str, Any]]) -> None:
+    transformer = Transformer.from_crs("EPSG:7801", "EPSG:4326", always_xy=True)
+    for entity in raw_data:
+        if "location" in entity and entity["location"]["value"]["type"] == "Point":
+            entity["location"]["value"]["coordinates"] = list(transformer.transform(
+                entity["location"]["value"]["coordinates"][0],
+                entity["location"]["value"]["coordinates"][1]
+            ))
+        elif "location" in entity and entity["location"]["value"]["type"] == "MultiPoint":
+            transformed_coordinates = []
+            for coord in entity["location"]["value"]["coordinates"]:
+                transformed_coord = list(transformer.transform(coord[0], coord[1]))
+                transformed_coordinates.append(transformed_coord)
+            entity["location"]["value"]["coordinates"] = transformed_coordinates
 
 def json_ld_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
     """
@@ -63,6 +79,7 @@ def json_ld_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
     
     # Function call to pois_read_file with the extracted file path
     ngsi_ld_data = json_ld_read_file(file_path)
+    json_ld_transform_coordinates_to_wgs84_coordinates(ngsi_ld_data)
     
     # Returned PoI entites from specified file
     return ngsi_ld_data

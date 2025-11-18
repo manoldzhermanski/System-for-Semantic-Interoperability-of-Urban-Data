@@ -43,6 +43,22 @@ def get_gtfs_shape():
         "type": "FeatureCollection",
         "features": features
     }
+    
+@app.get("/api/pois/pois.geojson")
+def get_pois():
+    """Return GTFS Shapes as GeoJSON."""
+    entities = orion_ld_get_entities_by_type("PointOfInterest")
+
+    features = [
+        ngsi_ld_entity_to_geojson_feature(entity)
+        for entity in entities
+        if "location" in entity and entity["location"].get("value")
+    ]
+
+    return {
+        "type": "FeatureCollection",
+        "features": features
+    }
 
 def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
     """Transform NGSI-LD entity to GeoJSON Feature."""
