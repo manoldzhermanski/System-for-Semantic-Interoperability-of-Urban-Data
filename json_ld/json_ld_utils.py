@@ -59,7 +59,7 @@ def json_ld_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
     
     # Extract file name and create file path
     file_name = mapping[keyword]
-    file_path = os.path.join("PoIs", "data", file_name)
+    file_path = os.path.join("json_ld", "data", file_name)
     
     # Function call to pois_read_file with the extracted file path
     ngsi_ld_data = json_ld_read_file(file_path)

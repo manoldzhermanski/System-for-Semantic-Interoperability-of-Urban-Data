@@ -14,6 +14,7 @@ if project_root not in sys.path:
 
 from typing import List, Dict, Any
 from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
+from json_ld.json_ld_utils import json_ld_get_ngsi_ld_data
 
 ORION_LD_URL = "http://localhost:1026/ngsi-ld/v1/entities"
 ORION_LD_BATCH_CREATE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/create"
@@ -421,15 +422,41 @@ if __name__ == "__main__":
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
 
     ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
     
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stops")
+    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stops")
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("transfers")
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("trips")
-
+    
+    HEADERS = orion_ld_define_header("pois")
+    
+    ngsi_ld_data = json_ld_get_ngsi_ld_data("culture")
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    
+    ngsi_ld_data = json_ld_get_ngsi_ld_data("heath")
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    
+    ngsi_ld_data = json_ld_get_ngsi_ld_data("kids")
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    
+    ngsi_ld_data = json_ld_get_ngsi_ld_data("parks_gardens")
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    
+    ngsi_ld_data = json_ld_get_ngsi_ld_data("public_transport")
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    
+    ngsi_ld_data = json_ld_get_ngsi_ld_data("schools")
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    
+    ngsi_ld_data = json_ld_get_ngsi_ld_data("sport")
+    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    
+    ngsi_ld_data = json_ld_get_ngsi_ld_data("other")
     orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
     #get_request_response = orion_ld_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
