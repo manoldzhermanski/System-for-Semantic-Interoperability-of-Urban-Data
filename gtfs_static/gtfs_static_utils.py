@@ -8,6 +8,7 @@ import uuid
 from io import BytesIO
 from typing import Any
 from datetime import datetime
+from shapely.geometry import LineString
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
@@ -489,44 +490,44 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
+    shapes_dict = {}
+
     for shape in raw_data:
-        
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         shape_id = shape.get("shape_id")
-        location_logitude = float(shape["shape_pt_lon"]) if shape.get("shape_pt_lon") not in (None, "") else None
+        if not shape_id:
+            continue
+
+        # parse coordinates and optional sequence
+        location_longitude = float(shape["shape_pt_lon"]) if shape.get("shape_pt_lon") not in (None, "") else None
         location_latitude = float(shape["shape_pt_lat"]) if shape.get("shape_pt_lat") not in (None, "") else None
         shape_pt_sequence = int(shape["shape_pt_sequence"]) if shape.get("shape_pt_sequence") not in (None, "") else None
         shape_dist_traveled = float(shape["shape_dist_traveled"]) if shape.get("shape_dist_traveled") not in (None, "") else None
         
-        # Populate FIWARE's data model
+        if shape_id not in shapes_dict:
+            shapes_dict[shape_id] = []
+
+        shapes_dict[shape_id].append({"seq": shape_pt_sequence, "coords": [location_longitude, location_latitude], "dist": shape_dist_traveled})
+
+    for shape_id, points in shapes_dict.items():
+        points.sort(key=lambda p: p["seq"])
+        coords = [p["coords"] for p in points]
+                
+        # Populate FIWARE's data model         
         ngsi_ld_shape = {
-            "id": f"urn:ngsi-ld:GtfsShape:{shape_id}:{shape_pt_sequence}",
+            "id": f"urn:ngsi-ld:GtfsShape:{shape_id}",
             "type": "GtfsShape",
             
             "name": {
                 "type": "Property",
                 "value": shape_id
-            },
-
+                },
+            
             "location": {
                 "type": "GeoProperty",
                 "value": {
-                    "type": "Point",
-                    "coordinates": [
-                        location_logitude,
-                        location_latitude
-                    ]
+                    "type": "LineString",
+                    "coordinates": coords
                 }
-            },
-            
-            "shape_pt_sequence": {
-                "type": "Property", 
-                "value": shape_pt_sequence
-            },
-            
-            "distanceTravelled": {
-                "type": "Property", 
-                "value": shape_dist_traveled
             }
         }
         
@@ -535,10 +536,10 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             k: v for k, v in ngsi_ld_shape.items()
             if not (isinstance(v, dict) and None in v.values())
         }
-        
+
         # Append every NGSI-LD entity after transformation
         ngsi_ld_data.append(ngsi_ld_shape)
-        
+
     # Return the list of NGSI-LD GtfsShape
     return ngsi_ld_data
 
@@ -926,7 +927,7 @@ def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
     return transformer(raw_data)
     
 if __name__ == "__main__":
-    gtfs_static_download_and_extract_zip(config.GtfsSource.GTFS_STATIC_ZIP_URL)
+    #gtfs_static_download_and_extract_zip(config.GtfsSource.GTFS_STATIC_ZIP_URL)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "agency.txt"))
     #ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
@@ -946,8 +947,8 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
-    #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
+    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
+    ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stop_times.txt"))
     #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
@@ -961,6 +962,6 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "trips.txt"))
     #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
     
-    #print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
+    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
     pass

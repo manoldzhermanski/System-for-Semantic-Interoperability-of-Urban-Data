@@ -21,5 +21,19 @@
       }
     ],
     "defaultBaseMapId": "sofia-map"
-  }
+  },
+  "catalog": [
+    {
+      "name": "GTFS Stops in Sofia",
+      "type": "geojson",
+      "url": "http://localhost:8000/api/gtfs/stops.geojson",
+      "description": "This dataset contains all public transport stops in Sofia, Bulgaria, based on GTFS data."
+    },
+    {
+      "name": "GTFS Shapes in Sofia",
+      "type": "geojson",
+      "url": "http://localhost:8000/api/gtfs/shapes.geojson",
+      "description": "This dataset contains all public transport shapes in Sofia, Bulgaria, based on GTFS data."
+    }
+  ]
 }
