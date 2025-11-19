@@ -41,11 +41,16 @@ def json_ld_transform_coordinates_to_wgs84_coordinates(raw_data: list[dict[str, 
                 entity["location"]["value"]["coordinates"][1]
             ))
         elif "location" in entity and entity["location"]["value"]["type"] == "MultiPoint":
-            transformed_coordinates = []
-            for coord in entity["location"]["value"]["coordinates"]:
-                transformed_coord = list(transformer.transform(coord[0], coord[1]))
-                transformed_coordinates.append(transformed_coord)
-            entity["location"]["value"]["coordinates"] = transformed_coordinates
+            entity["location"]["value"]["type"] = "Point"
+            entity["location"]["value"]["coordinates"] = list(transformer.transform(
+                entity["location"]["value"]["coordinates"][0][0],
+                entity["location"]["value"]["coordinates"][0][1]
+            ))
+            #transformed_coordinates = []
+            #for coord in entity["location"]["value"]["coordinates"]:
+            #    transformed_coord = list(transformer.transform(coord[0], coord[1]))
+            #    transformed_coordinates.append(transformed_coord)
+            #entity["location"]["value"]["coordinates"] = transformed_coordinates
 
 def json_ld_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
     """

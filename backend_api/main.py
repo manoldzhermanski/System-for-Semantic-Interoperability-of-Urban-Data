@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from orion_ld.orion_ld_crud_operations import orion_ld_get_entities_by_type
+from orion_ld.orion_ld_crud_operations import orion_ld_define_header
+import json
 
 app = FastAPI(title="GTFS + FIWARE API")
 
@@ -15,7 +17,8 @@ app.add_middleware(
 @app.get("/api/gtfs/stops.geojson")
 def get_gtfs_stops():
     """Return GTFS Stops as GeoJSON."""
-    entities = orion_ld_get_entities_by_type("GtfsStop")
+    header = orion_ld_define_header("gtfs_static")
+    entities = orion_ld_get_entities_by_type("GtfsStop", header)
 
     features = [
         ngsi_ld_entity_to_geojson_feature(entity)
@@ -31,7 +34,8 @@ def get_gtfs_stops():
 @app.get("/api/gtfs/shapes.geojson")
 def get_gtfs_shape():
     """Return GTFS Shapes as GeoJSON."""
-    entities = orion_ld_get_entities_by_type("GtfsShape")
+    header = orion_ld_define_header("gtfs_static")
+    entities = orion_ld_get_entities_by_type("GtfsShape", header)
 
     features = [
         ngsi_ld_entity_to_geojson_feature(entity)
@@ -45,16 +49,18 @@ def get_gtfs_shape():
     }
     
 @app.get("/api/pois/pois.geojson")
-def get_pois():
-    """Return GTFS Shapes as GeoJSON."""
-    entities = orion_ld_get_entities_by_type("PointOfInterest")
+def get_json_ld_pois():
+    """Return PoIs as GeoJSON."""
+    header = orion_ld_define_header("pois")
+    entities = orion_ld_get_entities_by_type("PointOfInterest", header)
+    
 
     features = [
         ngsi_ld_entity_to_geojson_feature(entity)
         for entity in entities
         if "location" in entity and entity["location"].get("value")
     ]
-
+    print(json.dumps(features, indent=2, ensure_ascii=False))
     return {
         "type": "FeatureCollection",
         "features": features

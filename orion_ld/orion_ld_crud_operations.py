@@ -51,7 +51,7 @@ def orion_ld_define_header(keyword: str) -> dict[str, str]:
 
 # POST Requests
 
-def orion_ld_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]]) -> None:
+def orion_ld_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]], header: dict) -> None:
     """
     Send a POST request to ORION-LD's endpoint for batch create of entities.
     Args:
@@ -66,7 +66,7 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]]) -> Non
     entities_ids = "\n".join(entities_ids)
     try:
         # Send a POST request to ORION-LD's endpoint for batch create where we the data is already in NGSI-LD format
-        response = requests.post(ORION_LD_BATCH_CREATE_URL, json=batch_ngsi_ld_data, headers=HEADERS)
+        response = requests.post(ORION_LD_BATCH_CREATE_URL, json=batch_ngsi_ld_data, headers=header)
 
         # If successful, report which enteties were created
         if response.status_code == 201:
@@ -78,7 +78,7 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]]) -> Non
         print(f" Batch POST Request Error: {e}")
     
 
-def orion_ld_batch_load_to_context_broker(ngsi_ld_data: List[Dict[str, Any]], batch_size: int = 1000, delay: float = 0.1) -> None:
+def orion_ld_batch_load_to_context_broker(ngsi_ld_data: List[Dict[str, Any]], header: dict, batch_size: int = 1000, delay: float = 0.1) -> None:
     """    Load entities in NGSI-LD format to the context broker in batches.
     Args:
         ngsi_ld_data (List[Dict[str, Any]]): List of entities in NGSI-LD format to be loaded.
@@ -91,14 +91,14 @@ def orion_ld_batch_load_to_context_broker(ngsi_ld_data: List[Dict[str, Any]], ba
     for i in range(0, len(ngsi_ld_data), batch_size):
         
         batch = ngsi_ld_data[i: i + batch_size]
-        orion_ld_post_batch_request(batch)
+        orion_ld_post_batch_request(batch, header)
         
         # delay the POST Request, so to not break the Orion-LD architecture
         time.sleep(delay)
         
 # GET functions
 
-def orion_ld_get_entity_by_id(entity_id: str) -> List[Dict[str, Any]]:
+def orion_ld_get_entity_by_id(entity_id: str, header: dict) -> List[Dict[str, Any]]:
     """
     Send GET request for a specific entity based on its ID
     Args:
@@ -110,20 +110,21 @@ def orion_ld_get_entity_by_id(entity_id: str) -> List[Dict[str, Any]]:
     
     try:
         # Send GET request to Orion-LD by modifying the API request to point to the specific entity ID
-        response = requests.get(f'{ORION_LD_URL}/{entity_id}', headers=HEADERS)
+        response = requests.get(f'{ORION_LD_URL}/{entity_id}', headers=header)
 
         # Raise an exception if the request was unsuccessful
         response.raise_for_status()
+        response.encoding = "utf-8"
 
         # Parse the JSON response
         data = response.json()
 
         # For every dictionary value in the data, check if it has a "value" key and if its value is a string.
         # If so, decode it using unicode_escape to handle any escaped characters (like cyrilic).
-        for entity in data:
-            for v in entity.values():
-                if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
-                    v["value"] = codecs.decode(v["value"], 'unicode_escape')
+        #for entity in data:
+        #    for v in entity.values():
+        #        if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
+        #            v["value"] = codecs.decode(v["value"], 'unicode_escape')
 
         # Return the data after the transformation
         return data
@@ -134,7 +135,7 @@ def orion_ld_get_entity_by_id(entity_id: str) -> List[Dict[str, Any]]:
         return []
 
 
-def orion_ld_get_entities_by_type(entity_type: str) -> List[Dict[str, Any]]:
+def orion_ld_get_entities_by_type(entity_type: str, header: dict) -> List[Dict[str, Any]]:
     """
     Send GET Request for all entities of a specific entity type.
     Orion-LD allows to GET 1000 entities at a time - configured though the limit parameter
@@ -161,9 +162,10 @@ def orion_ld_get_entities_by_type(entity_type: str) -> List[Dict[str, Any]]:
             }
         try:
             # Send a GET request to extract entities of type 'entity_type'
-            response = requests.get(f'{ORION_LD_URL}', headers=HEADERS, params=params)
+            response = requests.get(f'{ORION_LD_URL}', headers=header, params=params)
             # Raise exception, if unsuccessful
             response.raise_for_status()
+            response.encoding = "utf-8"
 
             # Parse the JSON response
             data = response.json()
@@ -174,10 +176,10 @@ def orion_ld_get_entities_by_type(entity_type: str) -> List[Dict[str, Any]]:
 
             # For every dictionary in the data list, check its values for a "value" key that is a string.
             # If so, decode it using unicode_escape to handle any escaped characters (like cyrilic).
-            for entity in data:
-                for v in entity.values():
-                    if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
-                        v["value"] = codecs.decode(v["value"], 'unicode_escape')
+            #for entity in data:
+            #    for v in entity.values():
+            #        if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
+            #            v["value"] = codecs.decode(v["value"], 'unicode_escape')
 
             # Append entities
             all_entities.extend(data)
@@ -191,7 +193,7 @@ def orion_ld_get_entities_by_type(entity_type: str) -> List[Dict[str, Any]]:
     return all_entities
 
 
-def orion_ld_get_entities_by_query_expression(entity_type: str, query_expression: str) -> List[Dict[str, Any]]:
+def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, query_expression: str) -> List[Dict[str, Any]]:
     """
     Send a GET request for specific Entity type and filter it with a query expression.
     Automatically converts any non-ASCII characters in the query to Unicode escape format.
@@ -230,10 +232,11 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, query_expression
 
         try:
             # Send a GET request with the query expression and starting index
-            response = requests.get(ORION_LD_URL, headers=HEADERS, params=params)
+            response = requests.get(ORION_LD_URL, headers=header, params=params)
 
             # Raise exception, if unsuccessful
             response.raise_for_status()
+            response.encoding = "utf-8"
 
             # Parse the JSON response
             data = response.json()
@@ -244,10 +247,10 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, query_expression
 
             # For every dictionary value in the data, check if it has a "value" key and if its value is a string.
             # If so, decode it using unicode_escape to handle any escaped characters (like cyrilic).
-            for entity in data:
-                for v in entity.values():
-                    if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
-                        v["value"] = codecs.decode(v["value"], 'unicode_escape')
+            #for entity in data:
+            #    for v in entity.values():
+            #        if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
+            #            v["value"] = codecs.decode(v["value"], 'unicode_escape')
 
             # Append enitites
             all_entities.append(data)
@@ -262,7 +265,7 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, query_expression
     return all_entities
 
 
-def orion_ld_get_attribute_values_from_etities(entity_ids: List[str], attribute_list: List[str]) -> List[Dict[str, Any]]:
+def orion_ld_get_attribute_values_from_etities(entity_ids: List[str], attribute_list: List[str], header: dict) -> List[Dict[str, Any]]:
     """
     Send a GET request to fetch specific entitis and filter their attributes
     Args:
@@ -278,10 +281,11 @@ def orion_ld_get_attribute_values_from_etities(entity_ids: List[str], attribute_
 
     try:
         # Send GET request to get the attributes for the enitites
-        response = requests.get(f'{ORION_LD_URL}/?id={entities}&attrs={attributes}', headers=HEADERS)
+        response = requests.get(f'{ORION_LD_URL}/?id={entities}&attrs={attributes}', headers=header)
 
         # Raise exception, if unsuccessful
         response.raise_for_status()
+        response.encoding = "utf-8"
 
         # Parse the JSON response
         return response.json()
@@ -292,7 +296,7 @@ def orion_ld_get_attribute_values_from_etities(entity_ids: List[str], attribute_
         return []
 
 
-def orion_ld_get_count_of_entities_by_type(entity_type: str) -> int:
+def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict) -> int:
     """
     Returns the number of NGSI-LD entities of a given entity type from Orion-LD.
 
@@ -311,10 +315,11 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str) -> int:
 
     try:
         # Send a GET request to get the number of elements of type 'entity_type'
-        response = requests.get(ORION_LD_URL, headers=HEADERS, params=params)
+        response = requests.get(ORION_LD_URL, headers=header, params=params)
         
         # Raise exception, if unsuccessful
         response.raise_for_status()
+        response.encoding = "utf-8"
         
         # Get the value of the key 'NGSILD-Results-Count' and parse it as int.
         # If the key is not found, return 0
@@ -327,7 +332,7 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str) -> int:
     
 # UPDATE functions
 
-def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: List[Dict[str, Any]]) -> None:
+def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: List[Dict[str, Any]], header: dict) -> None:
     """
     Send a POST request to ORION-LD's endpoint for batch replace of entities.
     Args:
@@ -342,7 +347,7 @@ def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: List[Dict[str, Any]])
     entities_ids = "\n".join(entities_ids)
     try:
         # Send a POST request to ORION-LD's endpoint for batch create where we the data is already in NGSI-LD format
-        response = requests.post(ORION_LD_BATCH_UPDATE_URL, json=batch_ngsi_ld_data, headers=HEADERS)
+        response = requests.post(ORION_LD_BATCH_UPDATE_URL, json=batch_ngsi_ld_data, headers=header)
 
         # If successful, report which enteties were created
         if response.status_code == 201:
@@ -354,7 +359,7 @@ def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: List[Dict[str, Any]])
         print(f"POST Request Error: {e}")
 # DELETE functions
 
-def orion_ld_delete_entity(entity_id: str) -> None:
+def orion_ld_delete_entity(entity_id: str, header: dict) -> None:
     """
     Delete an entity by its id
     Args:
@@ -363,7 +368,7 @@ def orion_ld_delete_entity(entity_id: str) -> None:
     
     try:
         # Send a DELETE request to Orion-LD to delete the entity with the specified ID
-        response = requests.delete(f"{ORION_LD_URL}/{entity_id}", headers=HEADERS)
+        response = requests.delete(f"{ORION_LD_URL}/{entity_id}", headers=header)
         
         # Raise exception, if unsuccessful
         response.raise_for_status()
@@ -372,16 +377,16 @@ def orion_ld_delete_entity(entity_id: str) -> None:
     except requests.exceptions.RequestException as e:
         print(f"Error when sending DELETE request for entity {entity_id}: {e}")
 
-def orion_ld_batch_delete_entities_by_type(entity_type: str) -> None:
+def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict) -> None:
     
     # Get number of entities
-    entity_count = orion_ld_get_count_of_entities_by_type(entity_type)
+    entity_count = orion_ld_get_count_of_entities_by_type(entity_type, header)
     print(f'Total entities: {entity_count}')
     
     while entity_count != 0:
         # Will return max 34 000 entities in 1 function call
         # Experimentally found
-        entities = orion_ld_get_entities_by_type(entity_type)
+        entities = orion_ld_get_entities_by_type(entity_type, header)
         
         # Get a list of the entities ID
         entity_ids = [entity['id'] for entity in entities]
@@ -403,7 +408,7 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str) -> None:
                 print(f"Batch DELETE Request Error: {e}")
         
         # Update count        
-        entity_count = orion_ld_get_count_of_entities_by_type(entity_type)
+        entity_count = orion_ld_get_count_of_entities_by_type(entity_type, header)
         print(f'Remaining entities: {entity_count}')
 
 
@@ -421,13 +426,13 @@ if __name__ == "__main__":
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
 
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
     
-    ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stops")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stops")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("transfers")
     
@@ -435,29 +440,29 @@ if __name__ == "__main__":
     
     HEADERS = orion_ld_define_header("pois")
     
-    ngsi_ld_data = json_ld_get_ngsi_ld_data("culture")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = json_ld_get_ngsi_ld_data("culture")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
-    ngsi_ld_data = json_ld_get_ngsi_ld_data("heath")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = json_ld_get_ngsi_ld_data("heath")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
-    ngsi_ld_data = json_ld_get_ngsi_ld_data("kids")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = json_ld_get_ngsi_ld_data("kids")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
-    ngsi_ld_data = json_ld_get_ngsi_ld_data("parks_gardens")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = json_ld_get_ngsi_ld_data("parks_gardens")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
-    ngsi_ld_data = json_ld_get_ngsi_ld_data("public_transport")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = json_ld_get_ngsi_ld_data("public_transport")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
-    ngsi_ld_data = json_ld_get_ngsi_ld_data("schools")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = json_ld_get_ngsi_ld_data("schools")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
-    ngsi_ld_data = json_ld_get_ngsi_ld_data("sport")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = json_ld_get_ngsi_ld_data("sport")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
-    ngsi_ld_data = json_ld_get_ngsi_ld_data("other")
-    orion_ld_batch_load_to_context_broker(ngsi_ld_data)
+    #ngsi_ld_data = json_ld_get_ngsi_ld_data("other")
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
     
     #get_request_response = orion_ld_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
     #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
@@ -474,10 +479,11 @@ if __name__ == "__main__":
 
     #orion_ld_delete_entity("urn:ngsi-ld:GtfsAgency:A")
 
-    #orion_ld_batch_delete_entities_by_type("GtfsShape")
+    #orion_ld_batch_delete_entities_by_type("PointOfInterest")
     
     #print(orion_ld_get_count_of_entities_by_type("GtfsShape"))
     
-    print(orion_ld_get_entities_by_type("PointOfInterest"))
+    entity = orion_ld_get_entities_by_type("PointOfInterest", HEADERS)
+    print(json.dumps(entity, indent=2, ensure_ascii=False))
 
     pass
