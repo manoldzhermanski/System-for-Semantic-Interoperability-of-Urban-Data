@@ -43,6 +43,11 @@ def orion_ld_define_header(keyword: str) -> dict[str, str]:
             "Content-Type": "application/json",
             "Link": '<https://raw.githubusercontent.com/smart-data-models/dataModel.PointOfInterest/master/context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
         }
+    elif keyword == "gtfs_realtime":
+        return {
+            "Content-Type": "application/json",
+            "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs_realtime/gtfs_realtime_context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+        }
     else:
         return {
             "Content-Type": "application/json",

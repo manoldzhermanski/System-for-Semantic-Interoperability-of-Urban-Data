@@ -2,7 +2,8 @@ import os
 import sys
 import json
 import requests
-from gtfs_realtime_pb2 import FeedMessage
+from google.transit import gtfs_realtime_pb2
+from google.transit.gtfs_realtime_pb2 import FeedMessage
 from google.protobuf.message import DecodeError
 from google.protobuf.json_format import MessageToDict
 from typing import Any, Optional
@@ -10,7 +11,6 @@ from datetime import datetime, timezone
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import config
-
 
 def unix_to_iso8601(ts: int) -> str:
     """
@@ -36,7 +36,7 @@ def get_gtfs_realtime_feed(api_endpoint: config.GtfsSource) -> bytes:
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}") from e
         
-def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: Optional[config.GtfsSource] = None) -> FeedMessage:
+def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: Optional[config.GtfsSource] = None) -> "gtfs_realtime_pb2.FeedMessage":
     """
     Parses the GTFS-Realtime feed data into a FeedMessage object.
     Provide an optional api_endpoint for debugging purposes.
@@ -46,7 +46,7 @@ def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: Optional[config.Gtf
     Returns:
         FeedMessage: GTFS Realtime Feed data
     """
-    feed = FeedMessage()
+    feed = gtfs_realtime_pb2.FeedMessage()
     try:
         feed.ParseFromString(feed_data)
     except DecodeError as e:
@@ -100,82 +100,66 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
         ngsi_ld_entity = {
             "id": f"urn:ngsi-ld:GtfsRealtimeVehiclePosition:{vehicle_position_id}",
             "type": "GtfsRealtimeVehiclePosition",
-            "vehicle": {
-                "trip": {
-                    "trip_id": {
-                        "type": "Relationship",
-                        "object": vehicle_position_trip_id
-                    },
-                    
-                    "schedule_relationship": {
-                        "type": "Property",
-                        "value": vehicle_position_trip_schedule_relationship
-                    },
-                    
-                    "route_id": {
-                        "type": "Relationship",
-                        "object": vehicle_position_trip_route_id
-                    }
-                },
-                "position": {
-                    "type": "Property",
-                    "value": {
-                        "latitude": {
-                            "type": "Property",
-                            "value": latitude
-                        },
-                        
-                        "longitude": {
-                            "type": "Property",
-                            "value": longitude
-                        },
-                        
-                        "speed": {
-                            "type": "Property",
-                            "value": vehicle_position_speed
-                        }
-                    }
-                },
-                
-                "current_status": {
-                    "type": "Property",
-                    "value": vehicle_position_current_status
-                },
-                
-                "timestamp": {
-                    "type": "Property",
-                    "value": vehicle_position_timestamp
-                },
-                
-                "congestion_level": {
-                    "type": "Property",
-                    "value": vehicle_position_congestion_level
-                },
-                
-                "stop_id": {
-                    "type": "Relationship",
-                    "value": vehicle_position_stop_id
-                },
-                
-                "vehicle_id": {
-                    "type": "Relationship",
-                    "object": vehicle_position_vehicle_id
-                },
-                
-                "occupancy_status": {
-                    "type": "Property",
-                    "value": vehicle_position_occupancy_status
-                }
+            "trip_id": {
+                "type": "Relationship",
+                "object": vehicle_position_trip_id
+            },
+            "schedule_relationship": {
+                "type": "Property",
+                "value": vehicle_position_trip_schedule_relationship
+            },
+            "route_id": {
+                "type": "Relationship",
+                "object": vehicle_position_trip_route_id
+            },
+            "position": {
+                "type": "GeoProperty",
+                "value": {
+                    "type": "Point",
+                    "coordinates": [longitude, latitude]
+                    }  
+            },
+            "speed": {
+                "type": "Property",
+                "value": vehicle_position_speed
+                },                
+            "current_status": {
+                "type": "Property",
+                "value": vehicle_position_current_status
             },
             
-            "@context":
-                [
-                    "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                    "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-realtime/gtfs-realtime-context.jsonld"
-                ]
+            "timestamp": {
+                "type": "Property",
+                "value": vehicle_position_timestamp
+            },
             
+            "congestion_level": {
+                "type": "Property",
+                "value": vehicle_position_congestion_level
+            },
+            
+            "stop_id": {
+                "type": "Relationship",
+                "object": vehicle_position_stop_id
+            },
+            
+            "vehicle_id": {
+                "type": "Relationship",
+                "object": vehicle_position_vehicle_id
+            },
+            
+            "occupancy_status": {
+                "type": "Property",
+                "value": vehicle_position_occupancy_status
+            }
         }
+        
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_entity = {
+            k: v for k, v in ngsi_ld_entity.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append the NGSI-LD entity to the list
         ngsi_ld_entities.append(ngsi_ld_entity)
 
@@ -253,53 +237,39 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
             stop_time_updates_list.append(stop_time_entity)
                 
         # Create custom data model and populate it
-        ngsi_entity = {
+        ngsi_ld_entity = {
             "id": f"urn:ngsi-ld:GtfsTripUpdate:{trip_update_id}",
             "type": "GtfsRealtimeTripUpdate",
-            
             "is_deleted": {
                 "type": "Property",
                 "value": trip_update_is_deleted
             },
-            
-            "trip_update": {
-                "type": "Property",
-                "value": {
-                    "trip": {
-                        "type": "Property",
-                        "value": {
-                            "trip_id": {
-                                "type": "Relationship",
-                                "object": trip_udate_trip_id
-                            },
-            
-                            "schedule_relationship": {
-                                "type": "Property",
-                                "value": trip_update_schedule_relationship
-                            },
-            
-                            "route_id": {
-                                "type": "Relationship",
-                                "object": trip_update_route_id
-                            },
-                        }
-                    },
-                    
-                    "stop_time_update": {
-                        "type": "Property",
-                        "value": stop_time_updates_list
-                    }
-                }
+            "trip_id": {
+                "type": "Relationship",
+                "object": trip_udate_trip_id
             },
-                      
-            "@context": [
-                "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-realtime/gtfs-realtime-context.jsonld"
-            ]            
+            "schedule_relationship": {
+                "type": "Property",
+                "value": trip_update_schedule_relationship
+            },
+            "route_id": {
+                "type": "Relationship",
+                "object": trip_update_route_id
+            },
+            "stop_time_update": {
+                "type": "Property",
+                "value": stop_time_updates_list
+            }          
         }
+        
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_entity = {
+            k: v for k, v in ngsi_ld_entity.items()
+            if not (isinstance(v, dict) and None in v.values())
+        }
+        
         # Append the NGSI-LD entity to the list
-        ngsi_ld_entities.append(ngsi_entity)
+        ngsi_ld_entities.append(ngsi_ld_entity)
 
     # Return the list of NGSI-LD entities
     return ngsi_ld_entities
@@ -447,84 +417,58 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
             alert_description_translation_list.append(translation)
         
         # Create custom data model
-        ngsi_entity = {
+        ngsi_ld_entity = {
             "id": f"urn:ngsi-ld:GtfsAlert:{alert_id}",
             "type": "GtfsRealtimeAlert",
-            "alert": {
+            "active_period": {
                 "type": "Property",
-                "value": {
-                    "active_period": {
-                        "type": "Property",
-                        "value": active_periods_list
-                    },
-                    
-                    "informed_entity": {
-                        "type": "Property",
-                        "value": informed_entities_list
-                    },
-                    
-                    "alert_cause": {
-                        "type": "Property",
-                        "value": alert_cause
-                    },
-                    
-                    "alert_effect": {
-                        "type": "Property",
-                        "value": alert_effect
-                    },
-                    
-                    "url": {
-                        "type": "Property",
-                        "value": {
-                            "translation": {
-                                "type": "Property",
-                                "value": alert_url_translation_list
-                            }
-                        }
-                    },
-                    
-                    "alert_header": {
-                        "type": "Property",
-                        "value": {
-                            "translation": {
-                                "type": "Property",
-                                "value": alert_header_translation_list
-                            }
-                        }
-                    },
-                    
-                    "alert_description": {
-                        "type": "Property",
-                        "value": {
-                            "translation": {
-                                "type": "Property",
-                                "value": alert_description_translation_list
-                            }
-                        }
-                    },
-                    
-                    "@context": [
-                        "https://smart-data-models.github.io/dataModel.UrbanMobility/context.jsonld",
-                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                        "https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs-realtime/gtfs-realtime-context.jsonld"
-                    ]
-                },
+                "value": active_periods_list
+            },   
+            "informed_entity": {
+                "type": "Property",
+                "value": informed_entities_list
+            },   
+            "alert_cause": {
+                "type": "Property",
+                "value": alert_cause
+            },             
+            "alert_effect": {
+                "type": "Property",
+                "value": alert_effect
+            },     
+            "url_translation": {
+                "type": "Property",
+                "value": alert_url_translation_list
+            },               
+            "alert_header_translation": {
+                "type": "Property",
+                "value": alert_header_translation_list
+            },
+            "alert_description_translation": {
+                "type": "Property",
+                "value": alert_description_translation_list
             }
+        }
+        
+        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
+        ngsi_ld_entity = {
+            k: v for k, v in ngsi_ld_entity.items()
+            if not (isinstance(v, dict) and None in v.values())
         }
 
         # Append the NGSI-LD entity to the list
-        ngsi_ld_entities.append(ngsi_entity)
+        ngsi_ld_entities.append(ngsi_ld_entity)
 
     # Return the list of NGSI-LD entities
     return ngsi_ld_entities
 
 
 if __name__ == "__main__":
-    api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
-    ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
-    print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
+    #api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    #feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    #ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
+    #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
 
