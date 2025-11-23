@@ -15,6 +15,8 @@ if project_root not in sys.path:
 from typing import List, Dict, Any
 from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
 from json_ld.json_ld_utils import json_ld_get_ngsi_ld_data
+import gtfs_realtime.gtfs_realtime_utils as gtfs_realtime
+import config
 
 ORION_LD_URL = "http://localhost:1026/ngsi-ld/v1/entities"
 ORION_LD_BATCH_CREATE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/create"
@@ -355,13 +357,14 @@ def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: List[Dict[str, Any]],
         response = requests.post(ORION_LD_BATCH_UPDATE_URL, json=batch_ngsi_ld_data, headers=header)
 
         # If successful, report which enteties were created
-        if response.status_code == 201:
-            print(f"Replaced entity data for the following {len(batch_ngsi_ld_data)} entities:\n{entities_ids}\n")
+        if response.status_code == 201 or response.status_code == 207:
+            print(f"Replaced entity data SUCCESSFULLY")
         # If failed, explain why
         else:
             print(f"Failed to replace entity data {response.status_code} {response.text}")
     except  requests.exceptions.RequestException as e:
         print(f"POST Request Error: {e}")
+        
 # DELETE functions
 
 def orion_ld_delete_entity(entity_id: str, header: dict) -> None:
@@ -418,7 +421,7 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict) -> No
 
 
 if __name__ == "__main__":
-    HEADERS = orion_ld_define_header("gtfs_static")
+    #HEADERS = orion_ld_define_header("gtfs_static")
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("calendar_dates")
@@ -443,7 +446,7 @@ if __name__ == "__main__":
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("trips")
     
-    HEADERS = orion_ld_define_header("pois")
+    #HEADERS = orion_ld_define_header("pois")
     
     #ngsi_ld_data = json_ld_get_ngsi_ld_data("culture")
     #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
@@ -488,7 +491,17 @@ if __name__ == "__main__":
     
     #print(orion_ld_get_count_of_entities_by_type("GtfsShape"))
     
-    entity = orion_ld_get_entities_by_type("PointOfInterest", HEADERS)
-    print(json.dumps(entity, indent=2, ensure_ascii=False))
+    #entity = orion_ld_get_entities_by_type("PointOfInterest", HEADERS)
+    #print(json.dumps(entity, indent=2, ensure_ascii=False))
 
+    #HEADERS = orion_ld_define_header("gtfs_realtime")
+    #orion_ld_batch_delete_entities_by_type("GtfsRealtimeVehiclePosition", HEADERS)
+    
+    #api_response = gtfs_realtime.get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    #feed_data = gtfs_realtime.parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    #feed_dict = gtfs_realtime.gtfs_realtime_feed_to_dict(feed_data)
+    #ngsi_ld_fеed = gtfs_realtime.gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
+    #orion_ld_batch_load_to_context_broker(ngsi_ld_fеed, HEADERS)
+    #print(orion_ld_get_count_of_entities_by_type("GtfsRealtimeVehiclePosition", HEADERS))
+    #orion_ld_batch_replace_entity_data(ngsi_ld_fеed, HEADERS)
     pass

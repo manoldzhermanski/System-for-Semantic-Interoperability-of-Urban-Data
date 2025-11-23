@@ -12,11 +12,16 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import config
 
-def unix_to_iso8601(ts: int) -> str:
+def unix_to_iso8601(timestamp: int) -> str:
     """
     Convert UNIX timestamp (seconds) to ISO 8601 UTC string.
     """
-    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+def iso8601_to_unix(timestamp: str) -> int:
+    dt = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
+    unix_timestamp = int(dt.timestamp())
+    return unix_timestamp
 
 def get_gtfs_realtime_feed(api_endpoint: config.GtfsSource) -> bytes:
     """
@@ -83,18 +88,18 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         vehicle_position_id = entity.get("id")
-        vehicle_position_trip_id = f"urn:ngsi-ld:GtfsTrip:{entity.get('vehicle').get('trip').get('tripId')}" if entity.get('vehicle').get('trip').get('tripId') else ""
-        vehicle_position_trip_schedule_relationship = entity.get('vehicle').get('trip').get('scheduleRelationship') or ""
-        vehicle_position_trip_route_id = f"urn:ngsi-ld:GtfsRoute:{entity.get('vehicle').get('trip').get('routeId')}" if entity.get('vehicle').get('trip').get('routeId') else ""
+        vehicle_position_trip_id = f"urn:ngsi-ld:GtfsTrip:{entity.get('vehicle').get('trip').get('tripId')}" if entity.get('vehicle').get('trip').get('tripId') else None
+        vehicle_position_trip_schedule_relationship = entity.get('vehicle').get('trip').get('scheduleRelationship') or None
+        vehicle_position_trip_route_id = f"urn:ngsi-ld:GtfsRoute:{entity.get('vehicle').get('trip').get('routeId')}" if entity.get('vehicle').get('trip').get('routeId') else None
         longitude = float(entity.get('vehicle').get('position').get('longitude')) or 0.0
         latitude = float(entity.get('vehicle').get('position').get('latitude')) or 0.0
-        vehicle_position_speed = float(entity.get('vehicle').get('position').get('speed')) or 0.0
-        vehicle_position_current_status = entity.get('vehicle').get('currentStatus') or ""
-        vehicle_position_timestamp = unix_to_iso8601(int(entity.get('vehicle').get('timestamp'))) or ""
-        vehicle_position_congestion_level = entity.get('vehicle').get('congestionLevel')
-        vehicle_position_stop_id = f"urn:ngsi-ld:GtfsStop:{entity.get('vehicle').get('stopId')}" if entity.get('vehicle').get('stopId') else ""
-        vehicle_position_vehicle_id = f"urn:ngsi-ld:Vehicle:{entity.get('vehicle').get('vehicle').get('id')}" if entity.get('vehicle').get('vehicle').get('id') else ""
-        vehicle_position_occupancy_status = entity.get('vehicle').get('occupancyStatus') or ""
+        vehicle_position_speed = float(entity.get('vehicle').get('position').get('speed')) or -1.0
+        vehicle_position_current_status = entity.get('vehicle').get('currentStatus') or None
+        vehicle_position_timestamp = unix_to_iso8601(int(entity.get('vehicle').get('timestamp'))) or None
+        vehicle_position_congestion_level = entity.get('vehicle').get('congestionLevel') or None
+        vehicle_position_stop_id = f"urn:ngsi-ld:GtfsStop:{entity.get('vehicle').get('stopId')}" if entity.get('vehicle').get('stopId') else None
+        vehicle_position_vehicle_id = f"urn:ngsi-ld:Vehicle:{entity.get('vehicle').get('vehicle').get('id')}" if entity.get('vehicle').get('vehicle').get('id') else None
+        vehicle_position_occupancy_status = entity.get('vehicle').get('occupancyStatus') or None
         
         # Create custom data model and populate it
         ngsi_ld_entity = {
@@ -157,7 +162,7 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
         # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
         ngsi_ld_entity = {
             k: v for k, v in ngsi_ld_entity.items()
-            if not (isinstance(v, dict) and None in v.values())
+            if not (isinstance(v, dict) and (None or -1.0) in v.values())
         }
         
         # Append the NGSI-LD entity to the list
@@ -470,7 +475,6 @@ if __name__ == "__main__":
     #ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
-
 
     #api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
     #feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)

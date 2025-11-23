@@ -43,9 +43,12 @@
     },
     {
       "name": "Vehicle Positions in Sofia",
-      "type": "geojson",
-      "url": "http://localhost:8000/api/gtfs/vehicles.geojson",
-      "description": "Sofia's Public Transport in Real Time."
+      "type": "gtfs",
+      "url": "http://localhost:8000/api/gtfs/vehicles",
+      "image":"build/TerriaJS/images/bus.png",
+      "description": "Sofia's Public Transport in Real Time.",
+      "refreshInterval": 30,
+      "refreshEnabled": true
     }
   ]
 }
