@@ -8,7 +8,6 @@ import uuid
 from io import BytesIO
 from typing import Any
 from datetime import datetime
-from shapely.geometry import LineString
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
@@ -25,8 +24,11 @@ def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_d
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}") from e
+    
+    # Ensure base_dir exists
+    os.makedirs(base_dir, exist_ok=True)
 
-    # Make directory if it does not exist
+    # Ensure base_dir/data exists
     extract_to = os.path.join(base_dir, "data")
     os.makedirs(extract_to, exist_ok=True)
     
