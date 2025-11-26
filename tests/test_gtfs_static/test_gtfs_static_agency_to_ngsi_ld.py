@@ -300,8 +300,7 @@ def test_whitespace_values_are_removed():
     
     # Check that the result is as expected
     assert result == expected
-
-        
+     
 def test_empty_agency_dict_raises_error():
     """
     Check that if a list with empty entities are provided, a ValueError is raised
