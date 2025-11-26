@@ -41,9 +41,31 @@ def gtfs_static_read_file(file_path: str) -> list[dict[str, Any]]:
     """
     Reads a GTFS file and returns its contents as a list of dictionaries.
     Each dictionary corresponds to a row in the GTFS file, with keys from the header row.
+    Because the expected delimiter in the GTFS Static files is ',' (comma), we check if this is true
     """
     with open(file_path, mode='r', encoding='utf-8-sig') as file:
-        reader = csv.DictReader(file)
+        first_line = file.readline()
+        
+        # If the file is empty, return []
+        if not first_line.strip():
+            return []
+
+        # Require comma delimiter
+        if "," not in first_line:
+            raise ValueError("Invalid delimiter: GTFS files must use comma ',' as delimiter")
+
+        # Reset pointer after reading first line
+        file.seek(0)  
+        reader = csv.DictReader(file, delimiter=",")
+        
+        # Reject headers that are purely numeric → typical sign of missing header
+        if reader.fieldnames and any(name.strip().isdigit() for name in reader.fieldnames):
+            raise ValueError("Missing or invalid header row: GTFS files must contain a valid CSV header.")
+        
+        # Reject empty column names
+        if not reader.fieldnames or any(name.strip() == "" for name in reader.fieldnames):
+            raise ValueError("Missing or invalid header row: GTFS files must contain a valid CSV header.")
+        
         return list(reader)
     
     
