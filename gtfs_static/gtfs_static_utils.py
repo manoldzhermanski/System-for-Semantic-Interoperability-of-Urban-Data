@@ -78,17 +78,26 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
+    
+    required_fileds = ["agency_id", "agency_name", "agency_url", "agency_timezone"]
+    
     for agency in raw_data:
         
+        # Check if an agency entity contains the required fields
+        for field in required_fileds:
+            if not agency.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
+        
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        agency_id = agency.get("agency_id")
-        agency_name = agency.get("agency_name") or None
-        source = agency.get("source") or None
-        agency_url = agency.get("agency_url") or None
-        agency_timezone = agency.get("agency_timezone") or None
-        agency_lang = agency.get("agency_lang") or None
-        agency_phone = agency.get("agency_phone") or None 
-        agency_email = agency.get("agency_email") or None
+        agency_id = (agency.get("agency_id") or "").strip()
+        agency_name = (agency.get("agency_name") or "").strip() or None
+        agency_url = (agency.get("agency_url") or "").strip() or None
+        agency_timezone = (agency.get("agency_timezone") or "").strip() or None
+        agency_lang = (agency.get("agency_lang") or "").strip() or None
+        agency_phone = (agency.get("agency_phone") or "").strip() or None
+        agency_fare_url = (agency.get("agency_fare_url") or "").strip() or None 
+        agency_email = (agency.get("agency_email") or "").strip() or None
+        cemv_support = int(agency["cemv_support"]) if agency.get("cemv_support") not in (None, "") else None
         
         # Populate FIWARE's data model
         ngsi_ld_agency = {
@@ -99,12 +108,7 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "type": "Property", 
                 "value": agency_name
             },
-            
-            "source": {
-                "type": "Property",
-                "value": source
-            },
-            
+                        
             "agency_url": {
                 "type": "Property", 
                 "value": agency_url
@@ -125,9 +129,19 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                 "value": agency_phone
             },
             
+            "agency_fare_url": {
+                "type": "Property",
+                "value": agency_fare_url
+            },
+            
             "agency_email": {
                 "type": "Property", 
                 "value": agency_email
+            },
+            
+            "cemv_support": {
+                "type": "Property",
+                "value": cemv_support
             }
         }
         
