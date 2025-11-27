@@ -167,12 +167,23 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
+    
+    required_fileds = ["service_id", "date", "exception_type"]
     for calendar_date in raw_data:
         
+        # Check if an agency entity contains the required fields
+        for field in required_fileds:
+            if not calendar_date.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
+        
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        service_id = f"urn:ngsi-ld:GtfsService:{calendar_date.get("service_id")}" if calendar_date.get("service_id") else None
-        applies_on = datetime.strptime(calendar_date["date"], "%Y%m%d").date().isoformat() if calendar_date.get("date") else None
-        exception_type = calendar_date.get("exception_type") or None
+        raw_service_id = (calendar_date.get("service_id") or "").strip()
+        raw_date = (calendar_date.get("date") or "").strip()
+        raw_exception = (calendar_date.get("exception_type") or "").strip()
+
+        service_id = f"urn:ngsi-ld:GtfsService:{raw_service_id}" if raw_service_id else None
+        applies_on = datetime.strptime(raw_date, "%Y%m%d").date().isoformat() if raw_date else None
+        exception_type = int(raw_exception) if raw_exception else None
         
         # Populate FIWARE's data model
         ngsi_ld_calendar_date = {
