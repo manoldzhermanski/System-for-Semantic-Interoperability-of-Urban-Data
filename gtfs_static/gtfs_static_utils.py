@@ -169,9 +169,10 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
     ngsi_ld_data = []
     
     required_fileds = ["service_id", "date", "exception_type"]
+    
     for calendar_date in raw_data:
         
-        # Check if an agency entity contains the required fields
+        # Check if a calendar date entity contains the required fields
         for field in required_fileds:
             if not calendar_date.get(field):
                 raise ValueError(f"Missing required GTFS field: {field}")
@@ -228,16 +229,50 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
+    
+    required_fileds = ["fare_id", "price", "currency_type", "payment_method", "transfers", "agency_id"]
+    
     for fare in raw_data:
         
+        # Check if a fare attributes entity contains the required fields
+        for field in required_fileds:
+            if not fare.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
+        
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        fare_id = fare.get("fare_id")
-        price = float(fare["price"]) if fare.get("price") not in (None, "") else None
-        currency_type = fare.get("currency_type") or None
-        payment_method = int(fare["payment_method"]) if fare.get("payment_method") not in (None, "") else None
-        transfers = int(fare["transfers"]) if fare.get("transfers") not in (None, "") else None
-        agency = f"urn:ngsi-ld:GtfsAgency:{fare.get("agency_id")}" if fare.get("agency_id") else None
-        transfer_duration = int(fare["transfer_duration"]) if fare.get("transfer_duration") not in (None, "") else None
+        fare_id = (fare.get("fare_id") or "").strip() or None
+        
+        raw_price = (fare.get("price") or "").strip()
+        check_if_positive = float(raw_price)
+        if check_if_positive < 0:
+            raise ValueError("Invalid value for 'price': must be non-negative")
+        price = check_if_positive
+        
+        currency_type = (fare.get("currency_type") or "").strip() or None
+        
+        raw_payment_method = (fare.get("payment_method") or "").strip()
+        check_if_in_range = int(raw_payment_method)
+        if check_if_in_range not in (0, 1):
+            raise ValueError("Invalid value for 'payment_method': must be 0 or 1")
+        payment_method = check_if_in_range
+        
+        raw_transfers = (fare.get("transfers") or "").strip()
+        check_if_in_range = int(raw_transfers)
+        if check_if_in_range not in (0, 1, 2):
+            raise ValueError("Invalid value for 'transfers': must be 0, 1, or 2")
+        transfers = check_if_in_range
+        
+        raw_agency = (fare.get("agency_id") or "").strip()
+        agency = f"urn:ngsi-ld:GtfsAgency:{raw_agency}" if raw_agency else None
+        
+        raw_transfer_duration = (fare.get("transfer_duration") or "").strip()
+        if raw_transfer_duration:
+            check_if_positive = int(raw_transfer_duration)
+            if check_if_positive < 0:
+                raise ValueError("Invalid value for 'transfer_duration': must be non-negative")
+            transfer_duration = check_if_positive
+        else:
+            transfer_duration = None
         
         # Create custom NGSI-LD data model and populate it
         ngsi_ld_fare = {
