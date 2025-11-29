@@ -97,7 +97,14 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         agency_phone = (agency.get("agency_phone") or "").strip() or None
         agency_fare_url = (agency.get("agency_fare_url") or "").strip() or None 
         agency_email = (agency.get("agency_email") or "").strip() or None
-        cemv_support = int(agency["cemv_support"]) if agency.get("cemv_support") not in (None, "") else None
+        
+        raw_cemv_support = (agency.get("cemv_support") or "").strip()
+        if raw_cemv_support:
+            check_if_in_range = int(raw_cemv_support)
+            if check_if_in_range not in (0, 1, 2):
+                raise ValueError("Invalid value for 'cemv_support': must be 0, 1, or 2")
+            cemv_support = check_if_in_range
+        cemv_support = None
         
         # Populate FIWARE's data model
         ngsi_ld_agency = {
@@ -332,12 +339,25 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
+    
+    required_fields = ["level_id", "level_index"]
+    
     for level in raw_data:
         
+        for field in required_fields:
+            if not level.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
+        
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        level_id = level.get("level_id")
-        level_name = level.get("level_name") or None
-        level_index = int(level["level_index"]) if level.get("level_index") not in (None, "") else None
+        level_id = (level.get("level_id") or "").strip()
+        
+        level_name = (level.get("level_name") or "").strip() or None
+        
+        raw_level_index = (level.get("level_index") or "").strip()
+        if not raw_level_index.isdigit():
+            raise ValueError(f"Invalid value for 'level_index': must be a floating point number")
+        else:
+            level_index = float(level["level_index"])
         
         # Create custom NGSI-LD data model and populate it
         ngsi_ld_level = {
