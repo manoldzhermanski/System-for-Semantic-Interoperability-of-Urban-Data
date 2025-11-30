@@ -282,7 +282,7 @@ def is_valid_time(value: Any) -> bool:
 # Country Code Checks
 # -----------------------------------------------------
     
-def is_currency_code(value: Any) -> bool:
+def is_valid_currency_code(value: Any) -> bool:
     """
     Check if argument is a valid currecny code
 
@@ -297,7 +297,11 @@ def is_currency_code(value: Any) -> bool:
         return False
     
     # Remove white spaces around string and turn it uppercase
-    value = value.strip().upper()
+    value = value.strip()
+    
+    # Check if currency code is upper case
+    if value.upper() != value:
+        return False
 
     # Return False, if empty string
     if value == "":
@@ -322,6 +326,10 @@ def is_valid_language_code(code: Any) -> bool:
     
     # Remove white spaces around the string
     code = code.strip()
+    
+    # Check if language code is lower case
+    if code.lower() != code:
+        return False
     
     # Return False, if empty string
     if code == "":
