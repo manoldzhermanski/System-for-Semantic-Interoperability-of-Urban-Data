@@ -187,15 +187,15 @@ def is_valid_color(color_code: Any) -> bool:
 # Date, Time, Timezone checks
 # -----------------------------------------------------
 
-def is_valid_iso_date(date_str: str) -> bool:
+def is_valid_date(date_str: Any) -> bool:
     """
-    Check if string is a date in the format YYYYMMDD
+    Check if argument is a date in the format YYYYMMDD
 
     Args:
-        date_str (str): String to check
+        date_str (Any): Argument to check
 
     Returns:
-        bool: True if string is a date in the format YYYYMMDD, False otherwise
+        bool: True if argument is a date in the format YYYYMMDD, False otherwise
     """
     # Return False, if not a string
     if not isinstance(date_str, str):
@@ -216,15 +216,15 @@ def is_valid_iso_date(date_str: str) -> bool:
         # If parsing fails, the string is not a valid date in this format
         return False
 
-def is_valid_timezone(timezone: str) -> bool:
+def is_valid_timezone(timezone: Any) -> bool:
     """
-    Check if string is a valid timezone code
+    Check if argument is a valid timezone code
 
     Args:
-        timezone (str): String to check
+        timezone (Any): Argument to check
 
     Returns:
-        bool: True if string is valid timezone, False otherwise
+        bool: True if argument is valid timezone, False otherwise
     """
         # Return False, if not a string
     if not isinstance(timezone, str):
@@ -245,15 +245,15 @@ def is_valid_timezone(timezone: str) -> bool:
         # If parsing fails, the string is not a valid timezone
         return False
 
-def is_valid_time(value: str) -> bool:
+def is_valid_time(value: Any) -> bool:
     """
-    Check if string is time in HH:MM:SS format
+    Check if argument is time in HH:MM:SS format
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
 
     Returns:
-        bool: True if string is time in HH:MM:SS format, False otherwise
+        bool: True if argument is time in HH:MM:SS format, False otherwise
     """
     # Return False, if not a string
     if not isinstance(value, str):
@@ -278,15 +278,15 @@ def is_valid_time(value: str) -> bool:
 # Country Code Checks
 # -----------------------------------------------------
     
-def is_currency_code(value: str) -> bool:
+def is_currency_code(value: Any) -> bool:
     """
-    Check if a string is a valid currecny code
+    Check if argument is a valid currecny code
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
 
     Returns:
-        bool: True if string is valid currency string, False otherwise
+        bool: True if argument is valid currency string, False otherwise
     """
     # Return False, if not a string
     if not isinstance(value, str):
@@ -302,12 +302,12 @@ def is_currency_code(value: str) -> bool:
     # Return True if string is a valid currency code comprised of 3 letters, False otherwise
     return pycountry.currencies.get(alpha_3=value) is not None
 
-def is_valid_language_code(code: str) -> bool:
+def is_valid_language_code(code: Any) -> bool:
     """
-    Check if a string is a valid language code
+    Check if argument is a valid language code
 
     Args:
-        code (str): String to check
+        code (Any): Argument to check
 
     Returns:
         bool: True if valid language code, False otherwise
