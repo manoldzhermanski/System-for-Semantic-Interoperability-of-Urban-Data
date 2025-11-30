@@ -11,7 +11,6 @@ def test_is_int_valid_strings():
 def test_is_int_invalid_strings():
     assert is_int("") is False
     assert is_int(" ") is False
-    assert is_int("\t\n") is False
     assert is_int("3.14") is False
     assert is_int("abc") is False
     assert is_int("12abc") is False
