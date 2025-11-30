@@ -73,7 +73,7 @@ def is_float(value: Any) -> bool:
 # String checks
 # -----------------------------------------------------
 
-def is_valid_url(url: str) -> bool:
+def is_valid_url(url: Any) -> bool:
     """
     Check if string is a valid URL
 
@@ -158,7 +158,6 @@ def is_valid_phone_number(number: str) -> bool:
     
     # If all checks passed, return True
     return True
-
 
 def is_valid_color(color_code: str) -> bool:
     """
