@@ -101,7 +101,7 @@ def is_valid_url(url: Any) -> bool:
     # Return True if result is True, otherwise False
     return result is True
 
-def is_valid_email(email: str) -> bool:
+def is_valid_email(email: Any) -> bool:
     """
     Check if string is a valid email address
 
