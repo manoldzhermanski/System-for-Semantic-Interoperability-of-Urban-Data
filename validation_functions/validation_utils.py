@@ -14,7 +14,7 @@ def is_int(value: Any) -> bool:
     Check if a value represents a valid integer
 
     Args:
-        value (str): Argument to check
+        value (Any): Argument to check
 
     Returns:
         bool: True if argument is integer, False otherwise
@@ -44,7 +44,7 @@ def is_float(value: Any) -> bool:
     Check if a value represents a valid float
 
     Args:
-        value (str): Argument to check
+        value (Any): Argument to check
 
     Returns:
         bool: True if argument is float, False otherwise
@@ -75,10 +75,10 @@ def is_float(value: Any) -> bool:
 
 def is_valid_url(url: Any) -> bool:
     """
-    Check if string is a valid URL
+    Check if argument is a valid URL
 
     Args:
-        url (str): String to check
+        url (Any): Argument to check
 
     Returns:
         bool: True if valid URL, False otherwise
@@ -103,10 +103,10 @@ def is_valid_url(url: Any) -> bool:
 
 def is_valid_email(email: Any) -> bool:
     """
-    Check if string is a valid email address
+    Check if argument is a valid email address
 
     Args:
-        email (str): String to check
+        email (Any): Argument to check
 
     Returns:
         bool: True if valid email, False otherwise
@@ -128,14 +128,14 @@ def is_valid_email(email: Any) -> bool:
     # Return True if result is True, otherwise False
     return result is True
 
-def is_valid_phone_number(number: str) -> bool:
+def is_valid_phone_number(number: Any) -> bool:
     """
-    Check if string is a valid phone number
+    Check if argument is a valid phone number
     Args:
-        number (str): String to check
+        number (Any): Argument to check
 
     Returns:
-        bool: True if string is a valid phone number, otherwise False
+        bool: True if argument is a valid phone number, otherwise False
     """
     # Return False, if not a string
     if not isinstance(number, str):
@@ -159,15 +159,15 @@ def is_valid_phone_number(number: str) -> bool:
     # If all checks passed, return True
     return True
 
-def is_valid_color(color_code: str) -> bool:
+def is_valid_color(color_code: Any) -> bool:
     """
-    Check if string is a six-digit hex code depicting a color
+    Check if argument is a six-digit hex code depicting a color
     
     Args:
-        color_code (str): String to check
+        color_code (Any): Argument to check
 
     Returns:
-        bool: True if string is a valid six-digit hex code, otherwise False
+        bool: True if Argument is a valid six-digit hex code, otherwise False
     """
     # Return False, if not a string
     if not isinstance(color_code, str):

@@ -16,7 +16,7 @@ def test_is_valid_email_invalid_strings():
     assert is_valid_email("test@.com") is False
     assert is_valid_email("test@domain") is False
     
-def test_is_valid_url_invalid_types():
+def test_is_valid_email_invalid_types():
     assert is_valid_email(None) is False
     assert is_valid_email(123) is False
     assert is_valid_email(3.14) is False
