@@ -266,6 +266,10 @@ def is_valid_time(value: Any) -> bool:
     if value == "":
         return False
     
+    # Strict regex for HH:MM:SS
+    if not re.fullmatch(r"[0-2][0-9]:[0-5][0-9]:[0-5][0-9]", value):
+        return False
+    
     try:
         # Attempt to parse the string as time in HH:MM:SS format
         datetime.strptime(value, "%H:%M:%S")
