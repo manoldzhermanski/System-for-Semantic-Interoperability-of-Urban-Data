@@ -350,12 +350,12 @@ def is_valid_language_code(code: Any) -> bool:
 # Enum Checks
 # -----------------------------------------------------
 
-def is_valid_cemv_support(value: str) -> bool:
+def is_valid_cemv_support(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'cemv_support'
+    Check if argument is a valid enum value for 'cemv_support'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -365,12 +365,12 @@ def is_valid_cemv_support(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2)
           
-def is_valid_calendar_date_exception_type(value: str) -> bool:
+def is_valid_calendar_date_exception_type(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'exception_type' field
+    Check if argument is a valid enum value for 'exception_type' field
 
     Args:
-        value (str): String to check
+        value (Any): Argment to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -380,12 +380,12 @@ def is_valid_calendar_date_exception_type(value: str) -> bool:
     int_value = int(value)
     return int_value in (1, 2)
 
-def is_valid_fare_attributes_payment_method(value: str) -> bool:
+def is_valid_fare_attributes_payment_method(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'payment_method' field
+    Check if argument is a valid enum value for 'payment_method' field
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -395,12 +395,12 @@ def is_valid_fare_attributes_payment_method(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1)
 
-def is_valid_fare_attributes_transfers(value: str) -> bool:
+def is_valid_fare_attributes_transfers(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'transfers'
+    Check if argument is a valid enum value for 'transfers'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
