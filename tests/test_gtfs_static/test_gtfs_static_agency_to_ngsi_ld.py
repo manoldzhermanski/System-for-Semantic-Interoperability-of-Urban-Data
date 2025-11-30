@@ -17,7 +17,7 @@ def test_valid_gtfs_agency_conversion():
         "agency_phone": "089",
         "agency_fare_url": "www.anotherfakeurl.com",
         "agency_email": "fakeemail@gtfs.com",
-        "cemv_support": 1,
+        "cemv_support": "1",
         }
     ]
     

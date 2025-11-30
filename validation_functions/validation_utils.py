@@ -3,20 +3,21 @@ import pycountry
 import validators
 from zoneinfo import ZoneInfo
 from datetime import datetime
+from typing import Any
 
 # -----------------------------------------------------
 # Number checks
 # -----------------------------------------------------
 
-def is_int(value: str) -> bool:
+def is_int(value: Any) -> bool:
     """
-    Check if a string is a integer
+    Check if a value represents a valid integer.
 
     Args:
-        value (str): String to check
+        value (str): Argument to check
 
     Returns:
-        bool: True if string is integer, False otherwise
+        bool: True if argument is integer, False otherwise
     """
     
     # Return False, if not a string

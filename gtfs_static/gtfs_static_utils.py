@@ -104,7 +104,8 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             if check_if_in_range not in (0, 1, 2):
                 raise ValueError("Invalid value for 'cemv_support': must be 0, 1, or 2")
             cemv_support = check_if_in_range
-        cemv_support = None
+        else:
+            cemv_support = None
         
         # Populate FIWARE's data model
         ngsi_ld_agency = {
