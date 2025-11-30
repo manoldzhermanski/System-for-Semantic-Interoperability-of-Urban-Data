@@ -11,7 +11,7 @@ from typing import Any
 
 def is_int(value: Any) -> bool:
     """
-    Check if a value represents a valid integer.
+    Check if a value represents a valid integer
 
     Args:
         value (str): Argument to check
@@ -39,14 +39,15 @@ def is_int(value: Any) -> bool:
     except (TypeError, ValueError):
         return False
     
-def is_float(value: str) -> bool:
-    """Check if string is a float
+def is_float(value: Any) -> bool:
+    """
+    Check if a value represents a valid float
 
     Args:
-        value (str): String to check
+        value (str): Argument to check
 
     Returns:
-        bool: True if string is float, False otherwise
+        bool: True if argument is float, False otherwise
     """
     
     # Return False, if not a string

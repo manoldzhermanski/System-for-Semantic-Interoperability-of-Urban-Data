@@ -8,18 +8,16 @@ def test_valid_integers():
     assert is_int("+12") is True
     assert is_int("   7   ") is True
 
-def test_invalid_strings():
+def test_invalid_integers():
+    assert is_int("") is False
+    assert is_int(" ") is False
+    assert is_int("\t\n") is False
     assert is_int("3.14") is False
     assert is_int("abc") is False
     assert is_int("12abc") is False
     assert is_int("--5") is False
     assert is_int("-") is False
     assert is_int("1 2") is False
-
-def test_edge_cases():
-    assert is_int("") is False
-    assert is_int(" ") is False
-    assert is_int("\t\n") is False
 
 def test_invalid_types():
     assert is_int(None) is False
@@ -29,4 +27,3 @@ def test_invalid_types():
     assert is_int(["1"]) is False
     assert is_int({"value": "1"}) is False
     assert is_int((1)) is False
-    
