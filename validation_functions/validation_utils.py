@@ -410,12 +410,12 @@ def is_valid_fare_attributes_transfers(value: Any) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2)
 
-def is_valid_pathways_pathway_mode(value: str) -> bool:
+def is_valid_pathways_pathway_mode(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'pathway_mode'
+    Check if argument is a valid enum value for 'pathway_mode'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -425,12 +425,12 @@ def is_valid_pathways_pathway_mode(value: str) -> bool:
     int_value = int(value)
     return int_value in (1, 2, 3, 4, 5, 6)
 
-def is_valid_pathways_is_bidirectional(value: str) -> bool:
+def is_valid_pathways_is_bidirectional(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'is_bidirectional'
+    Check if argument is a valid enum value for 'is_bidirectional'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -440,12 +440,12 @@ def is_valid_pathways_is_bidirectional(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1)
 
-def is_valid_route_type(value: str) -> bool:
+def is_valid_route_type(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'route_type'
+    Check if argument is a valid enum value for 'route_type'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -455,12 +455,12 @@ def is_valid_route_type(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2, 3, 4, 5, 6, 7, 11, 12)
 
-def is_valid_continuous_pickup(value: str) -> bool:
+def is_valid_continuous_pickup(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'continuous_pickup'
+    Check if argument is a valid enum value for 'continuous_pickup'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -470,12 +470,12 @@ def is_valid_continuous_pickup(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2, 3)
 
-def is_valid_continuous_drop_off(value: str) -> bool:
+def is_valid_continuous_drop_off(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'continuous_drop_off'
+    Check if argument is a valid enum value for 'continuous_drop_off'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
