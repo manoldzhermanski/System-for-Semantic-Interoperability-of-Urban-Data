@@ -485,12 +485,12 @@ def is_valid_continuous_drop_off(value: Any) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2, 3)
 
-def is_valid_pickup_type(value: str) -> bool:
+def is_valid_pickup_type(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'pickup_type'
+    Check if argument is a valid enum value for 'pickup_type'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -500,12 +500,12 @@ def is_valid_pickup_type(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2, 3)
     
-def is_valid_drop_off_type(value: str) -> bool:
+def is_valid_drop_off_type(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'drop_off_type'
+    Check if argument is a valid enum value for 'drop_off_type'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -515,12 +515,12 @@ def is_valid_drop_off_type(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2, 3)
 
-def is_valid_location_type(value: str) -> bool:
+def is_valid_location_type(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'location_type'
+    Check if argument is a valid enum value for 'location_type'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -530,12 +530,12 @@ def is_valid_location_type(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2, 3, 4)
 
-def is_valid_wheelchair_boarding(value: str) -> bool:
+def is_valid_wheelchair_boarding(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'wheelchair_boarding'
+    Check if argument is a valid enum value for 'wheelchair_boarding'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -545,12 +545,12 @@ def is_valid_wheelchair_boarding(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2)
 
-def is_valid_stop_access(value: str) -> bool:
+def is_valid_stop_access(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'stop_access'
+    Check if argument is a valid enum value for 'stop_access'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -560,12 +560,12 @@ def is_valid_stop_access(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1)
 
-def is_valid_transfer_type(value: str) -> bool:
+def is_valid_transfer_type(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'transfer_type'
+    Check if argument is a valid enum value for 'transfer_type'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -575,12 +575,12 @@ def is_valid_transfer_type(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2, 3, 4, 5)
 
-def is_valid_direction_id(value: str) -> bool:
+def is_valid_direction_id(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'direction_id'
+    Check if argument is a valid enum value for 'direction_id'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -590,12 +590,12 @@ def is_valid_direction_id(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1)
 
-def is_valid_wheelchair_accessible(value: str) -> bool:
+def is_valid_wheelchair_accessible(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'wheelchair_accessible'
+    Check if argument is a valid enum value for 'wheelchair_accessible'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -605,12 +605,12 @@ def is_valid_wheelchair_accessible(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2)
 
-def is_valid_bikes_allowed(value: str) -> bool:
+def is_valid_bikes_allowed(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'bikes_allowed'
+    Check if argument is a valid enum value for 'bikes_allowed'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
@@ -620,12 +620,12 @@ def is_valid_bikes_allowed(value: str) -> bool:
     int_value = int(value)
     return int_value in (0, 1, 2)
 
-def is_valid_cars_allowed(value: str) -> bool:
+def is_valid_cars_allowed(value: Any) -> bool:
     """
-    Check if string is a valid enum value for 'cars_allowed'
+    Check if argument is a valid enum value for 'cars_allowed'
 
     Args:
-        value (str): String to check
+        value (Any): Argument to check
     Returns:
         bool: True if value in enum range, False otherwise
     """
