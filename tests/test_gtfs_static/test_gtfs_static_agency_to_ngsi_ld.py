@@ -11,11 +11,11 @@ def test_valid_gtfs_agency_conversion():
         {
         "agency_id": "A1",
         "agency_name": "Agency A1",
-        "agency_url": "wwww.fakeurl.com",
+        "agency_url": "https://wwww.fakeurl.com",
         "agency_timezone": "Europe/Sofia",
         "agency_lang": "bg",
-        "agency_phone": "089",
-        "agency_fare_url": "www.anotherfakeurl.com",
+        "agency_phone": "0899999999",
+        "agency_fare_url": "https://www.anotherfakeurl.com",
         "agency_email": "fakeemail@gtfs.com",
         "cemv_support": "1",
         }
@@ -34,7 +34,7 @@ def test_valid_gtfs_agency_conversion():
                         
             "agency_url": {
                 "type": "Property", 
-                "value": "wwww.fakeurl.com"
+                "value": "https://wwww.fakeurl.com"
             },
             
             "agency_timezone": {
@@ -49,12 +49,12 @@ def test_valid_gtfs_agency_conversion():
             
             "agency_phone": {
                 "type": "Property", 
-                "value": "089"
+                "value": "0899999999"
             },
             
             "agency_fare_url": {
                 "type": "Property",
-                "value": "www.anotherfakeurl.com"
+                "value": "https://www.anotherfakeurl.com"
             },
             
             "agency_email": {
@@ -152,7 +152,7 @@ def test_optinal_fields_are_removed_if_empty():
         {
             "agency_id": "A1",
             "agency_name": "Agency A1",
-            "agency_url": "www.fakeurl.com",
+            "agency_url": "https://www.fakeurl.com",
             "agency_timezone": "Europe/Sofia",
             "agency_lang": ""
         }
@@ -171,7 +171,7 @@ def test_optinal_fields_are_removed_if_empty():
                         
             "agency_url": {
                 "type": "Property", 
-                "value": "www.fakeurl.com"
+                "value": "https://www.fakeurl.com"
             },
             
             "agency_timezone": {
@@ -197,13 +197,13 @@ def test_multiple_entities():
         {
             "agency_id": "A1",
             "agency_name": "Agency A1",
-            "agency_url": "www.fakeurl.com",
+            "agency_url": "https://www.fakeurl.com",
             "agency_timezone": "Europe/Sofia",
         },
         {
             "agency_id": "A2",
             "agency_name": "Agency A2",
-            "agency_url": "www.fakeurl.com",
+            "agency_url": "http://www.fakeurl.com",
             "agency_timezone": "Europe/Sofia",
         }
     ]
@@ -224,7 +224,7 @@ def test_unknown_fields_are_ignored():
         {
             "agency_id": "A1",
             "agency_name": "Agency A1",
-            "agency_url": "www.fakeurl.com",
+            "agency_url": "https://www.fakeurl.com",
             "agency_timezone": "Europe/Sofia",
             "unkown_field": "unknown_value"
         }
@@ -243,7 +243,7 @@ def test_unknown_fields_are_ignored():
                         
             "agency_url": {
                 "type": "Property", 
-                "value": "www.fakeurl.com"
+                "value": "https://www.fakeurl.com"
             },
             
             "agency_timezone": {
@@ -266,7 +266,7 @@ def test_whitespace_values_are_removed():
         {
             "agency_id": "A1",
             "agency_name": "Agency A1",
-            "agency_url": "www.fakeurl.com",
+            "agency_url": "http://www.fakeurl.com",
             "agency_timezone": "Europe/Sofia",
             "agency_lang": " "
         }
@@ -285,7 +285,7 @@ def test_whitespace_values_are_removed():
                         
             "agency_url": {
                 "type": "Property", 
-                "value": "www.fakeurl.com"
+                "value": "http://www.fakeurl.com"
             },
             
             "agency_timezone": {

@@ -8,6 +8,7 @@ import uuid
 from io import BytesIO
 from typing import Any
 from datetime import datetime
+import validation_functions.validation_utils as validation_utils
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
@@ -96,17 +97,38 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         agency_lang = (agency.get("agency_lang") or "").strip() or None
         agency_phone = (agency.get("agency_phone") or "").strip() or None
         agency_fare_url = (agency.get("agency_fare_url") or "").strip() or None 
-        agency_email = (agency.get("agency_email") or "").strip() or None
+        agency_email = (agency.get("agency_email") or "").strip() or None        
+        raw_cemv_support = (agency.get("cemv_support") or "").strip() or None
+            
+        if validation_utils.is_valid_url(agency_url) is False:
+            raise ValueError(f"Invalid URL format for 'agency_url': {agency_url}")
         
-        raw_cemv_support = (agency.get("cemv_support") or "").strip()
-        if raw_cemv_support:
-            check_if_in_range = int(raw_cemv_support)
-            if check_if_in_range not in (0, 1, 2):
-                raise ValueError("Invalid value for 'cemv_support': must be 0, 1, or 2")
-            cemv_support = check_if_in_range
+        if validation_utils.is_valid_timezone(agency_timezone) is False:
+            raise ValueError(f"Invalid timezone format for 'agency_timezone': {agency_timezone}")
+        
+        if agency_lang is not None:
+            if validation_utils.is_valid_language_code(agency_lang) is False:
+                raise ValueError(f"Invalid language code format for 'agency_lang': {agency_lang}")
+        
+        if agency_phone is not None:
+            if validation_utils.is_valid_phone_number(agency_phone) is False:
+                raise ValueError(f"Invalid language code format for 'agency_phone': {agency_phone}")
+        
+        if agency_fare_url is not None:
+            if agency_fare_url and validation_utils.is_valid_url(agency_fare_url) is False:
+                raise ValueError(f"Invalid URL format for 'agency_fare_url': {agency_fare_url}")
+        
+        if agency_email is not None:
+            if validation_utils.is_valid_email(agency_email) is False:
+                raise ValueError(f"Invalid email format for 'agency_email': {agency_email}")
+        
+        if raw_cemv_support is not None:
+            if not validation_utils.is_valid_cemv_support(raw_cemv_support):
+                raise ValueError(f"Invalid value for 'cemv_support': {raw_cemv_support}")
+            cemv_support = int(raw_cemv_support)
         else:
             cemv_support = None
-        
+
         # Populate FIWARE's data model
         ngsi_ld_agency = {
             "id": f"urn:ngsi-ld:GtfsAgency:{agency_id}",
