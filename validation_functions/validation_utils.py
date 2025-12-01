@@ -69,6 +69,16 @@ def is_float(value: Any) -> bool:
     except ValueError:
         return False
 
+def is_string(value: Any) -> bool:
+    """
+    Check if argument is a string
+
+    Args:
+        value (Any): Argument to check
+    Returns:
+        bool: True if argument is string, False otherwise
+    """
+    return isinstance(value, str)
 # -----------------------------------------------------
 # String checks
 # -----------------------------------------------------

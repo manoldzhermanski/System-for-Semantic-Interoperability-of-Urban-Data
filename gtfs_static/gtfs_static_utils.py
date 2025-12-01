@@ -99,6 +99,9 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         agency_fare_url = (agency.get("agency_fare_url") or "").strip() or None 
         agency_email = (agency.get("agency_email") or "").strip() or None        
         raw_cemv_support = (agency.get("cemv_support") or "").strip() or None
+        
+        if validation_utils.is_string(agency_name) is False:
+            raise ValueError(f"Invalid string format for 'agency_name': {agency_name}")
             
         if validation_utils.is_valid_url(agency_url) is False:
             raise ValueError(f"Invalid URL format for 'agency_url': {agency_url}")
