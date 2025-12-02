@@ -433,7 +433,7 @@ def is_valid_pathways_pathway_mode(value: Any) -> bool:
         return False
 
     int_value = int(value)
-    return int_value in (1, 2, 3, 4, 5, 6)
+    return int_value in (1, 2, 3, 4, 5, 6, 7)
 
 def is_valid_pathways_is_bidirectional(value: Any) -> bool:
     """

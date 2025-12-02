@@ -404,8 +404,10 @@ def test_unknown_fields_are_ignored():
         }
     ]
     
+    # Get result of the function call with the raw data
     result = gtfs_static_fare_attributes_to_ngsi_ld(raw_data)
     
+    # Check that the result is as expected
     assert result == expected
 
 def test_whitespace_values_are_removed():
@@ -464,7 +466,7 @@ def test_whitespace_values_are_removed():
     # Check that the result is as expected
     assert result == expected
      
-def test_empty_agency_dict_raises_error():
+def test_empty_fare_attributes_dict_raises_error():
     """
     Check that if a list with empty entities are provided, a ValueError is raised
     """

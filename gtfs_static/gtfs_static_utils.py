@@ -4,14 +4,21 @@ import zipfile
 import os
 import csv
 import json
-import uuid
+from pathlib import Path
 from io import BytesIO
 from typing import Any
 from datetime import datetime
+
+project_root = Path(__file__).resolve().parent.parent
+sys.path.append(str(project_root))
+
 import validation_functions.validation_utils as validation_utils
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
+
+
+
     
 def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs_static") -> None:
     """
@@ -91,14 +98,17 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         agency_id = (agency.get("agency_id") or "").strip()
-        agency_name = (agency.get("agency_name") or "").strip() or None
-        agency_url = (agency.get("agency_url") or "").strip() or None
-        agency_timezone = (agency.get("agency_timezone") or "").strip() or None
+        agency_name = (agency.get("agency_name") or "").strip()
+        agency_url = (agency.get("agency_url") or "").strip()
+        agency_timezone = (agency.get("agency_timezone") or "").strip()
         agency_lang = (agency.get("agency_lang") or "").strip() or None
         agency_phone = (agency.get("agency_phone") or "").strip() or None
         agency_fare_url = (agency.get("agency_fare_url") or "").strip() or None 
         agency_email = (agency.get("agency_email") or "").strip() or None        
         raw_cemv_support = (agency.get("cemv_support") or "").strip() or None
+
+        if validation_utils.is_string(agency_id) is False:
+            raise ValueError(f"Invalid type for 'agency_id': {type(agency_id)}")
         
         if validation_utils.is_string(agency_name) is False:
             raise ValueError(f"Invalid string format for 'agency_name': {agency_name}")
@@ -215,10 +225,18 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
         raw_date = (calendar_date.get("date") or "").strip()
         raw_exception = (calendar_date.get("exception_type") or "").strip()
 
-        service_id = f"urn:ngsi-ld:GtfsService:{raw_service_id}" if raw_service_id else None
-        applies_on = datetime.strptime(raw_date, "%Y%m%d").date().isoformat() if raw_date else None
-        exception_type = int(raw_exception) if raw_exception else None
-        
+        if validation_utils.is_string(raw_service_id) is False:
+            raise ValueError(f"Invalid type for 'service_id':{type(raw_service_id)}")
+        service_id = f"urn:ngsi-ld:GtfsService:{raw_service_id}"
+
+        if validation_utils.is_valid_date(raw_date) is False:
+            raise ValueError(f"Invalid date format for 'date': {raw_date}")
+        applies_on = datetime.strptime(raw_date, "%Y%m%d").date().isoformat()
+
+        if validation_utils.is_valid_calendar_date_exception_type(raw_exception) is False:
+            raise ValueError(f"Invalid value for 'exception_type':{raw_exception}")
+        exception_type = int(raw_exception)
+
         # Populate FIWARE's data model
         ngsi_ld_calendar_date = {
             "id": f"urn:ngsi-ld:GtfsCalendarDateRule:Sofia:{calendar_date.get("service_id")}:{applies_on}",
@@ -273,39 +291,47 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
                 raise ValueError(f"Missing required GTFS field: {field}")
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        fare_id = (fare.get("fare_id") or "").strip() or None
-        
+        fare_id = (fare.get("fare_id") or "").strip()
         raw_price = (fare.get("price") or "").strip()
-        check_if_positive = float(raw_price)
-        if check_if_positive < 0:
-            raise ValueError("Invalid value for 'price': must be non-negative")
-        price = check_if_positive
-        
-        currency_type = (fare.get("currency_type") or "").strip() or None
-        
+        currency_type = (fare.get("currency_type") or "").strip()
         raw_payment_method = (fare.get("payment_method") or "").strip()
-        check_if_in_range = int(raw_payment_method)
-        if check_if_in_range not in (0, 1):
-            raise ValueError("Invalid value for 'payment_method': must be 0 or 1")
-        payment_method = check_if_in_range
-        
-        raw_transfers = (fare.get("transfers") or "").strip()
-        check_if_in_range = int(raw_transfers)
-        if check_if_in_range not in (0, 1, 2):
-            raise ValueError("Invalid value for 'transfers': must be 0, 1, or 2")
-        transfers = check_if_in_range
-        
+        raw_transfers = (fare.get("transfers") or "").strip()        
         raw_agency = (fare.get("agency_id") or "").strip()
-        agency = f"urn:ngsi-ld:GtfsAgency:{raw_agency}" if raw_agency else None
+        raw_transfer_duration = (fare.get("transfer_duration") or "").strip() or None
+        transfer_duration = None
+
+        if validation_utils.is_string(fare_id) is False:
+            raise ValueError(f"Invalid type for 'fare_id': {type(fare_id)}")
         
-        raw_transfer_duration = (fare.get("transfer_duration") or "").strip()
-        if raw_transfer_duration:
-            check_if_positive = int(raw_transfer_duration)
-            if check_if_positive < 0:
-                raise ValueError("Invalid value for 'transfer_duration': must be non-negative")
-            transfer_duration = check_if_positive
-        else:
-            transfer_duration = None
+        if validation_utils.is_float(raw_price) is False:
+            raise ValueError(f"Invalid value for 'price': {raw_price}")
+        
+        price = float(raw_price)
+        if price < 0.0:
+            raise ValueError(f"Invalid value for 'price': {raw_price}")
+
+        if validation_utils.is_valid_currency_code(currency_type) is False:
+            raise ValueError(f"Invalid value for 'currency_type: {currency_type}")
+                
+        if validation_utils.is_valid_fare_attributes_payment_method(raw_payment_method) is False:
+            raise ValueError(f"Invalid value for 'payment_method': {raw_payment_method}")
+        payment_method = int(raw_payment_method)
+
+        if validation_utils.is_valid_fare_attributes_transfers(raw_transfers) is False:
+            raise ValueError(f"Invalid value for 'transfers': {raw_transfers}")
+        transfers = int(raw_transfers)
+
+        if validation_utils.is_string(raw_agency) is False:
+            raise ValueError(f"Invalid type for 'agency': {type(raw_agency)}")
+        agency = f"urn:ngsi-ld:GtfsAgency:{raw_agency}"
+        
+        if raw_transfer_duration is not None:
+            if validation_utils.is_int(raw_transfer_duration) is False:
+                raise ValueError(f"Invalid value for 'transfer_duration': {raw_transfer_duration}")
+            transfer_duration = int(raw_transfer_duration)
+            if transfer_duration < 0:
+                raise ValueError(f"Invalid value for 'transfer_duration': {raw_transfer_duration}")
+
         
         # Create custom NGSI-LD data model and populate it
         ngsi_ld_fare = {
@@ -376,14 +402,19 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         level_id = (level.get("level_id") or "").strip()
-        
         level_name = (level.get("level_name") or "").strip() or None
-        
         raw_level_index = (level.get("level_index") or "").strip()
-        if not raw_level_index.isdigit():
+        
+        if validation_utils.is_string(level_id) is False:
+            raise ValueError(f"Invalid type for 'level_id': {type(level_id)}")
+        
+        if level_name is not None:
+            if validation_utils.is_string(level_name) is False:
+                raise ValueError(f"Invalid type for 'level_name': {type(level_name)}")
+
+        if validation_utils.is_float(raw_level_index) is False:
             raise ValueError(f"Invalid value for 'level_index': must be a floating point number")
-        else:
-            level_index = float(level["level_index"])
+        level_index = float(raw_level_index)
         
         # Create custom NGSI-LD data model and populate it
         ngsi_ld_level = {
@@ -423,22 +454,93 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
     """
     
     ngsi_ld_data = []
+
+    required_fields = ["pathway_id", "from_stop_id", "to_stop_id", "pathway_mode", "is_bidirectional"]
+
     for pathway in raw_data:
+
+        for field in required_fields:
+            if not pathway.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        pathway_id = pathway.get("pathway_id")
-        from_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("from_stop_id")}" if pathway.get("from_stop_id") else None
-        to_stop_id = f"urn:ngsi-ld:GtfsStop:{pathway.get("to_stop_id")}" if pathway.get("to_stop_id") else None
-        pathway_mode = int(pathway["pathway_mode"]) if pathway.get("pathway_mode") not in (None, "") else None
-        is_bidirectional = int(pathway["is_bidirectional"]) if pathway.get("is_bidirectional") not in (None, "") else None
-        length = float(pathway["length"]) if pathway.get("length") not in (None, "") else None
-        traversal_time = float(pathway["traversal_time"]) if pathway.get("traversal_time") not in (None, "") else None
-        stair_count = int(pathway["stair_count"]) if pathway.get("stair_count") not in (None, "") else None
-        max_slope = float(pathway["max_slope"]) if pathway.get("max_slope") not in (None, "") else None
-        min_width = float(pathway["min_width"]) if pathway.get("min_width") not in (None, "") else None
-        signposted_as = pathway.get("signposted_as") or None
-        reversed_signposted_as = pathway.get("reversed_signposted_as") or None
+        pathway_id = (pathway.get("pathway_id") or "").strip()
+        raw_from_stop_id = (pathway.get("from_stop_id") or "").strip()
+        raw_to_stop_id = (pathway.get("to_stop_id") or "").strip()
+        raw_pathway_mode = (pathway.get("pathway_mode") or "").strip()
+        raw_is_bidirectional = (pathway.get("is_bidirectional") or "").strip()
+        raw_length = (pathway.get("length") or "").strip() or None
+        raw_traversal_time = (pathway.get("traversal_time") or "").strip() or None
+        raw_stair_count = (pathway.get("stair_count") or "").strip() or None
+        raw_max_slope = (pathway.get("max_slope") or "").strip() or None
+        raw_min_width = (pathway.get("min_width") or "").strip() or None
+        signposted_as = (pathway.get("signposted_as") or "").strip() or None
+        reversed_signposted_as = (pathway.get("reversed_signposted_as") or "").strip() or None
+
+        length = None
+        traversal_time = None
+        stair_count = None
+        max_slope = None
+        min_width = None
         
+        if validation_utils.is_string(pathway_id) is False:
+            raise ValueError(f"Invalid type for 'pathway_id': {type(pathway_id)}")
+        
+        if validation_utils.is_string(raw_from_stop_id) is False:
+            raise ValueError(f"Invalid type for 'from_stop_id': {type(raw_from_stop_id)}")
+        from_stop_id = f"urn:ngsi-ld:GtfsStop:{raw_from_stop_id}"
+
+        if validation_utils.is_string(raw_to_stop_id) is False:
+            raise ValueError(f"Invalid type for 'to_stop_id': {type(raw_to_stop_id)}")
+        to_stop_id = f"urn:ngsi-ld:GtfsStop:{raw_to_stop_id}"
+
+        if validation_utils.is_valid_pathways_pathway_mode(raw_pathway_mode) is False:
+            raise ValueError(f"Invalid value for 'pathway_mode: {raw_pathway_mode}")
+        pathway_mode = int(raw_pathway_mode)
+
+        if validation_utils.is_valid_pathways_is_bidirectional(raw_is_bidirectional) is False:
+            raise ValueError(f"Invalid value for 'is_bidirectional: {raw_is_bidirectional}")
+        is_bidirectional = int(raw_is_bidirectional)
+
+        if raw_length is not None:
+            if validation_utils.is_float(raw_length) is False:
+                raise ValueError(f"Invalid type for 'length': {type(raw_length)}")
+            length = float(raw_length)
+            if length < 0.0:
+                raise ValueError(f"Invalid value for 'length': {length}")
+            
+        if raw_traversal_time is not None:
+            if validation_utils.is_float(raw_traversal_time) is False:
+                raise ValueError(f"Invalid type for 'traversal_time': {type(raw_traversal_time)}")
+            traversal_time = float(raw_traversal_time)
+            if traversal_time <= 0.0:
+                raise ValueError(f"Invalid value for 'traversal_time': {traversal_time}")
+            
+        if raw_stair_count is not None:
+            if validation_utils.is_int(raw_stair_count) is False:
+                raise ValueError(f"Invalid type for 'stair_count': {type(raw_stair_count)}")
+            stair_count = int(raw_stair_count)
+            
+        if raw_max_slope is not None:
+            if validation_utils.is_float(raw_max_slope) is False:
+                raise ValueError(f"Invalid type for 'max_slope': {type(raw_max_slope)}")
+            max_slope = float(raw_max_slope)
+
+        if raw_min_width is not None:
+            if validation_utils.is_float(raw_min_width) is False:
+                raise ValueError(f"Invalid type for 'min_width': {type(raw_min_width)}")
+            min_width = float(raw_min_width)
+            if min_width <= 0.0:
+                raise ValueError(f"Invalid value for 'min_width': {min_width}")
+            
+        if signposted_as is not None:
+            if validation_utils.is_string(signposted_as) is False:
+                raise ValueError(f"Invalid value for 'signposted_as'")
+            
+        if reversed_signposted_as is not None:
+            if validation_utils.is_string(reversed_signposted_as) is False:
+                raise ValueError(f"Invalid value for 'reversed_signposted_as'")
+
         # Create custom NGSI-LD data model and populate it
         ngsi_ld_pathway = {
             "id": f"urn:ngsi-ld:GtfsPathway:{pathway_id}",
@@ -1071,14 +1173,14 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "levels.txt"))
     #ngsi_ld_data = gtfs_static_levels_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "pathways.txt"))
-    #ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
+    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "pathways.txt"))
+    ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
-    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
-    ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
+    #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stop_times.txt"))
     #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)

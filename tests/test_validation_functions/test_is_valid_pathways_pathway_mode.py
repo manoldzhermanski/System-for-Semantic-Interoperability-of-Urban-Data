@@ -8,11 +8,12 @@ def test_is_valid_pathways_pathway_mode_valid_strings():
     assert is_valid_pathways_pathway_mode("4") is True
     assert is_valid_pathways_pathway_mode("5") is True
     assert is_valid_pathways_pathway_mode("6") is True
+    assert is_valid_pathways_pathway_mode("7") is True
 
 
 def test_is_valid_pathways_pathway_mode_invalid_strings():
     assert is_valid_pathways_pathway_mode("0") is False
-    assert is_valid_pathways_pathway_mode("7") is False
+    assert is_valid_pathways_pathway_mode("8") is False
     assert is_valid_pathways_pathway_mode("") is False
     assert is_valid_pathways_pathway_mode(" ") is False
     assert is_valid_pathways_pathway_mode("abc") is False
