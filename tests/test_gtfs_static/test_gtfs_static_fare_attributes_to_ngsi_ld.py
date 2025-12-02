@@ -1,9 +1,9 @@
 import pytest
 from gtfs_static.gtfs_static_utils import gtfs_static_fare_attributes_to_ngsi_ld
 
-def test_valid_gtfs_agency_conversion():
+def test_valid_gtfs_fare_attributes_conversion():
     """
-    Check that if all fields of GTFS Agency are provided,
+    Check that if all fields of GTFS Fare Attributes are provided,
     the entity is transfromed correctly into the NGSI-LD format
     """
     # Provide raw data
