@@ -119,23 +119,23 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         if validation_utils.is_valid_timezone(agency_timezone) is False:
             raise ValueError(f"Invalid timezone format for 'agency_timezone': {agency_timezone}")
         
-        if agency_lang is not None:
+        if agency_lang is not None and agency_lang != "":
             if validation_utils.is_valid_language_code(agency_lang) is False:
                 raise ValueError(f"Invalid language code format for 'agency_lang': {agency_lang}")
         
-        if agency_phone is not None:
+        if agency_phone is not None and agency_phone != "":
             if validation_utils.is_valid_phone_number(agency_phone) is False:
                 raise ValueError(f"Invalid language code format for 'agency_phone': {agency_phone}")
         
-        if agency_fare_url is not None:
+        if agency_fare_url is not None and agency_fare_url != "":
             if agency_fare_url and validation_utils.is_valid_url(agency_fare_url) is False:
                 raise ValueError(f"Invalid URL format for 'agency_fare_url': {agency_fare_url}")
         
-        if agency_email is not None:
+        if agency_email is not None and agency_email != "":
             if validation_utils.is_valid_email(agency_email) is False:
                 raise ValueError(f"Invalid email format for 'agency_email': {agency_email}")
         
-        if raw_cemv_support is not None:
+        if raw_cemv_support is not None and raw_cemv_support != "":
             if not validation_utils.is_valid_cemv_support(raw_cemv_support):
                 raise ValueError(f"Invalid value for 'cemv_support': {raw_cemv_support}")
             cemv_support = int(raw_cemv_support)
@@ -325,7 +325,7 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
             raise ValueError(f"Invalid type for 'agency': {type(raw_agency)}")
         agency = f"urn:ngsi-ld:GtfsAgency:{raw_agency}"
         
-        if raw_transfer_duration is not None:
+        if raw_transfer_duration is not None and raw_transfer_duration != "":
             if validation_utils.is_int(raw_transfer_duration) is False:
                 raise ValueError(f"Invalid value for 'transfer_duration': {raw_transfer_duration}")
             transfer_duration = int(raw_transfer_duration)
@@ -408,7 +408,7 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         if validation_utils.is_string(level_id) is False:
             raise ValueError(f"Invalid type for 'level_id': {type(level_id)}")
         
-        if level_name is not None:
+        if level_name is not None and level_name != "":
             if validation_utils.is_string(level_name) is False:
                 raise ValueError(f"Invalid type for 'level_name': {type(level_name)}")
 
@@ -502,42 +502,42 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
             raise ValueError(f"Invalid value for 'is_bidirectional: {raw_is_bidirectional}")
         is_bidirectional = int(raw_is_bidirectional)
 
-        if raw_length is not None:
+        if raw_length is not None and raw_length != "":
             if validation_utils.is_float(raw_length) is False:
                 raise ValueError(f"Invalid type for 'length': {type(raw_length)}")
             length = float(raw_length)
             if length < 0.0:
                 raise ValueError(f"Invalid value for 'length': {length}")
             
-        if raw_traversal_time is not None:
+        if raw_traversal_time is not None and raw_traversal_time != "":
             if validation_utils.is_float(raw_traversal_time) is False:
                 raise ValueError(f"Invalid type for 'traversal_time': {type(raw_traversal_time)}")
             traversal_time = float(raw_traversal_time)
             if traversal_time <= 0.0:
                 raise ValueError(f"Invalid value for 'traversal_time': {traversal_time}")
             
-        if raw_stair_count is not None:
+        if raw_stair_count is not None and raw_stair_count != "":
             if validation_utils.is_int(raw_stair_count) is False:
                 raise ValueError(f"Invalid type for 'stair_count': {type(raw_stair_count)}")
             stair_count = int(raw_stair_count)
             
-        if raw_max_slope is not None:
+        if raw_max_slope is not None and raw_max_slope != "":
             if validation_utils.is_float(raw_max_slope) is False:
                 raise ValueError(f"Invalid type for 'max_slope': {type(raw_max_slope)}")
             max_slope = float(raw_max_slope)
 
-        if raw_min_width is not None:
+        if raw_min_width is not None and raw_min_width != "":
             if validation_utils.is_float(raw_min_width) is False:
                 raise ValueError(f"Invalid type for 'min_width': {type(raw_min_width)}")
             min_width = float(raw_min_width)
             if min_width <= 0.0:
                 raise ValueError(f"Invalid value for 'min_width': {min_width}")
             
-        if signposted_as is not None:
+        if signposted_as is not None and signposted_as != "":
             if validation_utils.is_string(signposted_as) is False:
                 raise ValueError(f"Invalid value for 'signposted_as'")
             
-        if reversed_signposted_as is not None:
+        if reversed_signposted_as is not None and reversed_signposted_as != "":
             if validation_utils.is_string(reversed_signposted_as) is False:
                 raise ValueError(f"Invalid value for 'reversed_signposted_as'")
 
@@ -670,35 +670,35 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             raise ValueError(f"Invalid value for 'route_type': {raw_route_type}")
         route_type = int(raw_route_type)
         
-        if route_desc is not None:
+        if route_desc is not None and route_desc != "":
             if validation_utils.is_string(route_desc) is False:
                 raise ValueError(f"Invalid type for 'route_desc': {type(route_desc)}")
         
-        if route_url is not None:
+        if route_url is not None and route_url != "":
             if validation_utils.is_valid_url(route_url) is False:
                 raise ValueError(f"Invalid URL format 'route_url': {route_url}")
         
-        if route_color is not None:
+        if route_color is not None and route_color != "":
             if validation_utils.is_valid_color(route_color) is False:
                 raise ValueError(f"Invalid Color format 'route_color': {route_color}")
         
-        if route_text_color is not None:
+        if route_text_color is not None and route_text_color != "":
             if validation_utils.is_valid_color(route_text_color) is False:
                 raise ValueError(f"Invalid Color format 'route_text_color': {route_text_color}")
         
-        if raw_route_sort_order is not None:
+        if raw_route_sort_order is not None and raw_route_sort_order != "":
             if validation_utils.is_int(raw_route_sort_order) is False:
                 raise ValueError(f"Invalid type for 'route_sort_order': {type(raw_route_sort_order)}")
             route_sort_order = int(raw_route_sort_order)
             if route_sort_order < 0:
                 raise ValueError(f"Invalid value for 'route_sort_order': {route_sort_order}")
             
-        if raw_continuous_pickup is not None:
+        if raw_continuous_pickup is not None and raw_continuous_pickup != "":
             if validation_utils.is_valid_continuous_pickup(raw_continuous_pickup) is False:
                 raise ValueError(f"Invalid value for 'continuous_pickup': {raw_continuous_pickup}")
             continuous_pickup = int(raw_continuous_pickup)
             
-        if raw_continuous_drop_off is not None:
+        if raw_continuous_drop_off is not None and raw_continuous_drop_off != "":
             if validation_utils.is_valid_continuous_pickup(raw_continuous_drop_off) is False:
                 raise ValueError(f"Invalid value for 'continuous_drop_off': {raw_continuous_drop_off}")
             continuous_drop_off = int(raw_continuous_drop_off)
@@ -788,17 +788,48 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     ngsi_ld_data = []
     shapes_dict = {}
 
+    required_fields = ["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"]
     for shape in raw_data:
-        shape_id = shape.get("shape_id")
-        if not shape_id:
-            continue
-
-        # parse coordinates and optional sequence
-        location_longitude = float(shape["shape_pt_lon"]) if shape.get("shape_pt_lon") not in (None, "") else None
-        location_latitude = float(shape["shape_pt_lat"]) if shape.get("shape_pt_lat") not in (None, "") else None
-        shape_pt_sequence = int(shape["shape_pt_sequence"]) if shape.get("shape_pt_sequence") not in (None, "") else None
-        shape_dist_traveled = float(shape["shape_dist_traveled"]) if shape.get("shape_dist_traveled") not in (None, "") else None
         
+        for field in required_fields:
+            if not shape.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
+            
+        shape_id = (shape.get("shape_id") or "").strip()
+        raw_location_longitude = (shape.get("shape_pt_lon") or "").strip()
+        raw_location_latitude = (shape.get("shape_pt_lat") or "").strip()
+        raw_shape_pt_sequence = (shape.get("shape_pt_sequence") or "").strip()
+        raw_shape_dist_traveled = (shape.get("shape_dist_traveled") or "").strip()
+        
+        location_longitude = None
+        location_latitude = None
+        shape_pt_sequence = None
+        shape_dist_traveled = None
+        
+        if validation_utils.is_string(shape_id) is False:
+            raise ValueError(f"Invalid type for 'shape_id': {type(shape_id)}")
+        
+        if validation_utils.is_float(raw_location_longitude) is False:
+            raise ValueError(f"Invalid type for 'shape_pt_lon': {type(raw_location_longitude)}")
+        location_longitude = float(raw_location_longitude)
+        
+        if validation_utils.is_float(raw_location_latitude) is False:
+            raise ValueError(f"Invalid type for 'shape_pt_lat': {type(raw_location_latitude)}")
+        location_latitude = float(raw_location_latitude)
+        
+        if validation_utils.is_int(raw_shape_pt_sequence) is False:
+            raise ValueError(f"Invalid type for 'shape_pt_sequence': {type(raw_shape_pt_sequence)}")
+        shape_pt_sequence = int(raw_shape_pt_sequence)
+        if shape_pt_sequence < 0:
+            raise ValueError(f"Invalid value for 'shape_pt_sequence': {shape_pt_sequence}")
+        
+        if raw_shape_dist_traveled is not None and raw_shape_dist_traveled != "":
+            if validation_utils.is_float(raw_shape_dist_traveled) is False:
+                raise ValueError(f"Invalid type for shape_dist_traveled: {type(raw_shape_dist_traveled)}")
+            shape_dist_traveled = float(raw_shape_dist_traveled)
+            if shape_dist_traveled < 0:
+                raise ValueError(f"Invalid value for 'shape_dist_traveled': {shape_dist_traveled}")
+            
         if shape_id not in shapes_dict:
             shapes_dict[shape_id] = []
 
@@ -807,6 +838,10 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     for shape_id, points in shapes_dict.items():
         points.sort(key=lambda p: p["seq"])
         coords = [p["coords"] for p in points]
+        dist_trav = [p["dist"] for p in points if p["dist"] is not None or ""]
+        
+        if dist_trav == []:
+            dist_trav = None
                 
         # Populate FIWARE's data model         
         ngsi_ld_shape = {
@@ -824,6 +859,11 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
                     "type": "LineString",
                     "coordinates": coords
                 }
+            },
+            
+            "distanceTravelled": {
+                "type": "Property",
+                "value": dist_trav
             }
         }
         
@@ -1237,14 +1277,14 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "levels.txt"))
     #ngsi_ld_data = gtfs_static_levels_to_ngsi_ld(feed_dict)
     
-    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "pathways.txt"))
-    ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "pathways.txt"))
+    #ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
-    #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
+    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
+    ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stop_times.txt"))
     #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)

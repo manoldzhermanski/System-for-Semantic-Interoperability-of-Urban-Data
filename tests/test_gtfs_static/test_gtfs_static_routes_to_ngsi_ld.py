@@ -94,8 +94,10 @@ def test_valid_gtfs_routes_conversion():
     assert result == expected
 
 def test_missing_route_id_raises_value_error():
-    
-    # Provide raw data
+    """
+    Check that if the 'route_id' field is missing, a ValueError is raised
+    """
+    # Provide all required fields without 'route_id'
     raw_data = [
         {
             "agency_id": "A1",
@@ -115,11 +117,12 @@ def test_missing_route_id_raises_value_error():
     # Check that a ValueError is raised
     with pytest.raises(ValueError):
         gtfs_static_routes_to_ngsi_ld(raw_data)
-    pass
 
 def test_missing_route_agency_id_raises_value_error():
-    
-    # Provide raw data
+    """
+    Check that if the 'agency_id' field is missing, a ValueError is raised
+    """
+    # Provide all required fields without 'agency_id'
     raw_data = [
         {
             "route_id": "R1",
@@ -141,8 +144,10 @@ def test_missing_route_agency_id_raises_value_error():
         gtfs_static_routes_to_ngsi_ld(raw_data)
 
 def test_missing_route_short_name_raises_value_error():
-    
-    # Provide raw data
+    """
+    Check that if the 'route_short_name' field is missing, a ValueError is raised
+    """
+    # Provide all required fields without 'route_short_name'
     raw_data = [
         {
             "route_id": "R1",
@@ -164,8 +169,10 @@ def test_missing_route_short_name_raises_value_error():
         gtfs_static_routes_to_ngsi_ld(raw_data)
 
 def test_missing_route_long_name_raises_value_error():
-    
-    # Provide raw data
+    """
+    Check that if the 'route_long_name' field is missing, a ValueError is raised
+    """
+    # Provide all required fields without 'route_long_name'
     raw_data = [
         {
             "route_id": "R1",
@@ -187,8 +194,10 @@ def test_missing_route_long_name_raises_value_error():
         gtfs_static_routes_to_ngsi_ld(raw_data)
 
 def test_missing_route_type_raises_value_error():
-    
-    # Provide raw data
+    """
+    Check that if the 'route_type' field is missing, a ValueError is raised
+    """
+    # Provide all required fields without 'route_type'
     raw_data = [
         {"route_id": "R1",
          "agency_id": "A1",
@@ -520,7 +529,7 @@ def test_whitespace_values_are_removed():
     # Check that the result is as expected
     assert result == expected
 
-def test_empty_fare_attributes_dict_raises_error():
+def test_empty_routes_dict_raises_error():
     """
     Check that if a list with empty entities are provided, a ValueError is raised
     """

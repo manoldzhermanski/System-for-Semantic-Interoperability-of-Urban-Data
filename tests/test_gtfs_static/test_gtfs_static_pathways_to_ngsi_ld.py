@@ -655,7 +655,7 @@ def test_whitespace_values_are_removed():
     # Check that the result is as expected
     assert result == expected
 
-def test_empty_fare_attributes_dict_raises_error():
+def test_empty_pathways_dict_raises_error():
     """
     Check that if a list with empty entities are provided, a ValueError is raised
     """
