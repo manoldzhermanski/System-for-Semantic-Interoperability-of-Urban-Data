@@ -25,7 +25,8 @@ def test_valid_gtfs_pathways_conversion():
     ]
     
     # Provide expected result
-    expected = [{
+    expected = [
+        {
             "id": "urn:ngsi-ld:GtfsPathway:P1",
             "type": "GtfsPathway",
             
@@ -83,7 +84,8 @@ def test_valid_gtfs_pathways_conversion():
                 "type": "Property",
                 "value": "OK"
             }
-        }]
+        }
+    ]
     
     # Get result of the function call with the raw data
     result = gtfs_static_pathways_to_ngsi_ld(raw_data)

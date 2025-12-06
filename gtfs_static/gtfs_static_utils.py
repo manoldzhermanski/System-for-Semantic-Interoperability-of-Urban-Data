@@ -624,20 +624,84 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
+    
+    required_fields = ["route_id", "agency_id", "route_short_name", "route_long_name", "route_type"]
+    
     for route in raw_data:
         
+        for field in required_fields:
+            if not route.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
+        
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        route_id = route.get("route_id")
-        route_short_name = route.get("route_short_name") or None
-        route_long_name = route.get("route_long_name") or None
-        route_desc = route.get("route_desc") or None
-        route_type = route.get("route_type") or None
-        route_url = route.get("route_url") or None
-        route_color = route.get("route_color") or None
-        route_text_color = route.get("route_text_color") or None
-        route_sort_order = int(route["route_sort_order"]) if route.get("route_sort_order") not in (None, "") else None
-        continuous_pickup = int(route["continuous_pickup"]) if route.get("continuous_pickup") not in (None, "") else None
-        continuous_drop_off = int(route["continuous_drop_off"]) if route.get("continuous_drop_off") not in (None, "") else None
+        route_id = (route.get("route_id") or "").strip()
+        agency_id = (route.get("agency_id") or "").strip()
+        route_short_name = (route.get("route_short_name") or "").strip()
+        route_long_name = (route.get("route_long_name") or "").strip()
+        raw_route_type = (route.get("route_type") or "").strip()
+        
+        route_desc = (route.get("route_desc") or "").strip() or None
+        route_url = (route.get("route_url") or "").strip() or None
+        route_color = (route.get("route_color") or "").strip() or None
+        route_text_color = (route.get("route_text_color") or "").strip() or None
+        
+        raw_route_sort_order = (route.get("route_sort_order") or "").strip() or None
+        raw_continuous_pickup = (route.get("continuous_pickup") or "").strip() or None
+        raw_continuous_drop_off = (route.get("continuous_drop_off") or "").strip() or None
+        
+        route_type = None
+        route_sort_order = None
+        continuous_pickup = None
+        continuous_drop_off = None
+        
+        if validation_utils.is_string(route_id) is False:
+            raise ValueError(f"Invalid type for 'route_id': {type(route_id)}")
+        
+        if validation_utils.is_string(agency_id) is False:
+            raise ValueError(f"Invalid type for 'agency_id': {type(agency_id)}")
+        
+        if validation_utils.is_string(route_short_name) is False:
+            raise ValueError(f"Invalid type for 'route_short_name': {type(route_short_name)}")
+        
+        if validation_utils.is_string(route_long_name) is False:
+            raise ValueError(f"Invalid type for 'route_long_name': {type(route_long_name)}")
+        
+        if validation_utils.is_valid_route_type(raw_route_type) is False:
+            raise ValueError(f"Invalid value for 'route_type': {raw_route_type}")
+        route_type = int(raw_route_type)
+        
+        if route_desc is not None:
+            if validation_utils.is_string(route_desc) is False:
+                raise ValueError(f"Invalid type for 'route_desc': {type(route_desc)}")
+        
+        if route_url is not None:
+            if validation_utils.is_valid_url(route_url) is False:
+                raise ValueError(f"Invalid URL format 'route_url': {route_url}")
+        
+        if route_color is not None:
+            if validation_utils.is_valid_color(route_color) is False:
+                raise ValueError(f"Invalid Color format 'route_color': {route_color}")
+        
+        if route_text_color is not None:
+            if validation_utils.is_valid_color(route_text_color) is False:
+                raise ValueError(f"Invalid Color format 'route_text_color': {route_text_color}")
+        
+        if raw_route_sort_order is not None:
+            if validation_utils.is_int(raw_route_sort_order) is False:
+                raise ValueError(f"Invalid type for 'route_sort_order': {type(raw_route_sort_order)}")
+            route_sort_order = int(raw_route_sort_order)
+            if route_sort_order < 0:
+                raise ValueError(f"Invalid value for 'route_sort_order': {route_sort_order}")
+            
+        if raw_continuous_pickup is not None:
+            if validation_utils.is_valid_continuous_pickup(raw_continuous_pickup) is False:
+                raise ValueError(f"Invalid value for 'continuous_pickup': {raw_continuous_pickup}")
+            continuous_pickup = int(raw_continuous_pickup)
+            
+        if raw_continuous_drop_off is not None:
+            if validation_utils.is_valid_continuous_pickup(raw_continuous_drop_off) is False:
+                raise ValueError(f"Invalid value for 'continuous_drop_off': {raw_continuous_drop_off}")
+            continuous_drop_off = int(raw_continuous_drop_off)
         
         # Populate FIWARE's data model
         ngsi_ld_route = {
@@ -646,7 +710,7 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
             
             "operatedBy": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsAgency:{route.get("agency_id", "None")}"
+                "object": f"urn:ngsi-ld:GtfsAgency:{agency_id}"
             },
             
             "shortName": {
