@@ -1215,19 +1215,123 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
+    
+    required_fields = ["stop_id", "stop_name", "stop_lat", "stop_lon", "parent_station"]
     for stop in raw_data:
         
+        for field in required_fields:
+            if not stop.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
+            
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        stop_id = stop.get("stop_id")
-        stop_code = stop.get("stop_code") or None
-        stop_name = stop.get("stop_name") or None
-        stop_desc = stop.get("stop_desc") or None
-        stop_longitude = float(stop["stop_lon"]) if stop.get("stop_lon") not in (None, "") else None
-        stop_latitude = float(stop["stop_lat"]) if stop.get("stop_lat") not in (None, "") else None
-        location_type = int(stop["location_type"]) if stop.get("location_type") not in (None, "") else None
-        parent_station = f"urn:ngsi-ld:GtfsStop:{stop.get("parent_station")}" if stop.get("parent_station") else None
-        stop_timezone = stop.get("stop_timezone") or None
-        level = f"urn:ngsi-ld:GtfsLevel:{stop.get("level_id")}" if stop.get("level_id") else None
+        stop_id = (stop.get("stop_id") or "").strip()
+        stop_code = (stop.get("stop_code") or "").strip() or None
+        stop_name = (stop.get("stop_name") or "").strip()
+        tts_stop_name = (stop.get("tts_stop_name") or "").strip() or None
+        stop_desc = (stop.get("stop_desc") or "").strip() or None
+        raw_stop_longitude = (stop.get("stop_lon") or "").strip()
+        raw_stop_latitude = (stop.get("stop_lat") or "").strip()
+        raw_zone_id = (stop.get("zone_id") or "").strip() or None
+        stop_url = (stop.get("stop_url") or "").strip() or None
+        raw_location_type = (stop.get("location_type") or "").strip() or None
+        raw_parent_station = (stop.get("parent_station") or "").strip() or None
+        stop_timezone = (stop.get("stop_timezone") or "") or None
+        raw_wheelchair_boarding = (stop.get("wheelchair_boarding") or "").strip() or None
+        raw_level_id = (stop.get("level_id") or "").strip() or None
+        platform_code = (stop.get("platform_code") or "").strip() or None
+        raw_stop_access = (stop.get("stop_access") or "").strip() or None
+        
+        stop_longitude = None
+        stop_latitude = None
+        zone_id = None
+        location_type = None
+        parent_station = None
+        wheelchair_boarding = None
+        level_id = None
+        stop_access = None
+        
+        if validation_utils.is_string(stop_id) is False:
+            raise ValueError(f"Invalid type for 'stop_id': {type(stop_id)}")
+        
+        if stop_code is not None and stop_code != "":
+            if validation_utils.is_string(stop_code) is False:
+                raise ValueError(f"Invalid type for 'stop_code': {type(stop_code)}")
+        
+        if validation_utils.is_string(stop_name) is False:
+            raise ValueError(f"Invalid type for 'stop_name': {type(stop_name)}")
+        
+        if stop_code is not None and stop_code != "":
+            if validation_utils.is_string(tts_stop_name) is False:
+                raise ValueError(f"Invalid type for 'tts_stop_name': {type(tts_stop_name)}")
+            
+        if stop_desc is not None and stop_desc != "":
+            if validation_utils.is_string(stop_desc) is False:
+                raise ValueError(f"Invalid type for 'stop_desc': {type(stop_desc)}")
+        
+        if validation_utils.is_float(raw_stop_longitude) is False:
+            raise ValueError(f"Invalid type for 'stop_lon': {type(raw_stop_longitude)}")
+        stop_longitude = float(raw_stop_longitude)
+        
+        if validation_utils.is_float(raw_stop_latitude) is False:
+            raise ValueError(f"Invalid type for 'stop_lat': {type(raw_stop_latitude)}")
+        stop_latitude = float(raw_stop_latitude)
+        
+        if raw_zone_id is not None and raw_zone_id != "":
+            if validation_utils.is_string(raw_zone_id) is False:
+               raise ValueError(f"Invalid type for 'zone_id': {type(raw_zone_id)}") 
+            zone_id = f"urn:ngsi-ld:GtfsZone:{raw_zone_id}"
+            
+        if stop_url is not None and stop_url != "":
+            if validation_utils.is_valid_url(stop_url) is False:
+                raise ValueError(f"Invalid URL for 'stop_url': {stop_url}")
+            
+        if raw_location_type is not None and raw_location_type != "":
+            if validation_utils.is_valid_location_type(raw_location_type) is False:
+                raise ValueError(f"Invalid value for 'location_type': {raw_location_type}")
+            location_type = int(raw_location_type)
+            
+        if location_type == 1:
+            if raw_parent_station:
+                raise ValueError("parent_station is forbidden when location_type = 1 (station)")
+        elif location_type in (2, 3, 4):
+            if not raw_parent_station:
+                raise ValueError(f"parent_station is required when location_type = {location_type}")
+            parent_station = f"urn:ngsi-ld:GtfsStation:{raw_parent_station}"
+        elif location_type == 0:
+            if raw_parent_station:
+                parent_station = f"urn:ngsi-ld:GtfsStation:{raw_parent_station}"
+        else:
+            raise ValueError(f"Invalid location_type: {location_type}")
+        
+        if stop_timezone is not None and stop_timezone != "":
+            if validation_utils.is_valid_timezone(stop_timezone) is False:
+                raise ValueError(f"Invalid timezone for 'stop_timezone'")
+            
+        if raw_wheelchair_boarding is not None and raw_wheelchair_boarding != "":
+            if validation_utils.is_valid_wheelchair_boarding(raw_wheelchair_boarding) is False:
+                raise ValueError(f"Invalid value for 'wheelchair_boarding': {raw_wheelchair_boarding}")
+            wheelchair_boarding = int(raw_wheelchair_boarding)
+        
+        if raw_level_id is not None and raw_level_id != "":
+            if validation_utils.is_string(raw_level_id) is False:
+                raise ValueError(f"Invalid type for 'level_id': {type(raw_level_id)}")
+            level_id = f"urn:ngsi-ld:GtfsLevel:{raw_level_id}"
+            
+        if platform_code is not None and platform_code != "":
+            if validation_utils.is_string(platform_code) is False:
+                raise ValueError(f"Invalid type for 'platform_code': {type(platform_code)}")
+            
+        if raw_stop_access:
+            if validation_utils.is_valid_stop_access(raw_stop_access) is False:
+                raise ValueError(f"Invalid value for 'stop_access': {raw_stop_access}")
+
+            if location_type in (1, 2, 3, 4):
+                raise ValueError(f"stop_access is forbidden when location_type={location_type}")
+
+            if not raw_parent_station:
+                raise ValueError("stop_access is forbidden when parent_station is empty")
+
+            stop_access = int(raw_stop_access)
         
         # Populate FIWARE's data model
         ngsi_ld_stop = {
@@ -1242,6 +1346,11 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
             "name": {
                 "type": "Property", 
                 "value": stop_name
+            },
+            
+            "tts_stop_name":{
+                "type": "Property",
+                "value": tts_stop_name
             },
             
             "description": {
@@ -1260,6 +1369,16 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
                 }
             },
             
+            "zone_id": {
+                "type": "Relationship",
+                "object": zone_id
+            },
+            
+            "stop_url": {
+                "type": "Property",
+                "value": stop_url
+            },
+            
             "locationType": {
                 "type": "Property", 
                 "value": location_type
@@ -1275,9 +1394,24 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
                 "value": stop_timezone
             },
             
+            "wheelchair_boarding": {
+                "type": "Property",
+                "value": wheelchair_boarding
+            },
+            
             "level": {
                 "type": "Relationship",
-                "object": level
+                "object": level_id
+            },
+            
+            "platform_code": {
+                "type": "Property",
+                "value": platform_code
+            },
+            
+            "stop_access": {
+                "type": "Property",
+                "value": stop_access
             }
         }
         

@@ -66,6 +66,7 @@
         "payment_method": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/payment_method",
         "pickup_booking_rule_id": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/pickup_booking_rule_id",
         "pickupType": "https://smartdatamodels.org/dataModel.UrbanMobility/pickupType",
+        "platform_code": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/platform_code",
         "price": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/price",
         "reversed_signposted_as": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/reversed_signposted_as",
         "route": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/route",
@@ -89,6 +90,7 @@
         "signposted_as": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/signposted_as",
         "source": "https://smartdatamodels.org/source",
         "stair_count": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/stair_count",
+        "stop_access": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/stop_access",
         "timepoint": "https://smartdatamodels.org/dataModel.UrbanMobility/timepoint",
         "timezone": "https://smartdatamodels.org/dataModel.UrbanMobility/timezone",
         "to_route_id": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/to_route_id",
@@ -98,6 +100,8 @@
         "transfer_duration": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/transfer_duration",
         "traversal_time": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/traversal_time",
         "trip_direction": "https://smartdatamodels.org/dataModel.UrbanMobility/trip_direction",
-        "wheelChairAccessible": "https://smartdatamodels.org/dataModel.UrbanMobility/wheelChairAccessible"
+        "tts_stop_name": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/tts_stop_name",
+        "wheelChairAccessible": "https://smartdatamodels.org/dataModel.UrbanMobility/wheelChairAccessible",
+        "wheelchair_boarding": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/wheelchair_boarding"
     }
 }
