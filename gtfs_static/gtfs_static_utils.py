@@ -1437,18 +1437,102 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trips
     """
     ngsi_ld_data = []
+    
+    required_fields = ["transfer_type"]
+    
     for transfer in raw_data:
-        from_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get('from_stop_id')}" if transfer.get("from_stop_id") else None
-        to_stop_id = f"urn:ngsi-ld:GtfsStop:{transfer.get('to_stop_id')}" if transfer.get("to_stop_id") else None
-        from_route_id = f"urn:ngsi-ld:GtfsRoute:{transfer.get('from_route_id')}" if transfer.get("from_route_id") else None
-        to_route_id = f"urn:ngsi-ld:GtfsRoute:{transfer.get('to_route_id')}" if transfer.get("to_route_id") else None
-        from_trip_id = f"urn:ngsi-ld:GtfsTrip:{transfer.get('from_trip_id')}" if transfer.get("from_trip_id") else None     
-        to_trip_id = f"urn:ngsi-ld:GtfsTrip:{transfer.get('to_trip_id')}" if transfer.get("to_trip_id") else None
-        transfer_type = transfer.get("transfer_type") or None
+
         min_transfer_time = int(transfer["min_transfer_time"]) if transfer.get("min_transfer_time") not in (None, "") else None
 
+        raw_transfer_type = (transfer.get("transfer_type") or "").strip()
+        if validation_utils.is_valid_transfer_type(raw_transfer_type) is False:
+            raise ValueError(f"Invalid value for 'transfer_type': {raw_transfer_type}")
+        transfer_type = int(raw_transfer_type)
+        
+        raw_from_stop_id = (transfer.get("from_stop_id") or "").strip() or None
+        raw_to_stop_id = (transfer.get("to_stop_id") or "").strip() or None
+        raw_from_route_id = (transfer.get("from_route_id") or "").strip() or None
+        raw_to_route_id = (transfer.get("to_route_id") or "").strip() or None
+        raw_from_trip_id = (transfer.get("from_trip_id") or "").strip() or None
+        raw_to_trip_id = (transfer.get("to_trip_id") or "").strip() or None
+        raw_min_transfer_time = (transfer.get("min_transfer_time") or "").strip() or None
+        
+        from_stop_id = None
+        to_stop_id = None
+        from_route_id = None
+        to_route_id = None
+        from_trip_id = None
+        to_trip_id = None
+        min_transfer_time = None
+        
+        if transfer_type in {1, 2, 3}:
+            if not raw_from_stop_id or not raw_to_stop_id:
+                raise ValueError(f"from_stop_id and to_stop_id are required when transfer_type = {transfer_type}")
+            from_stop_id = f"urn:ngsi-ld:GtfsStop:{raw_from_stop_id}"
+            to_stop_id = f"urn:ngsi-ld:GtfsStop:{raw_to_stop_id}"
+        else:
+            if raw_from_stop_id:
+                from_stop_id = f"urn:ngsi-ld:GtfsStop:{raw_from_stop_id}"
+            if raw_to_stop_id:
+                to_stop_id = f"urn:ngsi-ld:GtfsStop:{raw_to_stop_id}"
+
+        
+        if raw_from_route_id is not None and raw_from_route_id != "":
+            if validation_utils.is_string(raw_from_route_id) is False:
+                raise ValueError(f"Invalid type for 'from_route_id': {type(raw_from_route_id)}")
+            from_route_id = f"urn:ngsi-ld:GtfsRoute:{raw_from_route_id}"
+               
+        if raw_to_route_id is not None and raw_to_route_id != "":
+            if validation_utils.is_string(raw_to_route_id) is False:
+                raise ValueError(f"Invalid type for 'to_route_id': {type(raw_to_route_id)}")
+            to_route_id = f"urn:ngsi-ld:GtfsRoute:{raw_to_route_id}"
+            
+        if transfer_type in {4, 5}:
+            if not raw_from_trip_id or not raw_to_trip_id:
+                raise ValueError(f"from_trip_id and to_trip_id are required when transfer_type = {transfer_type}")
+            from_trip_id = f"urn:ngsi-ld:GtfsTrip:{raw_from_trip_id}"
+            to_trip_id = f"urn:ngsi-ld:GtfsTrip:{raw_to_trip_id}"
+        else:
+            if raw_from_trip_id:
+                from_trip_id = f"urn:ngsi-ld:GtfsTrip:{raw_from_trip_id}"
+            if raw_to_trip_id:
+                to_trip_id = f"urn:ngsi-ld:GtfsTrip:{raw_to_trip_id}"
+
+        if raw_min_transfer_time is not None and raw_min_transfer_time != "":
+            if validation_utils.is_int(raw_min_transfer_time) is False:
+                raise ValueError(f"Invalid type for 'min_transfer_time': {type(raw_min_transfer_time)}")
+            min_transfer_time = int(raw_min_transfer_time)
+            if min_transfer_time < 0:
+                raise ValueError(f"Invalid value for 'min_transfer_time': {min_transfer_time}")
+            
+        id_parts = [
+            "Transfer",
+        ]
+        
+        if from_stop_id:
+            id_parts.append(f"fromStop:{from_stop_id}")
+            
+        if to_stop_id:
+            id_parts.append(f"toStop:{to_stop_id}")
+
+        if from_trip_id:
+            id_parts.append(f"fromTrip:{from_trip_id}")
+
+        if to_trip_id:
+            id_parts.append(f"toTrip:{to_trip_id}")
+
+        if from_route_id:
+            id_parts.append(f"fromRoute:{from_route_id}")
+
+        if to_route_id:
+            id_parts.append(f"toRoute:{to_route_id}")
+            
+        entity_id = "urn:ngsi-ld:GtfsTransfer:" + ":".join(id_parts)
+
+
+        # Populate FIWARE's data model
         ngsi_ld_transfer = {
-            "id": f"urn:ngsi-ld:GtfsTransferRule:{transfer.get('from_stop_id', 'None')}-{transfer.get('to_stop_id', 'None')}",
+            "id": entity_id,
             "type": "GtfsTransferRule",
             "hasOrigin": {
                 "type": "Relationship",
