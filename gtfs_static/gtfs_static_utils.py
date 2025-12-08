@@ -1441,8 +1441,10 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
     required_fields = ["transfer_type"]
     
     for transfer in raw_data:
-
-        min_transfer_time = int(transfer["min_transfer_time"]) if transfer.get("min_transfer_time") not in (None, "") else None
+        
+        for field in required_fields:
+            if not transfer.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
 
         raw_transfer_type = (transfer.get("transfer_type") or "").strip()
         if validation_utils.is_valid_transfer_type(raw_transfer_type) is False:
@@ -1588,19 +1590,84 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trips.
     """
     ngsi_ld_data = []
+    
+    required_fields = ["route_id", "service_id", "trip_id"]
+    
     for trip in raw_data:
         
+        for field in required_fields:
+            if not trip.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
+                
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         trip_id = (trip.get("trip_id") or "").strip()
-        route_id = f"urn:ngsi-ld:GtfsRoute:{trip.get("route_id")}" if trip.get("route_id") else None
-        service_id = f"urn:ngsi-ld:GtfsService:{trip.get("service_id")}" if trip.get("service_id") else None
-        trip_headsign = trip.get("trip_headsign") or None
-        trip_short_name = trip.get("trip_short_name") or None
-        direction_id = int(trip["direction_id"]) if trip.get("direction_id") not in (None, "") else None
-        block_id = f"urn:ngsi-ld:GtfsBlock:{trip.get("block_id")}" if trip.get("block_id") else None
-        shape_id = f"urn:ngsi-ld:GtfsShape:{trip.get("shape_id")}" if trip.get("shape_id") else None
-        wheelchair_accessible = int(trip["wheelchair_accessible"]) if trip.get("wheelchair_accessible") not in (None, "") else None
-        bikes_allowed = int(trip["bikes_allowed"]) if trip.get("bikes_allowed") not in (None, "") else None
+        raw_route_id = (trip.get("route_id") or "").strip()
+        raw_service_id = (trip.get("service_id") or "").strip()
+        trip_headsign = (trip.get("trip_headsign") or "").strip() or None
+        trip_short_name = (trip.get("trip_short_name") or "").strip() or None
+        raw_direction_id = (trip.get("direction_id") or "").strip() or None
+        raw_block_id = (trip.get("block_id") or "").strip() or None
+        raw_shape_id = (trip.get("shape_id") or "").strip() or None
+        raw_wheelchair_accessible = (trip.get("wheelchair_accessible") or "").strip() or None
+        raw_bikes_allowed = (trip.get("bikes_allowed") or  "").strip() or None
+        raw_cars_allowed = (trip.get("cars_allowed") or "").strip() or None
+        
+        route_id = None
+        service_id = None
+        direction_id = None
+        block_id = None
+        shape_id = None
+        wheelchair_accessible = None
+        bikes_allowed = None
+        cars_allowed = None
+        
+        if validation_utils.is_string(trip_id) is False:
+            raise ValueError(f"Invalid type for 'trip_id': {type(trip_id)}")
+        
+        if validation_utils.is_string(raw_route_id) is False:
+            raise ValueError(f"Invalid type for 'route_id': {type(raw_route_id)}")
+        route_id = f"urn:ngsi-ld:GtfsRoute:{raw_route_id}"
+        
+        if validation_utils.is_string(raw_service_id) is False:
+            raise ValueError(f"Invalid type for 'service_id': {type(raw_service_id)}")
+        service_id = f"urn:ngsi-ld:GtfsService:{raw_service_id}"
+        
+        if trip_headsign is not None and trip_headsign != "":
+            if validation_utils.is_string(trip_headsign) is False:
+                raise ValueError(f"Invalid type for 'trip_headsign': {type(trip_headsign)}")
+            
+        if trip_short_name is not None and trip_short_name != "":
+            if validation_utils.is_string(trip_short_name) is False:
+                raise ValueError(f"Invalid type for 'trip_short_name': {type(trip_short_name)}")
+        
+        if raw_direction_id is not None and raw_direction_id != "":
+            if validation_utils.is_valid_direction_id(raw_direction_id) is False:
+                raise ValueError(f"Invalid value for 'direction_id': {raw_direction_id}")
+            
+        if raw_block_id is not None and raw_block_id != "":
+            if validation_utils.is_string(raw_block_id) is False:
+                raise ValueError(f"Invalid type for 'block_id': {type(raw_block_id)}")
+            block_id = f"urn:ngsi-ld:GtfsBlock:{raw_block_id}"
+            
+        if raw_shape_id is not None and raw_shape_id != "":
+            if validation_utils.is_string(raw_shape_id) is False:
+                raise ValueError(f"Invalid type for 'shape_id': {type(raw_shape_id)}")  
+            shape_id = f"urn:ngsi-ld:GtfsShape:{raw_shape_id}"
+            
+        if raw_wheelchair_accessible is not None and raw_wheelchair_accessible != "":
+            if validation_utils.is_valid_wheelchair_accessible(raw_wheelchair_accessible) is False:
+                raise ValueError(f"Invalid value for 'wheelchair_accessible': {raw_wheelchair_accessible}")
+            wheelchair_accessible = int(raw_wheelchair_accessible)
+            
+        if raw_bikes_allowed is not None and raw_bikes_allowed != "":
+            if validation_utils.is_valid_bikes_allowed(raw_bikes_allowed) is False:
+                raise ValueError(f"Invalid value for 'bikes_allowed': {raw_bikes_allowed}")
+            bikes_allowed = int(raw_bikes_allowed)
+            
+        if raw_cars_allowed is not None and raw_cars_allowed != "":
+            if validation_utils.is_valid_cars_allowed(raw_cars_allowed) is False:
+                raise ValueError(f"Invalid value for 'cars_allowed': {raw_cars_allowed}")
+            cars_allowed = int(raw_cars_allowed)
         
         # Populate FIWARE's data model
         ngsi_ld_trip = {
@@ -1650,6 +1717,11 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
             "bikesAllowed": {
                 "type": "Property",
                 "value": bikes_allowed
+            },
+            
+            "carsAllowed": {
+                "type": "Property",
+                "value": cars_allowed
             }
         }
         

@@ -27,7 +27,7 @@
         "arrivalTime": "https://smartdatamodels.org/dataModel.UrbanMobility/arrivalTime",
         "bikesAllowed": "https://smartdatamodels.org/dataModel.UrbanMobility/bikesAllowed",
         "block": "https://smartdatamodels.org/dataModel.UrbanMobility/block",
-        "carsAllowed": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/cars_allowed",
+        "carsAllowed": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/carsAllowed",
         "cemv_support": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/cemv_support",
         "continuous_drop_off": "https://smartdatamodels.org/dataModel.UrbanMobility/continuous_drop_off",
         "continuous_pickup": "https://smartdatamodels.org/dataModel.UrbanMobility/continuous_pickup",
