@@ -889,21 +889,213 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
+    
+    always_required_fields = ["trip_id", "stop_sequence"]
+    
     for stop_time in raw_data:
         
+        for field in always_required_fields:
+            if not stop_time.get(field):
+                raise ValueError(f"Missing required GTFS field: {field}")
+            
+        has_arrival_departure = (
+            bool(stop_time.get("arrival_time")) and
+            bool(stop_time.get("departure_time"))
+        )
+
+        has_pickup_window = (
+            bool(stop_time.get("start_pickup_drop_off_window")) and
+            bool(stop_time.get("end_pickup_drop_off_window"))
+        )
+        
+        
+        if has_arrival_departure and has_pickup_window:
+            raise ValueError(
+                "arrival_time/departure_time and "
+                "start_pickup_drop_off_window/end_pickup_drop_off_window "
+                "cannot be defined at the same time"
+            )
+
+        if not has_arrival_departure and not has_pickup_window:
+            raise ValueError(
+                "Either arrival_time/departure_time or "
+                "start_pickup_drop_off_window/end_pickup_drop_off_window "
+                "must be defined"
+            )
+            
+        if bool(stop_time.get("arrival_time")) ^ bool(stop_time.get("departure_time")):
+            raise ValueError(
+                "arrival_time and departure_time must be defined together"
+            )
+
+        if bool(stop_time.get("start_pickup_drop_off_window")) ^ bool(stop_time.get("end_pickup_drop_off_window")):
+            raise ValueError(
+                "start_pickup_drop_off_window and end_pickup_drop_off_window "
+                "must be defined together"
+            )
+            
+        has_stop_id = bool(stop_time.get("stop_id"))
+        has_location_group_id = bool(stop_time.get("location_group_id"))
+        has_location_id = bool(stop_time.get("location_id"))
+        
+        if has_location_group_id or has_location_id:
+            if has_stop_id:
+                raise ValueError("stop_id is forbidden when location_group_id or location_id is defined")
+        else:
+            if not has_stop_id:
+                raise ValueError("stop_id is required when location_group_id and location_id are not defined")
+            
+            
+        if has_stop_id or has_location_id:
+            if has_location_group_id:
+                raise ValueError("location_group_id is forbidden when stop_id or location_id is defined")
+        else:
+            if not has_location_group_id:
+                raise ValueError("location_group_id is required when stop_id and location_id are not defined")
+            
+            
+        if has_stop_id or has_location_group_id:
+            if has_location_id:
+                raise ValueError("location_id is forbidden when stop_id or location_group_id is defined")
+        else:
+            if not has_location_id:
+                raise ValueError("location_id is required when stop_id and location_group_id are not defined")
+        
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        trip_id = f"urn:ngsi-ld:GtfsTrip:{stop_time.get("trip_id")}" if stop_time.get("trip_id") else None
-        arrival_time = stop_time.get("arrival_time") or None
-        departure_time = stop_time.get("departure_time") or None
-        stop_id = f"urn:ngsi-ld:GtfsStop:{stop_time.get("stop_id")}" if stop_time.get("stop_id") else None
-        stop_sequence = int(stop_time["stop_sequence"]) if stop_time.get("stop_sequence") not in (None, "") else None
-        stop_headsign = stop_time.get("stop_headsign") or None
-        pickup_type = stop_time.get("pickup_type") or None
-        drop_off_type = stop_time.get("drop_off_type") or None
-        shape_dist_traveled = float(stop_time["shape_dist_traveled"]) if stop_time.get("shape_dist_traveled") not in (None, "") else None
-        continuous_pickup = int(stop_time["continuous_pickup"]) if stop_time.get("continuous_pickup") not in (None, "") else None
-        continuous_drop_off = int(stop_time["continuous_drop_off"]) if stop_time.get("continuous_drop_off") not in (None, "") else None
-        timepoint = stop_time.get("timepoint") or None
+        raw_trip_id = (stop_time.get("trip_id") or "").strip()
+        
+        arrival_time = None
+        departure_time = None
+        stop_id = None
+        location_group_id = None
+        location_id = None
+        stop_sequence = None
+        start_pickup_drop_off_window = None
+        end_pickup_drop_off_window = None
+        pickup_type = None
+        drop_off_type = None
+        continuous_pickup = None
+        continuous_drop_off = None
+        shape_dist_traveled = None
+        timepoint = None
+        pickup_booking_rule_id = None
+        drop_off_booking_rule_id = None
+        
+        if validation_utils.is_string(raw_trip_id) is False:
+            raise ValueError(f"Invalid type for 'trip_id': {type(raw_trip_id)}")
+        trip_id = f"urn:ngsi-ld:GtfsTrip:{raw_trip_id}"
+        
+        if has_arrival_departure:
+            arrival_time = (stop_time.get("arrival_time") or "").strip()
+            departure_time = (stop_time.get("departure_time") or "").strip()
+            
+            if validation_utils.is_valid_time(arrival_time) is False:
+                raise ValueError(f"Invalid time format for 'arrival_time': {arrival_time}")
+            
+            if validation_utils.is_valid_time(departure_time) is False:
+                raise ValueError(f"Invalid time format for 'departure_time': {departure_time}")
+        
+        
+        if has_stop_id:
+            raw_stop_id = (stop_time.get("stop_id") or "").strip()
+            if validation_utils.is_string(raw_stop_id) is False:
+                raise ValueError(f"Invalid type for 'stop_id': {type(raw_stop_id)}")
+            stop_id = f"urn:ngsi-ld:GtfsStop:{raw_stop_id}"
+            
+        if has_location_group_id:
+            raw_location_group_id = (stop_time.get("location_group_id") or "").strip()
+            if validation_utils.is_string(raw_location_group_id) is False:
+                raise ValueError(f"Invalid type for 'location_group_id': {type(raw_location_group_id)}")
+            location_group_id = f"urn:ngsi-ld:GtfsLocationGroup:{raw_location_group_id}"
+            
+        if has_location_id:
+            raw_location_id = (stop_time.get("location_id") or "").strip()
+            if validation_utils.is_string(raw_location_id) is False:
+                raise ValueError(f"Invalid type for 'location_id': {type(raw_location_id)}")
+            location_id = f"urn:ngsi-ld:GtfsLocation:{raw_location_id}"
+            
+        raw_stop_sequence = (stop_time.get("stop_sequence") or "").strip()
+        if validation_utils.is_int(raw_stop_sequence) is False:
+            raise ValueError(f"Invalid type for 'stop_sequence': {type(raw_stop_sequence)}")
+        stop_sequence = int(raw_stop_sequence)
+        if stop_sequence < 0:
+            raise ValueError(f"Invalid value for 'stop_sequence': {stop_sequence}")
+        
+        
+        stop_headsign = (stop_time.get("stop_headsign") or "").strip() or None
+        if stop_headsign is not None and stop_headsign != "":
+            if validation_utils.is_string(stop_headsign) is False:
+                raise ValueError(f"Invalid type for 'stop_headsign': {type(stop_headsign)}")
+            
+        if has_location_group_id or has_location_id:
+            start_pickup_drop_off_window = (stop_time.get("start_pickup_drop_off_window") or "").strip()
+            end_pickup_drop_off_window = (stop_time.get("end_pickup_drop_off_window") or "").strip()
+            if validation_utils.is_valid_time(start_pickup_drop_off_window) is False:
+                raise ValueError(f"Invalid time format for 'start_pickup_drop_off_window': {start_pickup_drop_off_window}")
+            if validation_utils.is_valid_time(end_pickup_drop_off_window) is False:
+                raise ValueError(f"Invalid time format for 'end_pickup_drop_off_window': {end_pickup_drop_off_window}")
+            
+        raw_pickup_type = (stop_time.get("pickup_type") or "").strip() or None
+        if raw_pickup_type is not None and raw_pickup_type != "":
+            if validation_utils.is_valid_pickup_type(raw_pickup_type) is False:
+                raise ValueError(f"Invalid value for 'pickup_type': {raw_pickup_type}")
+            pickup_type = int(raw_pickup_type)
+            if has_location_id or has_location_group_id:
+                if raw_pickup_type in (0, 3):
+                    raise ValueError("pickup_type must not be 0 or 3 when start_pickup_drop_off_window  or end_pickup_drop_off_window is defined")
+            
+        raw_drop_off_type = (stop_time.get("drop_off_type") or "").strip() or None
+        if raw_drop_off_type is not None and raw_drop_off_type != "":
+            if validation_utils.is_valid_drop_off_type(raw_drop_off_type) is False:
+                raise ValueError(f"Invalid value for 'drop_off_type': {raw_drop_off_type}")
+            drop_off_type = int(raw_drop_off_type)
+            if has_location_id or has_location_group_id:
+                if raw_drop_off_type in (0, 3):
+                    raise ValueError("drop_off_type must not be 0 or 3 when start_pickup_drop_off_window  or end_pickup_drop_off_window is defined")
+
+        raw_continous_pickup = (stop_time.get("continuous_pickup") or "").strip() or None
+        if raw_continous_pickup is not None and raw_continous_pickup != "":
+            if validation_utils.is_valid_continuous_pickup(raw_continous_pickup) is False:
+                raise ValueError(f"Invalid value for 'continuous_pickup': {raw_continous_pickup}")
+            continuous_pickup = int(raw_continous_pickup)
+            if has_location_id or has_location_group_id:
+                if continuous_pickup != 1:
+                    raise ValueError("continuous_pickup must be 1 when start_pickup_drop_off_window or end_pickup_drop_off_window is defined")
+                
+        raw_continous_drop_off = (stop_time.get("continuous_drop_off") or "").strip() or None
+        if raw_continous_drop_off is not None and raw_continous_drop_off != "":
+            if validation_utils.is_valid_continuous_drop_off(raw_continous_drop_off) is False:
+                raise ValueError(f"Invalid value for 'continuous_drop_off': {raw_continous_drop_off}")
+            continuous_drop_off = int(raw_continous_drop_off)
+            if has_location_id or has_location_group_id:
+                if continuous_drop_off != 1:
+                    raise ValueError("continuous_drop_off must be 1 when start_pickup_drop_off_window or end_pickup_drop_off_window is defined")
+                
+        raw_shape_dist_traveled = (stop_time.get("shape_dist_traveled") or "").strip() or None
+        if raw_shape_dist_traveled is not None and raw_shape_dist_traveled != "":
+            if validation_utils.is_float(raw_shape_dist_traveled) is False:
+                raise ValueError(f"Invalid type for 'shape_dist_traveled': {type(raw_shape_dist_traveled)}")
+            shape_dist_traveled = float(raw_shape_dist_traveled)
+            if shape_dist_traveled < 0:
+                raise ValueError(f"Invalid value for 'shape_dist_traveled': {shape_dist_traveled}")
+     
+        raw_timepoint = (stop_time.get("timepoint") or "").strip() or None
+        if raw_timepoint is not None and raw_timepoint != "":
+            if validation_utils.is_valid_timepoint(raw_timepoint) is False:
+                raise ValueError(f"Invalid value for 'timepoint': {raw_timepoint}")
+            timepoint = int(raw_timepoint)
+            
+        raw_pickup_booking_rule_id = (stop_time.get("pickup_booking_rule_id") or "").strip() or None
+        if raw_pickup_booking_rule_id is not None and raw_pickup_booking_rule_id != "":
+            if validation_utils.is_string(raw_pickup_booking_rule_id) is False:
+                raise ValueError(f"Invalid type for 'pickup_booking_rule_id': {type(raw_pickup_booking_rule_id)}")
+            pickup_booking_rule_id = f"urn:ngsi-ld:GtfsBookingRule:{raw_pickup_booking_rule_id}"
+            
+        raw_drop_off_booking_rule_id = (stop_time.get("drop_off_booking_rule_id") or "").strip() or None
+        if raw_drop_off_booking_rule_id is not None and raw_drop_off_booking_rule_id != "":
+            if validation_utils.is_string(raw_drop_off_booking_rule_id) is False:
+                raise ValueError(f"Invalid type for 'drop_off_booking_rule_id': {type(raw_drop_off_booking_rule_id)}")
+            drop_off_booking_rule_id = f"urn:ngsi-ld:GtfsBookingRule:{raw_drop_off_booking_rule_id}"
         
         # Populate FIWARE's data model
         ngsi_ld_stop_time = {
@@ -929,6 +1121,16 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
                 "type": "Relationship",
                 "object": stop_id
             },
+            
+            "location_group_id": {
+                "type": "Relationship",
+                "object": location_group_id
+            },
+            
+            "location_id": {
+                "type": "Relationship",
+                "object": location_id
+            },
 
             "stopSequence": {
                 "type": "Property", 
@@ -938,6 +1140,16 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
             "stopHeadsign": {
                 "type": "Property", 
                 "value": stop_headsign
+            },
+            
+            "start_pickup_drop_off_window": {
+                "type": "Property",
+                "value": start_pickup_drop_off_window
+            },
+            
+            "end_pickup_drop_off_window": {
+                "type": "Property",
+                "value": end_pickup_drop_off_window
             },
             
             "pickupType": {
@@ -950,11 +1162,6 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
                 "value": drop_off_type
             },
             
-            "shapeDistTraveled": {  
-                "type": "Property", 
-                "value": shape_dist_traveled
-            },
-            
             "continuousPickup": {
                 "type": "Property", 
                 "value": continuous_pickup
@@ -965,9 +1172,24 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
                 "value": continuous_drop_off
             },
             
+            "shapeDistTraveled": {  
+                "type": "Property", 
+                "value": shape_dist_traveled
+            },
+            
             "timepoint": {
                 "type": "Property", 
                 "value": timepoint
+            },
+            
+            "pickup_booking_rule_id": {
+                "type": "Relationship",
+                "object": pickup_booking_rule_id
+            },
+            
+            "drop_off_booking_rule_id": {
+                "type": "Relationship",
+                "object": drop_off_booking_rule_id
             }
         }
         
@@ -1151,7 +1373,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     for trip in raw_data:
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        trip_id = trip.get("trip_id")
+        trip_id = (trip.get("trip_id") or "").strip()
         route_id = f"urn:ngsi-ld:GtfsRoute:{trip.get("route_id")}" if trip.get("route_id") else None
         service_id = f"urn:ngsi-ld:GtfsService:{trip.get("service_id")}" if trip.get("service_id") else None
         trip_headsign = trip.get("trip_headsign") or None

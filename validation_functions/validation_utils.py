@@ -644,3 +644,18 @@ def is_valid_cars_allowed(value: Any) -> bool:
 
     int_value = int(value)
     return int_value in (0, 1, 2)
+
+def is_valid_timepoint(value: Any) -> bool:
+    """
+    Check if argument is a valid enum value for 'timepoint'
+
+    Args:
+        value (Any): Argument to check
+    Returns:
+        bool: True if value in enum range, False otherwise
+    """
+    if not is_int(value):
+        return False
+
+    int_value = int(value)
+    return int_value in (0, 1)
