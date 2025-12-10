@@ -17,7 +17,14 @@ import validation_functions.validation_utils as validation_utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
 
+# -----------------------------------------------------
+# Required field checks
+# -----------------------------------------------------
 
+def validate_required_fields(data: dict[str, Any],required_fields: list[str]) -> None:
+    for field in required_fields:
+        if not data.get(field):
+            raise ValueError(f"Missing required GTFS field: {field}")
 
     
 def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs_static") -> None:
@@ -90,11 +97,11 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     required_fileds = ["agency_id", "agency_name", "agency_url", "agency_timezone"]
     
     for agency in raw_data:
-        
+
         # Check if an agency entity contains the required fields
-        for field in required_fileds:
-            if not agency.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        validate_required_fields(agency, required_fileds)
+        
+        
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         agency_id = (agency.get("agency_id") or "").strip()
@@ -216,9 +223,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
     for calendar_date in raw_data:
         
         # Check if a calendar date entity contains the required fields
-        for field in required_fileds:
-            if not calendar_date.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        validate_required_fields(calendar_date, required_fileds)
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         raw_service_id = (calendar_date.get("service_id") or "").strip()
@@ -286,9 +291,7 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
     for fare in raw_data:
         
         # Check if a fare attributes entity contains the required fields
-        for field in required_fileds:
-            if not fare.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        validate_required_fields(fare, required_fileds)
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         fare_id = (fare.get("fare_id") or "").strip()
@@ -396,9 +399,8 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     
     for level in raw_data:
         
-        for field in required_fields:
-            if not level.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        # Check if a level entity contains the required fields
+        validate_required_fields(level, required_fields)
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         level_id = (level.get("level_id") or "").strip()
@@ -459,9 +461,8 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
 
     for pathway in raw_data:
 
-        for field in required_fields:
-            if not pathway.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        # Check if a pathway entity contains the required fields
+        validate_required_fields(pathway, required_fields)
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         pathway_id = (pathway.get("pathway_id") or "").strip()
@@ -625,13 +626,12 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     """
     ngsi_ld_data = []
     
-    required_fields = ["route_id", "agency_id", "route_short_name", "route_long_name", "route_type"]
+    required_fields = ["route_id", "route_type"]
     
     for route in raw_data:
         
-        for field in required_fields:
-            if not route.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        # Check if a routes entity contains the required fields
+        validate_required_fields(route, required_fields)
         
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         route_id = (route.get("route_id") or "").strip()
@@ -657,14 +657,20 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         if validation_utils.is_string(route_id) is False:
             raise ValueError(f"Invalid type for 'route_id': {type(route_id)}")
         
-        if validation_utils.is_string(agency_id) is False:
-            raise ValueError(f"Invalid type for 'agency_id': {type(agency_id)}")
+        if agency_id is not None and agency_id != "":
+            if validation_utils.is_string(agency_id) is False:
+                raise ValueError(f"Invalid type for 'agency_id': {type(agency_id)}")
         
-        if validation_utils.is_string(route_short_name) is False:
-            raise ValueError(f"Invalid type for 'route_short_name': {type(route_short_name)}")
+        if not route_short_name and not route_long_name:
+            raise ValueError("At least one of route_short_name or route_long_name must be defined")
         
-        if validation_utils.is_string(route_long_name) is False:
-            raise ValueError(f"Invalid type for 'route_long_name': {type(route_long_name)}")
+        if route_short_name is not None and route_short_name != "":
+            if validation_utils.is_string(route_short_name) is False:
+                raise ValueError(f"Invalid type for 'route_short_name': {type(route_short_name)}")
+        
+        if route_long_name is not None and route_long_name != "":
+            if validation_utils.is_string(route_long_name) is False:
+                raise ValueError(f"Invalid type for 'route_long_name': {type(route_long_name)}")
         
         if validation_utils.is_valid_route_type(raw_route_type) is False:
             raise ValueError(f"Invalid value for 'route_type': {raw_route_type}")
@@ -789,11 +795,11 @@ def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     shapes_dict = {}
 
     required_fields = ["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"]
+
     for shape in raw_data:
         
-        for field in required_fields:
-            if not shape.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        # Check if a shape entity contains the required fields
+        validate_required_fields(shape, required_fields)
             
         shape_id = (shape.get("shape_id") or "").strip()
         raw_location_longitude = (shape.get("shape_pt_lon") or "").strip()
@@ -890,13 +896,12 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
     """
     ngsi_ld_data = []
     
-    always_required_fields = ["trip_id", "stop_sequence"]
+    required_fields = ["trip_id", "stop_sequence"]
     
     for stop_time in raw_data:
         
-        for field in always_required_fields:
-            if not stop_time.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        # Check if a stop times entity contains the required fields
+        validate_required_fields(stop_time, required_fields)
             
         has_arrival_departure = (
             bool(stop_time.get("arrival_time")) and
@@ -1216,12 +1221,11 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     """
     ngsi_ld_data = []
     
-    required_fields = ["stop_id", "stop_name", "stop_lat", "stop_lon", "parent_station"]
+    required_fields = ["stop_id"]
     for stop in raw_data:
         
-        for field in required_fields:
-            if not stop.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        # Check if a stop entity contains the required fields
+        validate_required_fields(stop, required_fields)
             
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         stop_id = (stop.get("stop_id") or "").strip()
@@ -1249,6 +1253,9 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
         wheelchair_boarding = None
         level_id = None
         stop_access = None
+
+        # TO-DO:
+        # FIX BUSINESS LOGIC
         
         if validation_utils.is_string(stop_id) is False:
             raise ValueError(f"Invalid type for 'stop_id': {type(stop_id)}")
@@ -1442,9 +1449,8 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dic
     
     for transfer in raw_data:
         
-        for field in required_fields:
-            if not transfer.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        # Check if a trasfer entity contains the required fields
+        validate_required_fields(transfer, required_fields)
 
         raw_transfer_type = (transfer.get("transfer_type") or "").strip()
         if validation_utils.is_valid_transfer_type(raw_transfer_type) is False:
@@ -1595,9 +1601,8 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     
     for trip in raw_data:
         
-        for field in required_fields:
-            if not trip.get(field):
-                raise ValueError(f"Missing required GTFS field: {field}")
+        # Check if a trip entity contains the required fields
+        validate_required_fields(trip, required_fields)
                 
         # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
         trip_id = (trip.get("trip_id") or "").strip()
