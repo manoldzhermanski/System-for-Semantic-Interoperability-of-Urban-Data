@@ -66,9 +66,11 @@ def test_parse_gtfs_agency_data_whitespace_cleanup():
 
     result = parse_gtfs_agency_data(entity)
 
-    assert result["agency_id"] == "AG1"
-    assert result["agency_name"] == "Test Agency"
-    assert result["cemv_support"] == 0
+    assert result == {
+        "agency_id": "AG1",
+        "agency_name": "Test Agency",
+        "cemv_support": 0
+    }
 
 
 def test_parse_gtfs_agency_data_invalid_cemv_support_raises_error():

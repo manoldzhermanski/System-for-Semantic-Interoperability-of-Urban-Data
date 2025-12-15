@@ -60,9 +60,11 @@ def test_parse_gtfs_fare_attributes_data_whitespace_cleanup():
 
     result = parse_gtfs_fare_attributes_data(entity)
 
-    assert result["fare_id"] == "F1"
-    assert result["price"] == 2.5
-    assert result["payment_method"] == 1
+    assert result == {
+        "fare_id":"F1",
+        "price": 2.5,
+        "payment_method": 1
+    }
 
 
 def test_parse_gtfs_fare_attributes_data_invalid_price_raises_error():
