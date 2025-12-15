@@ -8,7 +8,6 @@ from pathlib import Path
 from io import BytesIO
 from typing import Any
 from datetime import datetime
-from datetime import timedelta
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
@@ -195,16 +194,16 @@ def parse_date(value: str, field: str) -> str:
     except ValueError:
         raise ValueError(f"{field} must be a valid date in YYYYMMDD format, got '{value}'")
     
-def parse_gtfs_time(value: str, field: str) -> timedelta:
+def parse_time(value: str, field: str) -> str:
     """
-    Parses a GTFS time string (HH:MM:SS) into a timedelta object.
+    Parses a time string into HH:MM:SS format
 
     Args:
-        value (str): The time string in GTFS HH:MM:SS format. Hours may exceed 24.
+        value (str): The time string. Hours may exceed 24.
         field (str): The name of the field (used in error messages).
 
     Returns:
-        timedelta: A timedelta representing the parsed time.
+        string: A string representing the parsed time.
 
     Raises:
         ValueError: If the input is empty, not in HH:MM:SS format, or contains invalid numbers
@@ -223,9 +222,9 @@ def parse_gtfs_time(value: str, field: str) -> timedelta:
         hours, minutes, seconds = map(int, parts)
         if minutes not in range(60) or seconds not in range(60) or hours < 0:
             raise ValueError
-        return timedelta(hours=hours, minutes=minutes, seconds=seconds)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     except ValueError:
-        raise ValueError(f"{field} must be a valid GTFS time, got '{value}'")
+        raise ValueError(f"{field} must be a valid time in HH:MM:SS format, got '{value}'")
 
 def parse_gtfs_agency_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -470,15 +469,15 @@ def parse_gtfs_stop_times_data(entity: dict[str, str]) -> dict[str, Any]:
     Returns:
         dict[str, Any]: A dictionary with cleaned and properly typed fields:
             - trip_id: str | None
-            - arrival_time: timedelta | None (GTFS HH:MM:SS, supports over 24h)
-            - departure_time: timedelta | None (GTFS HH:MM:SS, supports over 24h)
+            - arrival_time: str | None (GTFS HH:MM:SS, supports over 24h)
+            - departure_time: str | None (GTFS HH:MM:SS, supports over 24h)
             - stop_id: str | None
             - location_group_id: str | None
             - location_id: str | None
             - stop_sequence: int | None
             - stop_headsign: str | None
-            - start_pickup_drop_off_window: timedelta | None
-            - end_pickup_drop_off_window: timedelta | None
+            - start_pickup_drop_off_window: str | None
+            - end_pickup_drop_off_window: str | None
             - pickup_type: int | None
             - drop_off_type: int | None
             - continuous_pickup: int | None
