@@ -645,6 +645,7 @@ def validate_gtfs_agency_entity(entity: dict[str, Any]) -> None:
     required_fileds = ["agency_id", "agency_name", "agency_url", "agency_timezone"]
     validate_required_fields(entity, required_fileds)
 
+
     entity['agency_id'] = f"urn:ngsi-ld:GtfsAgency:{entity['agency_id']}"
 
     for url_field in ["agency_url", "agency_fare_url"]:
