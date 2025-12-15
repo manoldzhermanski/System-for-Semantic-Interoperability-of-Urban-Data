@@ -9,18 +9,12 @@ def test_parse_date_valid_date_with_spaces():
     assert parse_date(" 20231205 ", "start_date") == "20231205"
 
 
-def test_parse_date_none_raises_value_error():
-    with pytest.raises(ValueError) as exc:
-        parse_date(None, "start_date")
-
-    assert str(exc.value) == "start_date cannot be empty"
+def test_parse_date_none_value_as_input():
+    assert parse_date(None, "start_date") is None
 
 
 def test_parse_date_empty_string_raises_value_error():
-    with pytest.raises(ValueError) as exc:
-        parse_date("", "start_date")
-
-    assert str(exc.value) == "start_date cannot be empty"
+    assert parse_date("", "start_date") is None
 
 
 def test_parse_date_invalid_format_raises_value_error():

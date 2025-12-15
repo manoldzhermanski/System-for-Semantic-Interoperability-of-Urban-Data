@@ -183,12 +183,12 @@ def parse_date(value: str, field: str) -> str:
         str: The date in YYYYMMDD format.
 
     Raises:
-        ValueError: If the input is empty or not in the expected YYYYMMDD format.
+        ValueError: If not in the expected YYYYMMDD format.
     """
 
     value = cleanup_string(value)
-    if value in (None, ""):
-        raise ValueError(f"{field} cannot be empty")
+    if value in {None, ""}:
+        return None
     try:
         return datetime.strptime(value, "%Y%m%d").date().strftime("%Y%m%d")
     except ValueError:
@@ -211,8 +211,8 @@ def parse_time(value: str, field: str) -> str:
     """
 
     value = cleanup_string(value)
-    if not value:
-        raise ValueError(f"{field} cannot be empty")
+    if value in {None, ""}:
+        return None
 
     parts = value.split(":")
     if len(parts) != 3:

@@ -66,7 +66,7 @@ def test_parse_gtfs_calendar_dates_data_invalid_date_raises_error():
     with pytest.raises(ValueError) as err:
         parse_gtfs_calendar_dates_data(entity)
 
-    assert str(err.value) == "date must be in YYYYMMDD format, got '2024-01-31'"
+    assert str(err.value) == "date must be a valid date in YYYYMMDD format, got '2024-01-31'"
 
 def test_parse_gtfs_calendar_dates_data_invalid_exception_type_raises_error():
     """
@@ -81,4 +81,4 @@ def test_parse_gtfs_calendar_dates_data_invalid_exception_type_raises_error():
     with pytest.raises(ValueError) as err:
         parse_gtfs_calendar_dates_data(entity)
 
-    assert str(err.value) == "exception_type must be integer, got 'yes'"
+    assert str(err.value) == "exception_type must be integer, got 'abc'"
