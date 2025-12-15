@@ -63,7 +63,11 @@ def test_parse_gtfs_fare_attributes_data_whitespace_cleanup():
     assert result == {
         "fare_id":"F1",
         "price": 2.5,
-        "payment_method": 1
+        "currency_type": None,
+        "payment_method": 1,
+        "transfers": None,
+        "agency_id": None,
+        "transfer_duration": None
     }
 
 

@@ -69,6 +69,12 @@ def test_parse_gtfs_agency_data_whitespace_cleanup():
     assert result == {
         "agency_id": "AG1",
         "agency_name": "Test Agency",
+        "agency_url": None,
+        "agency_timezone": None,
+        "agency_lang": None,
+        "agency_phone": None,
+        "agency_fare_url": None,
+        "agency_email": None,
         "cemv_support": 0
     }
 
