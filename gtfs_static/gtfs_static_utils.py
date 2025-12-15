@@ -174,10 +174,10 @@ def parse_float(value: str | None, field: str) -> float | None:
     
 def parse_date(value: str, field: str) -> str:    
     """
-    Parses a GTFS date string (YYYYMMDD) into an ISO 8601 date string (YYYY-MM-DD).
+    Parses a date into a YYYYMMDD format.
 
     Args:
-        value (str): The date string in GTFS YYYYMMDD format.
+        value (str): The date string.
         field (str): The name of the field (used in error messages).
 
     Returns:
@@ -191,9 +191,9 @@ def parse_date(value: str, field: str) -> str:
     if value in (None, ""):
         raise ValueError(f"{field} cannot be empty")
     try:
-        return datetime.strptime(value, "%Y%m%d").date().isoformat()
+        return datetime.strptime(value, "%Y%m%d").date().strftime("%Y%m%d")
     except ValueError:
-        raise ValueError(f"{field} must be in YYYYMMDD format, got '{value}'")
+        raise ValueError(f"{field} must be a valid date in YYYYMMDD format, got '{value}'")
     
 def parse_gtfs_time(value: str, field: str) -> timedelta:
     """
