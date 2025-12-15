@@ -8,77 +8,22 @@ from typing import Any
 # -----------------------------------------------------
 # Number checks
 # -----------------------------------------------------
-
-def is_int(value: Any) -> bool:
-    """
-    Check if a value represents a valid integer
-
-    Args:
-        value (Any): Argument to check
-
-    Returns:
-        bool: True if argument is integer, False otherwise
-    """
-    
-    # Return False, if not a string
-    if not isinstance(value, str):
-        return False
-    
-    # Remove white spaces around the string
-    value = value.strip()
-    
-    # Return False, if empty string
-    if value == "":
-        return False
-    
-    # Raise TypeError or ValueError, if type casting is unsuccessful and return False
-    # Return True, if casting to int is successful
-    try:
-        int(value)
-        return True
-    except (TypeError, ValueError):
-        return False
-    
-def is_float(value: Any) -> bool:
-    """
-    Check if a value represents a valid float
-
-    Args:
-        value (Any): Argument to check
-
-    Returns:
-        bool: True if argument is float, False otherwise
-    """
-    
-    # Return False, if not a string
-    if not isinstance(value, str):
-        return False
-    
-    # Remove white spaces around the string
-    value = value.strip()
-    
-    # Return False, if empty string
-    if value == "":
-        return False
-    
-    # Raise TypeError or ValueError, if type casting is unsuccessful and return False
-    # Return True, if casting to int is successful
-    try:
-        float(value)
-        return True
-    except ValueError:
+def is_valid_currency_price(value: Any) -> bool:
+    # Check if value is a float
+    if not isinstance(value, float):
         return False
 
-def is_string(value: Any) -> bool:
-    """
-    Check if argument is a string
+    # Check if currency price is a positive number
+    if value < 0:
+        return False
 
-    Args:
-        value (Any): Argument to check
-    Returns:
-        bool: True if argument is string, False otherwise
-    """
-    return isinstance(value, str)
+    # Check if currency price has max 2 decimal places
+    if '.' in value:
+        decimals = value.split('.')[-1]
+        return len(decimals) > 2
+    else:
+        return False
+
 # -----------------------------------------------------
 # String checks
 # -----------------------------------------------------
@@ -205,7 +150,7 @@ def is_valid_date(date_str: Any) -> bool:
         date_str (Any): Argument to check
 
     Returns:
-        bool: True if argument is a date in the format YYYYMMDD, False otherwise
+        bool: True if argument is a date in the format YYYY-MM-DD, False otherwise
     """
     # Return False, if not a string
     if not isinstance(date_str, str):
@@ -219,8 +164,8 @@ def is_valid_date(date_str: Any) -> bool:
         return False
     
     try:
-        # Attempt to parse the string as a date in YYYYMMDD format
-        datetime.strptime(date_str, "%Y%m%d")
+        # Attempt to parse the string as a date in YYYY-MM-DD format
+        datetime.strptime(date_str, "%Y-%m-%d")
         return True
     except Exception:
         # If parsing fails, the string is not a valid date in this format
@@ -294,7 +239,7 @@ def is_valid_time(value: Any) -> bool:
     
 def is_valid_currency_code(value: Any) -> bool:
     """
-    Check if argument is a valid currecny code
+    Check if argument is a valid currency code
 
     Args:
         value (Any): Argument to check
@@ -369,13 +314,11 @@ def is_valid_cemv_support(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2)
+    return value in {0, 1, 2}
           
-def is_valid_calendar_date_exception_type(value: Any) -> bool:
+def is_valid_exception_type(value: Any) -> bool:
     """
     Check if argument is a valid enum value for 'exception_type' field
 
@@ -384,13 +327,11 @@ def is_valid_calendar_date_exception_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
+    return value in {1, 2}
 
-    int_value = int(value)
-    return int_value in (1, 2)
-
-def is_valid_fare_attributes_payment_method(value: Any) -> bool:
+def is_valid_payment_method(value: Any) -> bool:
     """
     Check if argument is a valid enum value for 'payment_method' field
 
@@ -399,13 +340,11 @@ def is_valid_fare_attributes_payment_method(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
+    return value in {0, 1}
 
-    int_value = int(value)
-    return int_value in (0, 1)
-
-def is_valid_fare_attributes_transfers(value: Any) -> bool:
+def is_valid_transfers(value: Any) -> bool:
     """
     Check if argument is a valid enum value for 'transfers'
 
@@ -414,13 +353,11 @@ def is_valid_fare_attributes_transfers(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
+    return value in {0, 1, 2}
 
-    int_value = int(value)
-    return int_value in (0, 1, 2)
-
-def is_valid_pathways_pathway_mode(value: Any) -> bool:
+def is_valid_pathway_mode(value: Any) -> bool:
     """
     Check if argument is a valid enum value for 'pathway_mode'
 
@@ -429,13 +366,11 @@ def is_valid_pathways_pathway_mode(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
+    return value in {1, 2, 3, 4, 5, 6, 7}
 
-    int_value = int(value)
-    return int_value in (1, 2, 3, 4, 5, 6, 7)
-
-def is_valid_pathways_is_bidirectional(value: Any) -> bool:
+def is_valid_is_bidirectional(value: Any) -> bool:
     """
     Check if argument is a valid enum value for 'is_bidirectional'
 
@@ -444,11 +379,9 @@ def is_valid_pathways_is_bidirectional(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1)
+    return value in {0, 1}
 
 def is_valid_route_type(value: Any) -> bool:
     """
@@ -459,11 +392,9 @@ def is_valid_route_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2, 3, 4, 5, 6, 7, 11, 12)
+    return value in {0, 1, 2, 3, 4, 5, 6, 7, 11, 12}
 
 def is_valid_continuous_pickup(value: Any) -> bool:
     """
@@ -474,11 +405,9 @@ def is_valid_continuous_pickup(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2, 3)
+    return value in {0, 1, 2, 3}
 
 def is_valid_continuous_drop_off(value: Any) -> bool:
     """
@@ -489,11 +418,9 @@ def is_valid_continuous_drop_off(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2, 3)
+    return value in {0, 1, 2, 3}
 
 def is_valid_pickup_type(value: Any) -> bool:
     """
@@ -504,11 +431,9 @@ def is_valid_pickup_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2, 3)
+    return value in {0, 1, 2, 3}
     
 def is_valid_drop_off_type(value: Any) -> bool:
     """
@@ -519,11 +444,9 @@ def is_valid_drop_off_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2, 3)
+    return value in {0, 1, 2, 3}
 
 def is_valid_location_type(value: Any) -> bool:
     """
@@ -534,11 +457,9 @@ def is_valid_location_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2, 3, 4)
+    return value in {0, 1, 2, 3, 4}
 
 def is_valid_wheelchair_boarding(value: Any) -> bool:
     """
@@ -549,11 +470,9 @@ def is_valid_wheelchair_boarding(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2)
+    return value in {0, 1, 2}
 
 def is_valid_stop_access(value: Any) -> bool:
     """
@@ -564,11 +483,9 @@ def is_valid_stop_access(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1)
+    return value in {0, 1}
 
 def is_valid_transfer_type(value: Any) -> bool:
     """
@@ -579,11 +496,9 @@ def is_valid_transfer_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2, 3, 4, 5)
+    return value in {0, 1, 2, 3, 4, 5}
 
 def is_valid_direction_id(value: Any) -> bool:
     """
@@ -594,11 +509,9 @@ def is_valid_direction_id(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1)
+    return value in {0, 1}
 
 def is_valid_wheelchair_accessible(value: Any) -> bool:
     """
@@ -609,11 +522,9 @@ def is_valid_wheelchair_accessible(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2)
+    return value in {0, 1, 2}
 
 def is_valid_bikes_allowed(value: Any) -> bool:
     """
@@ -624,11 +535,9 @@ def is_valid_bikes_allowed(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2)
+    return value in {0, 1, 2}
 
 def is_valid_cars_allowed(value: Any) -> bool:
     """
@@ -639,11 +548,9 @@ def is_valid_cars_allowed(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1, 2)
+    return value in {0, 1, 2}
 
 def is_valid_timepoint(value: Any) -> bool:
     """
@@ -654,8 +561,6 @@ def is_valid_timepoint(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if not is_int(value):
+    if type(value) is not int:
         return False
-
-    int_value = int(value)
-    return int_value in (0, 1)
+    return value in {0, 1}
