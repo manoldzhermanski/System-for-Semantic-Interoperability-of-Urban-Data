@@ -19,7 +19,7 @@ def test_parse_float_empty_string_as_input():
 
 def test_parse_float_whitespace_string_as_input():
     """
-    Check thst if a white spaces are given as input, None value is returned
+    Check that if a white spaces are given as input, None value is returned
     """
     assert parse_float("   ", "test_field") is None
 
@@ -40,7 +40,9 @@ def test_parse_float_valid_float_with_spaces():
 
 
 def test_parse_float_integer_string_as_input():
-    """Check that if an integer is given as input, it's converted to float"""
+    """
+    Check that if an integer is given as input, it's converted to float
+    """
     assert parse_float("10", "test_field") == 10.0
 
 
