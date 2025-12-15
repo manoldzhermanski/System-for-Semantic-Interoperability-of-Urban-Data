@@ -48,9 +48,11 @@ def test_parse_gtfs_calendar_dates_data_whitespace_cleanup():
 
     result = parse_gtfs_calendar_dates_data(entity)
 
-    assert result["service_id"] == "S1"
-    assert result["date"] == "20240131"
-    assert result["exception_type"] == 0
+    assert result == {
+        "service_id": "S1",
+        "date": "20240131",
+        "exception_type": 0
+    }
 
 def test_parse_gtfs_calendar_dates_data_invalid_date_raises_error():
     """

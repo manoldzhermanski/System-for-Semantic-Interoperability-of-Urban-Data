@@ -338,7 +338,7 @@ def parse_gtfs_levels_data(entity: dict[str, str]) -> dict[str, Any]:
 
     return {
         "level_id": cleanup_string(entity.get("level_id")),
-        "level_index": parse_float(entity.get("level_index", "level_index")),
+        "level_index": parse_float(entity.get("level_index"), "level_index"),
         "level_name": cleanup_string(entity.get("level_name"))
     }
 
