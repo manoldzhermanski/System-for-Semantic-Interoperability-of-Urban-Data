@@ -29,22 +29,16 @@ def test_parse_time_with_whitespace():
     assert parse_time(" 01:02:03 ", "arrival_time") == "01:02:03"
 
 
-def test_parse_time_none_raises_error():
+def test_parse_time_none_as_input():
     """
-    Check that if None value is given as input, ValueError is raised
+    Check that if None value is given as input, None value is returned
     """
-    with pytest.raises(ValueError) as exc:
-        parse_time(None, "arrival_time")
-
-    assert str(exc.value) == "arrival_time cannot be empty"
+    assert parse_time(None, "arrival_time") is None
 
 
-def test_parse_time_empty_string_raises_error():
-    """Check that an empty string is given as input, ValueError is raised"""
-    with pytest.raises(ValueError) as err:
-        parse_time("", "arrival_time")
-
-    assert str(err.value) == "arrival_time cannot be empty"
+def test_parse_time_empty_string_as_input():
+    """Check that an empty string is given as input, None value is returned"""
+    assert parse_time("", "arrival_time") is None
 
 
 def test_parse_time_invalid_format_raises_error():

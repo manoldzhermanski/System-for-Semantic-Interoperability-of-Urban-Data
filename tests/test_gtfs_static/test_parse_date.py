@@ -13,7 +13,7 @@ def test_parse_date_none_value_as_input():
     assert parse_date(None, "start_date") is None
 
 
-def test_parse_date_empty_string_raises_value_error():
+def test_parse_date_empty_string_as_input():
     assert parse_date("", "start_date") is None
 
 
