@@ -165,7 +165,7 @@ def is_valid_date(date_str: Any) -> bool:
     
     try:
         # Attempt to parse the string as a date in YYYY-MM-DD format
-        datetime.strptime(date_str, "%Y-%m-%d")
+        datetime.strptime(date_str, "%Y%m%d")
         return True
     except Exception:
         # If parsing fails, the string is not a valid date in this format

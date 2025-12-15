@@ -181,7 +181,7 @@ def parse_date(value: str, field: str) -> str:
         field (str): The name of the field (used in error messages).
 
     Returns:
-        str: The date in ISO 8601 format (YYYY-MM-DD).
+        str: The date in YYYYMMDD format.
 
     Raises:
         ValueError: If the input is empty or not in the expected YYYYMMDD format.
@@ -191,7 +191,7 @@ def parse_date(value: str, field: str) -> str:
     if value in (None, ""):
         raise ValueError(f"{field} cannot be empty")
     try:
-        return datetime.strptime(value, "%Y-%m-%d").date().isoformat()
+        return datetime.strptime(value, "%Y%m%d").date().isoformat()
     except ValueError:
         raise ValueError(f"{field} must be in YYYYMMDD format, got '{value}'")
     

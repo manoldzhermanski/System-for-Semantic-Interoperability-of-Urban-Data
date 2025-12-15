@@ -24,7 +24,7 @@ def test_parse_int_whitespace_string_as_input():
 
 def test_parse_int_valid_integer():
     """
-    Check that if a valid integer string representation is given as iput, it's converted to int
+    Check that if a valid integer string representation is given as input, it's converted to int
     """
     assert parse_int("42", "test_field") == 42
 
