@@ -273,7 +273,7 @@ def parse_gtfs_calendar_dates_data(entity: dict[str, str]) -> dict[str, Any]:
     Returns:
         dict[str, Any]: A dictionary with cleaned and properly typed fields:
             - service_id: str | None
-            - date: str (ISO 8601 format, YYYY-MM-DD)
+            - date: str (YYYYMMDD format)
             - exception_type: int | None
 
     Raises:
