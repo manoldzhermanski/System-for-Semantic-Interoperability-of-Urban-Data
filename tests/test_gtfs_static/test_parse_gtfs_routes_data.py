@@ -1,7 +1,7 @@
 import pytest
 from gtfs_static.gtfs_static_utils import parse_gtfs_routes_data
 
-def test_parse_gtfs_routes_data_all_fields_valid():
+def test_parse_gtfs_routes_data_all_fields_present():
     """
     Check if all fields are provided, they are parsed correctly
     """
@@ -41,7 +41,6 @@ def test_parse_gtfs_routes_data_all_fields_valid():
         "cemv_support": 1
     }
 
-
 def test_parse_gtfs_routes_data_missing_fields():
     """
     Check that if fields are missing, None value is assigned
@@ -65,7 +64,6 @@ def test_parse_gtfs_routes_data_missing_fields():
         "network_id": None,
         "cemv_support": None
     }
-
 
 def test_parse_gtfs_routes_data_whitespace_cleanup():
     """
@@ -99,36 +97,46 @@ def test_parse_gtfs_routes_data_whitespace_cleanup():
         "cemv_support": 1
     }
 
-
 def test_parse_gtfs_routes_data_invalid_route_type_raises_error():
+    """
+    Check that if 'route_type' cannot be parsed to integer, ValueError is raised
+    """
     entity = {"route_type": "abc"}
     with pytest.raises(ValueError) as err:
         parse_gtfs_routes_data(entity)
     assert str(err.value) == "route_type must be integer, got 'abc'"
 
-
 def test_parse_gtfs_routes_data_invalid_route_sort_order_raises_error():
+    """
+    Check that if 'route_sort_order' cannot be parsed to integer, ValueError is raised
+    """
     entity = {"route_sort_order": "abc"}
     with pytest.raises(ValueError) as err:
         parse_gtfs_routes_data(entity)
     assert str(err.value) == "route_sort_order must be integer, got 'abc'"
 
-
 def test_parse_gtfs_routes_data_invalid_continuous_pickup_raises_error():
+    """
+    Check that if 'continuous_pickup' cannot be parsed to integer, ValueError is raised
+    """
     entity = {"continuous_pickup": "abc"}
     with pytest.raises(ValueError) as err:
         parse_gtfs_routes_data(entity)
     assert str(err.value) == "continuous_pickup must be integer, got 'abc'"
 
-
 def test_parse_gtfs_routes_data_invalid_continuous_drop_off_raises_error():
+    """
+    Check that if 'continuous_drop_off' cannot be parsed to integer, ValueError is raised
+    """
     entity = {"continuous_drop_off": "abc"}
     with pytest.raises(ValueError) as err:
         parse_gtfs_routes_data(entity)
     assert str(err.value) == "continuous_drop_off must be integer, got 'abc'"
 
-
 def test_parse_gtfs_routes_data_invalid_cemv_support_raises_error():
+    """
+    Check that if 'cemv_support' cannot be parsed to integer, ValueError is raised
+    """
     entity = {"cemv_support": "abc"}
     with pytest.raises(ValueError) as err:
         parse_gtfs_routes_data(entity)

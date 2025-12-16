@@ -1,7 +1,7 @@
 import pytest
 from gtfs_static.gtfs_static_utils import parse_gtfs_calendar_dates_data
 
-def test_parse_gtfs_calendar_dates_data_all_fields_valid():
+def test_parse_gtfs_calendar_dates_data_all_fields_present():
     """
     Check if all fields are provided, they are parsed correctly
     """
@@ -20,7 +20,7 @@ def test_parse_gtfs_calendar_dates_data_all_fields_valid():
         "exception_type": 1
     }
 
-def test_parse_gtfs_calendar_dates_data_missing_optional_fields():
+def test_parse_gtfs_calendar_dates_data_missing_fields():
     """
     Check that if a field is missing, None value is assgined
     """
@@ -59,11 +59,7 @@ def test_parse_gtfs_calendar_dates_data_invalid_date_raises_error():
     Check that invalid date format raises ValueError
     """
 
-    entity = {
-        "service_id": "S1",
-        "date": "2024-01-31",
-        "exception_type": "1"
-    }
+    entity = {"date": "2024-01-31"}
 
     with pytest.raises(ValueError) as err:
         parse_gtfs_calendar_dates_data(entity)
@@ -72,7 +68,7 @@ def test_parse_gtfs_calendar_dates_data_invalid_date_raises_error():
 
 def test_parse_gtfs_calendar_dates_data_invalid_exception_type_raises_error():
     """
-    Check that invalid value for 'exception_type' raises ValueError
+    Check that if 'exception_type' cannot be parsed to integer, ValueError is raised
     """
     entity = {
         "service_id": "S1",

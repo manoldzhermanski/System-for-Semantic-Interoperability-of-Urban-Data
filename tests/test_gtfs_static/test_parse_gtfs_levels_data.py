@@ -1,7 +1,7 @@
 import pytest
 from gtfs_static.gtfs_static_utils import parse_gtfs_levels_data
 
-def test_parse_gtfs_levels_data_all_fields_valid():
+def test_parse_gtfs_levels_data_all_fields_present():
     """
     Check if all fields are provided, they are parsed correctly
     """
@@ -19,7 +19,6 @@ def test_parse_gtfs_levels_data_all_fields_valid():
         "level_name": "Platform"
     }
 
-
 def test_parse_gtfs_levels_data_missing_fields():
     """
     Check that if fields are missing, None value is assigned
@@ -33,7 +32,6 @@ def test_parse_gtfs_levels_data_missing_fields():
         "level_index": None,
         "level_name": None
     }
-
 
 def test_parse_gtfs_levels_data_whitespace_cleanup():
     """
@@ -53,10 +51,9 @@ def test_parse_gtfs_levels_data_whitespace_cleanup():
         "level_name": "Main Platform"
     }
 
-
 def test_parse_gtfs_levels_data_invalid_level_index_raises_error():
     """
-    Check that invalid level_index raises ValueError
+    Check that if 'level_index' cannot be parsed to float, ValueError is raised
     """
 
     entity = {"level_index": "abc"}

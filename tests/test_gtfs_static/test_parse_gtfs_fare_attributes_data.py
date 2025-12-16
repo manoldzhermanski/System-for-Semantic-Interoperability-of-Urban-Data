@@ -1,7 +1,7 @@
 import pytest
 from gtfs_static.gtfs_static_utils import parse_gtfs_fare_attributes_data
 
-def test_parse_gtfs_fare_attributes_data_all_fields_valid():
+def test_parse_gtfs_fare_attributes_data_all_fields_present():
     """
     Check that if all fields are provided with data, they are parsed correctly
     """
@@ -28,7 +28,6 @@ def test_parse_gtfs_fare_attributes_data_all_fields_valid():
         "transfer_duration": 3600
     }
 
-
 def test_parse_gtfs_fare_attributes_data_missing_fields():
     """
     Check that if a field is missing, None value is assigned
@@ -46,7 +45,6 @@ def test_parse_gtfs_fare_attributes_data_missing_fields():
         "agency_id": None,
         "transfer_duration": None
     }
-
 
 def test_parse_gtfs_fare_attributes_data_whitespace_cleanup():
     """
@@ -70,10 +68,9 @@ def test_parse_gtfs_fare_attributes_data_whitespace_cleanup():
         "transfer_duration": None
     }
 
-
 def test_parse_gtfs_fare_attributes_data_invalid_price_raises_error():
     """
-    Check that invalid price raises ValueError
+    Check that if 'price' cannot be parsed to float, ValueError is raised
     """
     entity = {"price": "abc"}
 
@@ -82,12 +79,10 @@ def test_parse_gtfs_fare_attributes_data_invalid_price_raises_error():
 
     assert str(err.value) == "price must be float, got 'abc'"
 
-
 def test_parse_gtfs_fare_attributes_data_invalid_payment_method_raises_error():
     """
-    Check that invalid payment_method raises ValueError
+    Check that if 'payment_method' cannot be parsed to integer, ValueError is raised
     """
-
     entity = {"payment_method": "abc"}
 
     with pytest.raises(ValueError) as err:
@@ -95,10 +90,9 @@ def test_parse_gtfs_fare_attributes_data_invalid_payment_method_raises_error():
 
     assert str(err.value) == "payment_method must be integer, got 'abc'"
 
-
 def test_parse_gtfs_fare_attributes_data_invalid_transfers_raises_error():
     """
-    Check that invalid transfers raises ValueError
+    Check that if 'transfers' cannot be parsed to integer, ValueError is raised
     """
     
     entity = {"transfers": "abc"}
@@ -108,10 +102,9 @@ def test_parse_gtfs_fare_attributes_data_invalid_transfers_raises_error():
 
     assert str(err.value) == "transfers must be integer, got 'abc'"
 
-
 def test_parse_gtfs_fare_attributes_data_invalid_transfer_duration_raises_error():
     """
-    Check that invalid transfer_duration raises ValueError
+    Check that if 'transfer_duration' cannot be parsed to integer, ValueError is raised
     """
 
     entity = {"transfer_duration": "abc"}

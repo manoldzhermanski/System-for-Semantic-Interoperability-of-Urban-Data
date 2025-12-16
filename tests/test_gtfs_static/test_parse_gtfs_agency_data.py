@@ -31,8 +31,7 @@ def test_parse_gtfs_agency_data_all_fields_present():
         "cemv_support": 1,
     }
 
-
-def test_parse_gtfs_agency_data_missing_optional_fields():
+def test_parse_gtfs_agency_data_missing_fields():
     """
     Check that if a field is missing, None value is assigned
     """
@@ -52,7 +51,6 @@ def test_parse_gtfs_agency_data_missing_optional_fields():
         "agency_email": None,
         "cemv_support": None,
     }
-
 
 def test_parse_gtfs_agency_data_whitespace_cleanup():
     """
@@ -78,9 +76,8 @@ def test_parse_gtfs_agency_data_whitespace_cleanup():
         "cemv_support": 0
     }
 
-
 def test_parse_gtfs_agency_data_invalid_cemv_support_raises_error():
-    """Check that if 'cemv_support' cannot be parsed to int, ValueError is raised"""
+    """Check that if 'cemv_support' cannot be parsed to integer, ValueError is raised"""
     entity = {
         "agency_name": "Test Agency",
         "cemv_support": "abc",
