@@ -760,6 +760,11 @@ def validate_gtfs_fare_attributes_entity(entity: dict[str, Any]) -> None:
     if not validation_utils.is_valid_transfers(transfers):
         raise ValueError(f"'transfers' should be 0, 1 or 2, got {transfers}")
     
+    # If present, write 'agency_id' as NGSI URN
+    agency_id = entity.get("agency_id")
+    if agency_id:
+        entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{entity["agency_id"]}"
+
     # Validate 'transfer_duration'
     transfer_duration = entity.get("transfer_duration")
     if transfer_duration and transfer_duration < 0:
@@ -1222,8 +1227,7 @@ def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, 
             
             "hasService": {
                 "type": "Relationship",
-            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:Sofia:{entity.get("service_id")}:{entity.get("date")}",
-                "object": entity.get("service_id")
+                "object": f"urn:ngsi-ld:GtfsService:{entity.get("service_id")}"
             },
             
             "appliesOn": {
@@ -1234,6 +1238,42 @@ def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, 
             "exceptionType": {
                 "type": "Property",
                 "value": entity.get("exception_type")
+            }
+        }
+
+def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+    return {
+            "id": f"urn:ngsi-ld:GtfsFareAttributes:{entity.get("fare_id")}",
+            "type": "GtfsFareAttributes",
+            
+            "price": {
+                "type": "Property", 
+                "value": entity.get("price")
+            },
+            
+            "currency_type": {
+                "type": "Property", 
+                "value": entity.get("currency_type")
+            },
+            
+            "payment_method": {
+                "type": "Property", 
+                "value": entity.get("payment_method")
+            },
+            
+            "transfers": {
+                "type": "Property", 
+                "value": entity.get("transfers")
+            },
+            
+            "agency": {
+                "type": "Relationship",
+                "object": entity.get("agency_id")
+            },
+            
+            "transfer_duration": {
+                "type" : "Property",
+                "value": entity.get("transfer_duration")
             }
         }
 # -----------------------------------------------------
@@ -1278,7 +1318,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
     for calendar_date in raw_data:
         
         parsed_entity = parse_gtfs_calendar_dates_data(calendar_date)
-        validate_gtfs_agency_entity(parsed_entity)
+        validate_gtfs_calendar_dates_entity(parsed_entity)
         ngsi_ld_entity = convert_gtfs_calendar_dates_to_ngsi_ld(parsed_entity)
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
         ngsi_ld_data.append(ngsi_ld_entity)
@@ -1297,100 +1337,13 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
     """
     ngsi_ld_data = []
     
-    required_fileds = ["fare_id", "price", "currency_type", "payment_method", "transfers", "agency_id"]
-    
     for fare in raw_data:
-        
-        # Check if a fare attributes entity contains the required fields
-        validate_required_fields(fare, required_fileds)
-        
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        fare_id = (fare.get("fare_id") or "").strip()
-        raw_price = (fare.get("price") or "").strip()
-        currency_type = (fare.get("currency_type") or "").strip()
-        raw_payment_method = (fare.get("payment_method") or "").strip()
-        raw_transfers = (fare.get("transfers") or "").strip()        
-        raw_agency = (fare.get("agency_id") or "").strip()
-        raw_transfer_duration = (fare.get("transfer_duration") or "").strip() or None
-        transfer_duration = None
 
-        #if validation_utils.is_string(fare_id) is False:
-        #    raise ValueError(f"Invalid type for 'fare_id': {type(fare_id)}")
-        
-        if validation_utils.is_float(raw_price) is False:
-            raise ValueError(f"Invalid value for 'price': {raw_price}")
-        
-        price = float(raw_price)
-        if price < 0.0:
-            raise ValueError(f"Invalid value for 'price': {raw_price}")
-
-        if validation_utils.is_valid_currency_code(currency_type) is False:
-            raise ValueError(f"Invalid value for 'currency_type: {currency_type}")
-                
-        if validation_utils.is_valid_fare_attributes_payment_method(raw_payment_method) is False:
-            raise ValueError(f"Invalid value for 'payment_method': {raw_payment_method}")
-        payment_method = int(raw_payment_method)
-
-        if validation_utils.is_valid_fare_attributes_transfers(raw_transfers) is False:
-            raise ValueError(f"Invalid value for 'transfers': {raw_transfers}")
-        transfers = int(raw_transfers)
-
-        if validation_utils.is_string(raw_agency) is False:
-            raise ValueError(f"Invalid type for 'agency': {type(raw_agency)}")
-        agency = f"urn:ngsi-ld:GtfsAgency:{raw_agency}"
-        
-        if raw_transfer_duration is not None and raw_transfer_duration != "":
-            if validation_utils.is_int(raw_transfer_duration) is False:
-                raise ValueError(f"Invalid value for 'transfer_duration': {raw_transfer_duration}")
-            transfer_duration = int(raw_transfer_duration)
-            if transfer_duration < 0:
-                raise ValueError(f"Invalid value for 'transfer_duration': {raw_transfer_duration}")
-
-        
-        # Create custom NGSI-LD data model and populate it
-        ngsi_ld_fare = {
-            "id": f"urn:ngsi-ld:GtfsFareAttributes:{fare_id}",
-            "type": "GtfsFareAttributes",
-            
-            "price": {
-                "type": "Property", 
-                "value": price
-            },
-            
-            "currency_type": {
-                "type": "Property", 
-                "value": currency_type
-            },
-            
-            "payment_method": {
-                "type": "Property", 
-                "value": payment_method
-            },
-            
-            "transfers": {
-                "type": "Property", 
-                "value": transfers
-            },
-            
-            "agency": {
-                "type": "Relationship",
-                "object": agency
-            },
-            
-            "transfer_duration": {
-                "type" : "Property",
-                "value": transfer_duration
-            }
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_fare = {
-            k: v for k, v in ngsi_ld_fare.items()
-            if not (isinstance(v, dict) and None in v.values())
-        }
-        
-        # Append every NGSI-LD entity after transformation
-        ngsi_ld_data.append(ngsi_ld_fare)
+        parsed_entity = parse_gtfs_fare_attributes_data(fare)
+        validate_gtfs_fare_attributes_entity(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_fare_attributes_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        ngsi_ld_data.append(ngsi_ld_entity)
         
     # Return the list of NGSI-LD GtfsFareAttributes
     return ngsi_ld_data
