@@ -659,11 +659,6 @@ def validate_gtfs_agency_entity(entity: dict[str, Any]) -> None:
     required_fileds = ["agency_name", "agency_url", "agency_timezone"]
     validate_required_fields(entity, required_fileds)
 
-    # Write agency_id to NGSI-LD URN (if provided)
-    agency_id = entity.get("agency_id")
-    if agency_id:
-        entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{agency_id}"
-
     # Validate URL fields
     for url_field in ["agency_url", "agency_fare_url"]:
         url = entity.get(url_field)
@@ -1156,7 +1151,7 @@ def validate_gtfs_trips_entity(entity: dict[str, Any]) -> None:
 
 def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     return {
-        "id": entity.get("agency_id"),
+        "id": f"urn:ngsi-ld:GtfsAgency:{entity.get("agency_id")}",
         "type": "GtfsAgency",
             
         "agency_name":{
