@@ -639,41 +639,61 @@ def parse_gtfs_trips_data(entity: dict[str, str]) -> dict[str, Any]:
 # -----------------------------------------------------
 
 def validate_gtfs_agency_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS agency entity.
 
-    # Required fields
-    required_fileds = ["agency_id", "agency_name", "agency_url", "agency_timezone"]
+    This function performs:
+    - Validation of required fields
+    - Normalization of agency_id to NGSI-LD URN
+    - Validation of URLs, timezone, language code, phone number, email
+    - Validation of CEMV support values
+
+    Args:
+        entity (dict[str, Any]): A parsed GTFS agency entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
+
+    # Required GTFS fields
+    required_fileds = ["agency_name", "agency_url", "agency_timezone"]
     validate_required_fields(entity, required_fileds)
 
+    # Write agency_id to NGSI-LD URN (if provided)
+    agency_id = entity.get("agency_id")
+    if agency_id:
+        entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{agency_id}"
 
-    entity['agency_id'] = f"urn:ngsi-ld:GtfsAgency:{entity['agency_id']}"
-
+    # Validate URL fields
     for url_field in ["agency_url", "agency_fare_url"]:
-        value = entity.get(url_field)
-        if value and not validation_utils.is_valid_url(value):
-            raise ValueError(f"{url_field} must be a valid URL, got '{value}'")
-        
+        url = entity.get(url_field)
+        if url and not validation_utils.is_valid_url(url):
+            raise ValueError(f"{url_field} must be a valid URL, got '{url}'")
+
+    # Validate timezone
     timezone = entity.get("agency_timezone")
     if not validation_utils.is_valid_timezone(timezone):
         raise ValueError(f"agency_timezone must be a valid timezone, got {timezone}")
-    
+
+    # Validate language code (if provided)
     agency_lang = entity.get("agency_lang")
-    if agency_lang:
-        if not validation_utils.is_valid_language_code(agency_lang):
-            raise ValueError(f"agency_lang must be a valid language code, got {agency_lang}")
-        
+    if agency_lang and not validation_utils.is_valid_language_code(agency_lang):
+        raise ValueError(f"agency_lang must be a valid language code, got {agency_lang}")
+
+    # Validate phone number (if provided)
     agency_phone = entity.get("agency_phone")
-    if agency_phone:
-        if not validation_utils.is_valid_phone_number(agency_phone):
-            raise ValueError(f"agency_phone must be a valid phone number, got {agency_phone}")
-        
+    if agency_phone and not validation_utils.is_valid_phone_number(agency_phone):
+        raise ValueError(f"agency_phone must be a valid phone number, got {agency_phone}")
+
+    # Validate email (if provided)
     email = entity.get("agency_email")
-    if email:
-        if not validation_utils.is_valid_email(email):
-            raise ValueError(f"agency_email must be a valid email address, got '{email}'")
-        
+    if email and not validation_utils.is_valid_email(email):
+        raise ValueError(f"agency_email must be a valid email address, got '{email}'")
+
+    # Validate CEMV support value (if provided)
     cemv_support = entity.get("cemv_support")
     if cemv_support is not None and not validation_utils.is_valid_cemv_support(cemv_support):
-            raise ValueError(f"cemv_support must be 0, 1 or 2, got {cemv_support}")
+        raise ValueError(f"cemv_support must be 0, 1 or 2, got {cemv_support}")
 
 def validate_gtfs_calendar_dates_entity(entity: dict[str, Any]) -> None:
     """
