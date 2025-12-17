@@ -720,27 +720,47 @@ def validate_gtfs_calendar_dates_entity(entity: dict[str, Any]) -> None:
         raise ValueError(f"exception_type must be 1 or 2, got {exception_type}")
 
 def validate_gtfs_fare_attributes_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS fare attributes entity.
 
+    This function performs:
+    - Validation of required fields
+    - The price is a valid non-negative currency value with up to 2 decimal places
+    - The currency_type is a valid ISO 4217 currency code
+    - Validation of 'payment_method', 'transfers' values
+    - If provided, 'transfer_duration' is a non-negative integer
+
+    Args:
+        entity (dict[str, Any]): A parsed GTFS fare attributes entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
     # Required fields
     required_fields = ["fare_id", "price", "currency_type", "payment_method", "transfers"]
     validate_required_fields(entity, required_fields)
 
+    # Validate price
     price = entity.get("price")
     if not validation_utils.is_valid_currency_price(price):
         raise ValueError(f"'price' is not a valid currency price, got {price}")
     
+    # Validate 'currency_type'
     currency_type = entity.get("currency_type")
     if not validation_utils.is_valid_currency_code(currency_type):
         raise ValueError(f"'currency_type' is not a valid currency code")
     
+    # Validate 'payment_method'
     payment_method = entity.get("payment_method")
-    if not validation_utils.is_valid_fare_attributes_payment_method(payment_method):
+    if not validation_utils.is_valid_payment_method(payment_method):
         raise ValueError(f"'payment_method' must be 0 or 1, got {payment_method}")
 
+    # Validate 'transfers'
     transfers = entity.get("transfers")
-    if not validation_utils.is_valid_fare_attributes_transfers(transfers):
+    if not validation_utils.is_valid_transfers(transfers):
         raise ValueError(f"'transfers' should be 0, 1 or 2, got {transfers}")
     
+    # Validate 'transfer_duration'
     transfer_duration = entity.get("transfer_duration")
     if transfer_duration and transfer_duration < 0:
         raise ValueError(f"'transfer_duration' must be a non-negative integer, got {transfer_duration}")

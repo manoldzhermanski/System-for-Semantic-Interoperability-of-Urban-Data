@@ -9,20 +9,17 @@ from typing import Any
 # Number checks
 # -----------------------------------------------------
 def is_valid_currency_price(value: Any) -> bool:
-    # Check if value is a float
-    if not isinstance(value, float):
+    # Must be int or float
+    if not isinstance(value, (int, float)):
         return False
 
-    # Check if currency price is a positive number
+    # Must be non-negative
     if value < 0:
         return False
 
-    # Check if currency price has max 2 decimal places
-    if '.' in value:
-        decimals = value.split('.')[-1]
-        return len(decimals) > 2
-    else:
-        return False
+    # Must have at most 2 decimal places
+    return round(value, 2) == value
+
 
 # -----------------------------------------------------
 # String checks

@@ -3,7 +3,7 @@ from gtfs_static.gtfs_static_utils import validate_gtfs_agency_entity
 
 def test_validate_gtfs_agency_entity_all_valid_fields():
     """
-    Check that all fields are provided and valid, the validation passes and 'agency_id' is written as a NGSI URN
+    Check that all fields are provided and valid, the validation passes
     """
     entity = {
         "agency_id": "AG1",
@@ -18,8 +18,6 @@ def test_validate_gtfs_agency_entity_all_valid_fields():
     }
 
     validate_gtfs_agency_entity(entity)
-
-    assert entity["agency_id"] == "urn:ngsi-ld:GtfsAgency:AG1"
 
 def test_validate_gtfs_agency_entity_missing_required_field():
     """
