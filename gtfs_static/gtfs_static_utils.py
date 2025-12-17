@@ -1199,6 +1199,28 @@ def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
             "value": entity.get("cemv_support")
         }
     }
+
+def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+    return {
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:Sofia:{entity.get("service_id")}:{entity.get("date")}",
+            "type": "GtfsCalendarDateRule",
+            
+            "hasService": {
+                "type": "Relationship",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:Sofia:{entity.get("service_id")}:{entity.get("date")}",
+                "object": entity.get("service_id")
+            },
+            
+            "appliesOn": {
+                "type": "Property",
+                "value": entity.get("date")
+            },
+            
+            "exceptionType": {
+                "type": "Property",
+                "value": entity.get("exception_type")
+            }
+        }
 # -----------------------------------------------------
 # Remove None values
 # -----------------------------------------------------
@@ -1214,13 +1236,6 @@ def remove_none_values(entity: dict[str, Any]) -> dict[str, Any]:
     
 
 def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """
-    Converts GTFS static agency data to NGSI-LD format.
-    Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
-    Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
-    """
     ngsi_ld_entity = []
 
     for agency in raw_data:
@@ -1244,60 +1259,14 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
     """
     ngsi_ld_data = []
-    
-    required_fileds = ["service_id", "date", "exception_type"]
-    
+        
     for calendar_date in raw_data:
         
-        # Check if a calendar date entity contains the required fields
-        validate_required_fields(calendar_date, required_fileds)
-        
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        raw_service_id = (calendar_date.get("service_id") or "").strip()
-        raw_date = (calendar_date.get("date") or "").strip()
-        raw_exception = (calendar_date.get("exception_type") or "").strip()
-
-        if validation_utils.is_string(raw_service_id) is False:
-            raise ValueError(f"Invalid type for 'service_id':{type(raw_service_id)}")
-        service_id = f"urn:ngsi-ld:GtfsService:{raw_service_id}"
-
-        if validation_utils.is_valid_date(raw_date) is False:
-            raise ValueError(f"Invalid date format for 'date': {raw_date}")
-        applies_on = datetime.strptime(raw_date, "%Y%m%d").date().isoformat()
-
-        if validation_utils.is_valid_calendar_date_exception_type(raw_exception) is False:
-            raise ValueError(f"Invalid value for 'exception_type':{raw_exception}")
-        exception_type = int(raw_exception)
-
-        # Populate FIWARE's data model
-        ngsi_ld_calendar_date = {
-            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:Sofia:{calendar_date.get("service_id")}:{applies_on}",
-            "type": "GtfsCalendarDateRule",
-            
-            "hasService": {
-                "type": "Relationship",
-                "object": service_id
-            },
-            
-            "appliesOn": {
-                "type": "Property",
-                "value": applies_on
-            },
-            
-            "exceptionType": {
-                "type": "Property",
-                "value": exception_type
-            }
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_calendar_date = {
-            k: v for k, v in ngsi_ld_calendar_date.items()
-            if not (isinstance(v, dict) and None in v.values())
-        }
-        
-        # Append every NGSI-LD entity after transformation
-        ngsi_ld_data.append(ngsi_ld_calendar_date)
+        parsed_entity = parse_gtfs_calendar_dates_data(calendar_date)
+        validate_gtfs_agency_entity(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_calendar_dates_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        ngsi_ld_data.append(ngsi_ld_entity)
         
     # Return the list of NGSI-LD GtfsCalendarDateRule
     return ngsi_ld_data
