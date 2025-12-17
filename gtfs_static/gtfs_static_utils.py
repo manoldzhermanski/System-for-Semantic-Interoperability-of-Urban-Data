@@ -646,7 +646,7 @@ def validate_gtfs_agency_entity(entity: dict[str, Any]) -> None:
     - Validation of required fields
     - Normalization of agency_id to NGSI-LD URN
     - Validation of URLs, timezone, language code, phone number, email
-    - Validation of CEMV support values
+    - Validation of 'cemv_support' values
 
     Args:
         entity (dict[str, Any]): A parsed GTFS agency entity.
@@ -690,36 +690,38 @@ def validate_gtfs_agency_entity(entity: dict[str, Any]) -> None:
     if email and not validation_utils.is_valid_email(email):
         raise ValueError(f"agency_email must be a valid email address, got '{email}'")
 
-    # Validate CEMV support value (if provided)
+    # Validate 'cemv_support' value (if provided)
     cemv_support = entity.get("cemv_support")
     if cemv_support is not None and not validation_utils.is_valid_cemv_support(cemv_support):
         raise ValueError(f"cemv_support must be 0, 1 or 2, got {cemv_support}")
 
 def validate_gtfs_calendar_dates_entity(entity: dict[str, Any]) -> None:
     """
-    Validates business rules for a GTFS calendar_dates.txt record.
+    Validates a parsed GTFS calendar dates entity.
 
-    This function assumes that the entity has already been parsed and cleaned.
-    It enforces GTFS-required fields and domain constraints.
+    This function performs:
+    - Validation of required fields
+    - Validation of date (YYYYMMDD format)
+    - Validation of 'exception_type' values
 
     Args:
-        entity (dict[str, Any]): Parsed calendar_dates record.
+        entity (dict[str, Any]): A parsed GTFS calendar date entity.
 
     Raises:
-        ValueError: If any required field is missing or violates GTFS rules.
+        ValueError: If any required field is missing or any field value is invalid.
     """
-
-    # Required fields
+    # Required GTFS fields
     required_fields = ["service_id", "date", "exception_type"]
     validate_required_fields(entity, required_fields)
 
-    # date: must be ISO date string (already parsed)
+    # Validate date format (YYYYMMDD)
     date = entity.get("date")
     if not validation_utils.is_valid_date(date):
-        raise ValueError(f"date must be a valid ISO date, got '{date}'")
+        raise ValueError(f"date must be a valid date in YYYYMMDD, got '{date}'")
 
+    # Validate 'exception_type' value
     exception_type = entity.get("exception_type")
-    if not validation_utils.is_valid_calendar_date_exception_type(exception_type):
+    if not validation_utils.is_valid_exception_type(exception_type):
         raise ValueError(f"exception_type must be 1 or 2, got {exception_type}")
 
 def validate_gtfs_fare_attributes_entity(entity: dict[str, Any]) -> None:
