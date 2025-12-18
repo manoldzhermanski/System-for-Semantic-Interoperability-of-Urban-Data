@@ -41,7 +41,7 @@ def test_parse_int_invalid_integer_raises_value_error():
     """
     Check that an invalid value raises ValueError
     """
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as err:
         parse_int("abc", "age")
 
-    assert str(exc.value) == "age must be integer, got 'abc'"
+    assert str(err.value) == "age must be integer, got 'abc'"

@@ -97,7 +97,15 @@ def validate_required_fields(data: dict[str, Any],required_fields: list[str]) ->
     """
 
     for field in required_fields:
-        if not data.get(field):
+        if field not in data:
+            raise ValueError(f"Missing required GTFS field: {field}")
+
+        value = data.get(field)
+
+        if value is None:
+            raise ValueError(f"Missing required GTFS field: {field}")
+
+        if isinstance(value, str) and value == "":
             raise ValueError(f"Missing required GTFS field: {field}")
 
 # -----------------------------------------------------
@@ -787,45 +795,64 @@ def validate_gtfs_levels_entity(entity: dict[str, Any]) -> None:
     validate_required_fields(entity, required_fields)
 
 def validate_gtfs_pathways_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS pathway entity.
 
+    This function performs:
+    - Validation of required fields
+    - Validation of 'pathway_mode', 'is_bidirectional' values
+    - Validate that if 'pathway_mode' is 7, 'is_bidirectional' cannot be 1
+    - Validate that 'length' is a non-negative float
+    - Validate that 'traversal_time' is a positive integer
+    - Validate that 'stair_count' is a non-zero integer
+    - Validate that 'min_width' is a positive float
+    - Validate that 'max_slope' can only be defined for 'pathway_mode' = 1 or 3
+
+    Args:
+        entity (dict[str, Any]): A parsed GTFS pathways entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
+    # Required fields
     required_fields = ["pathway_id", "from_stop_id", "to_stop_id", "pathway_mode", "is_bidirectional"]
     validate_required_fields(entity, required_fields)
 
-    pathway_id = entity.get("pathway_id")
-    if pathway_id is None:
-        raise ValueError(f"'pathway_id' cannot be None")
-    entity["pathway_id"] = f"urn:ngsi-ld:GtfsPathway:{entity["pathway_id"]}"
-
+    # Validate 'pathway_mode'
     pathway_mode = entity.get("pathway_mode")
     if not validation_utils.is_valid_pathway_mode(pathway_mode):
-        raise ValueError(f"'pathway_mode' has to be 1, 2, 3, 4, 5 or 6, got {pathway_mode}")
+        raise ValueError(f"'pathway_mode' has to be 1, 2, 3, 4, 5, 6 or 7, got {pathway_mode}")
     
+    # Validate 'is_bidirectional'
     is_bidirectional = entity.get("is_bidirectional")
     if not validation_utils.is_valid_is_bidirectional(is_bidirectional):
         raise ValueError(f"'is_bidirectional' has to be 0 or 1, got {is_bidirectional}")
     
+    # Validate that if 'pathway_mode' is 7, 'is_bidirectional' cannot be 1
     if pathway_mode == 7 and is_bidirectional == 1:
-        raise ValueError(f"'is_bidirectional' cannot be 1 when 'pathway_mode' is 7 (escalator)")
+        raise ValueError(f"'is_bidirectional' cannot be 1 when 'pathway_mode' is 7")
     
+    # Validate that length is a non-negative float
     length = entity.get("length")
-    if length is not None and length <= 0:
-        raise ValueError(f"'length' must be a positive float, got {length}")
+    if length is not None and length < 0:
+        raise ValueError(f"'length' must be a non-negative float, got {length}")
     
+    # Validate 'traversal_time' value
     traversal_time = entity.get("traversal_time")
     if traversal_time is not None and traversal_time <= 0:
         raise ValueError(f"'traversal_time' must be a positive integer, got {traversal_time}")
     
+    # Validate 'stair_count' value
     stair_count = entity.get("stair_count")
     if stair_count is not None and stair_count == 0:
         raise ValueError(f"'stair_count' must be a non-zero integer, got {stair_count}")
     
+    # Validate that 'max_slope' can only be defined for 'pathway_mode' = 1 or 3
     max_slope = entity.get("max_slope")
-    if max_slope is not None and not validation_utils.is_float(max_slope):
-        raise ValueError(f"'max_slope' must be a float, got {max_slope}")
-    
     if max_slope is not None and pathway_mode not in {1, 3}:
-        raise ValueError(f"'max_slope' can only be defined when 'pathway_mode' is 1 (walkway) or 3 (stairs)")
-
+        raise ValueError(f"'max_slope' can only be defined when 'pathway_mode' is 1 or 3")
+    
+    # Validate 'min_width' value
     min_width = entity.get("min_width")
     if min_width is not None and min_width <= 0:
         raise ValueError(f"'min_width' must be a positive float, got {min_width}")

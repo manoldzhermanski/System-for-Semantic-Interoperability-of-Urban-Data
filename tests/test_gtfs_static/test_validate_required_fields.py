@@ -26,10 +26,10 @@ def test_validate_required_fields_missing_field():
 
     required_fields = ["route_id"]
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as err:
         validate_required_fields(data, required_fields)
 
-    assert str(exc.value) == "Missing required GTFS field: route_id"
+    assert str(err.value) == "Missing required GTFS field: route_id"
 
 def test_validate_required_fields_none_value_raises_value_error():
     """
@@ -40,10 +40,10 @@ def test_validate_required_fields_none_value_raises_value_error():
     }
     required_fields = ["route_id"]
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as err:
         validate_required_fields(data, required_fields)
 
-    assert str(exc.value) == "Missing required GTFS field: route_id"
+    assert str(err.value) == "Missing required GTFS field: route_id"
 
 def test_validate_required_fields_empty_string_raises_value_error():
     """
@@ -56,22 +56,7 @@ def test_validate_required_fields_empty_string_raises_value_error():
 
     required_fields = ["route_id"]
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as err:
         validate_required_fields(data, required_fields)
 
-    assert str(exc.value) == "Missing required GTFS field: route_id"
-
-def test_validate_required_fields_non_string_value_raises_value_error():
-    """
-    Check that a non-string value raises ValueError
-    """
-
-    data = {
-        "route_id": 0,
-    }
-    required_fields = ["route_id"]
-
-    with pytest.raises(ValueError) as exc:
-        validate_required_fields(data, required_fields)
-
-    assert str(exc.value) == "Missing required GTFS field: route_id"
+    assert str(err.value) == "Missing required GTFS field: route_id"
