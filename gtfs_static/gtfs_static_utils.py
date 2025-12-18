@@ -1328,6 +1328,67 @@ def convert_gtfs_levels_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
                 "value": entity.get("level_index")
             }
         }
+
+def convert_gtfs_pathways_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+    return {
+            "id": f"urn:ngsi-ld:GtfsPathway:{entity.get("pathway_id")}",
+            "type": "GtfsPathway",
+            
+            "hasOrigin": {
+                "type": "Relationship",
+                "object": entity.get("from_stop_id")
+            },
+            
+            "hasDestination": {
+                "type": "Relationship",
+                "object": entity.get("to_stop_id")
+            },
+            
+            "pathway_mode": {
+                "type": "Property",
+                "value": entity.get("pathway_mode")
+            },
+            
+            "isBidirectional": {
+                "type": "Property",
+                "value": entity.get("is_bidirectional")
+            },
+            
+            "length": {
+                "type": "Property",
+                "value": entity.get("length")
+            },
+            
+            "traversal_time": {
+                "type": "Property",
+                "value": entity.get("traversal_time")
+            },
+            
+            "stair_count": {
+                "type": "Property",
+                "value": entity.get("stair_count")
+            },
+            
+            "max_slope": {
+                "type": "Property",
+                "value": entity.get("max_slope")
+            },
+            
+            "min_width": {
+                "type": "Property",
+                "value": entity.get("min_width")
+            },
+            
+            "signposted_as": {
+                "type": "Property",
+                "value": entity.get("signposted_as")
+            },
+            
+            "reversed_signposted_as": {
+                "type": "Property",
+                "value": entity.get("reversed_signposted_as")
+            }
+        }
 # -----------------------------------------------------
 # Remove None values
 # -----------------------------------------------------
@@ -1435,160 +1496,12 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict
     
     ngsi_ld_data = []
 
-    required_fields = ["pathway_id", "from_stop_id", "to_stop_id", "pathway_mode", "is_bidirectional"]
-
     for pathway in raw_data:
-
-        # Check if a pathway entity contains the required fields
-        validate_required_fields(pathway, required_fields)
-        
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        pathway_id = (pathway.get("pathway_id") or "").strip()
-        raw_from_stop_id = (pathway.get("from_stop_id") or "").strip()
-        raw_to_stop_id = (pathway.get("to_stop_id") or "").strip()
-        raw_pathway_mode = (pathway.get("pathway_mode") or "").strip()
-        raw_is_bidirectional = (pathway.get("is_bidirectional") or "").strip()
-        raw_length = (pathway.get("length") or "").strip() or None
-        raw_traversal_time = (pathway.get("traversal_time") or "").strip() or None
-        raw_stair_count = (pathway.get("stair_count") or "").strip() or None
-        raw_max_slope = (pathway.get("max_slope") or "").strip() or None
-        raw_min_width = (pathway.get("min_width") or "").strip() or None
-        signposted_as = (pathway.get("signposted_as") or "").strip() or None
-        reversed_signposted_as = (pathway.get("reversed_signposted_as") or "").strip() or None
-
-        length = None
-        traversal_time = None
-        stair_count = None
-        max_slope = None
-        min_width = None
-        
-        if validation_utils.is_string(pathway_id) is False:
-            raise ValueError(f"Invalid type for 'pathway_id': {type(pathway_id)}")
-        
-        if validation_utils.is_string(raw_from_stop_id) is False:
-            raise ValueError(f"Invalid type for 'from_stop_id': {type(raw_from_stop_id)}")
-        from_stop_id = f"urn:ngsi-ld:GtfsStop:{raw_from_stop_id}"
-
-        if validation_utils.is_string(raw_to_stop_id) is False:
-            raise ValueError(f"Invalid type for 'to_stop_id': {type(raw_to_stop_id)}")
-        to_stop_id = f"urn:ngsi-ld:GtfsStop:{raw_to_stop_id}"
-
-        if validation_utils.is_valid_pathways_pathway_mode(raw_pathway_mode) is False:
-            raise ValueError(f"Invalid value for 'pathway_mode: {raw_pathway_mode}")
-        pathway_mode = int(raw_pathway_mode)
-
-        if validation_utils.is_valid_pathways_is_bidirectional(raw_is_bidirectional) is False:
-            raise ValueError(f"Invalid value for 'is_bidirectional: {raw_is_bidirectional}")
-        is_bidirectional = int(raw_is_bidirectional)
-
-        if raw_length is not None and raw_length != "":
-            if validation_utils.is_float(raw_length) is False:
-                raise ValueError(f"Invalid type for 'length': {type(raw_length)}")
-            length = float(raw_length)
-            if length < 0.0:
-                raise ValueError(f"Invalid value for 'length': {length}")
-            
-        if raw_traversal_time is not None and raw_traversal_time != "":
-            if validation_utils.is_float(raw_traversal_time) is False:
-                raise ValueError(f"Invalid type for 'traversal_time': {type(raw_traversal_time)}")
-            traversal_time = float(raw_traversal_time)
-            if traversal_time <= 0.0:
-                raise ValueError(f"Invalid value for 'traversal_time': {traversal_time}")
-            
-        if raw_stair_count is not None and raw_stair_count != "":
-            if validation_utils.is_int(raw_stair_count) is False:
-                raise ValueError(f"Invalid type for 'stair_count': {type(raw_stair_count)}")
-            stair_count = int(raw_stair_count)
-            
-        if raw_max_slope is not None and raw_max_slope != "":
-            if validation_utils.is_float(raw_max_slope) is False:
-                raise ValueError(f"Invalid type for 'max_slope': {type(raw_max_slope)}")
-            max_slope = float(raw_max_slope)
-
-        if raw_min_width is not None and raw_min_width != "":
-            if validation_utils.is_float(raw_min_width) is False:
-                raise ValueError(f"Invalid type for 'min_width': {type(raw_min_width)}")
-            min_width = float(raw_min_width)
-            if min_width <= 0.0:
-                raise ValueError(f"Invalid value for 'min_width': {min_width}")
-            
-        if signposted_as is not None and signposted_as != "":
-            if validation_utils.is_string(signposted_as) is False:
-                raise ValueError(f"Invalid value for 'signposted_as'")
-            
-        if reversed_signposted_as is not None and reversed_signposted_as != "":
-            if validation_utils.is_string(reversed_signposted_as) is False:
-                raise ValueError(f"Invalid value for 'reversed_signposted_as'")
-
-        # Create custom NGSI-LD data model and populate it
-        ngsi_ld_pathway = {
-            "id": f"urn:ngsi-ld:GtfsPathway:{pathway_id}",
-            "type": "GtfsPathway",
-            
-            "hasOrigin": {
-                "type": "Relationship",
-                "object": from_stop_id
-            },
-            
-            "hasDestination": {
-                "type": "Relationship",
-                "object": to_stop_id
-            },
-            
-            "pathway_mode": {
-                "type": "Property",
-                "value": pathway_mode
-            },
-            
-            "isBidirectional": {
-                "type": "Property",
-                "value": is_bidirectional
-            },
-            
-            "length": {
-                "type": "Property",
-                "value": length
-            },
-            
-            "traversal_time": {
-                "type": "Property",
-                "value": traversal_time
-            },
-            
-            "stair_count": {
-                "type": "Property",
-                "value": stair_count
-            },
-            
-            "max_slope": {
-                "type": "Property",
-                "value": max_slope
-            },
-            
-            "min_width": {
-                "type": "Property",
-                "value": min_width
-            },
-            
-            "signposted_as": {
-                "type": "Property",
-                "value": signposted_as
-            },
-            
-            "reversed_signposted_as": {
-                "type": "Property",
-                "value": reversed_signposted_as
-            }
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_pathway = {
-            k: v for k, v in ngsi_ld_pathway.items()
-            if not (isinstance(v, dict) and None in v.values())
-        }
-        
-        # Append every NGSI-LD entity after transformation
-        ngsi_ld_data.append(ngsi_ld_pathway)
+        parsed_entity = parse_gtfs_pathways_data(pathway)
+        validate_gtfs_pathways_entity(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_pathways_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        ngsi_ld_data.append(ngsi_ld_entity)
         
     # Return the list of NGSI-LD GtfsPathway
     return ngsi_ld_data
