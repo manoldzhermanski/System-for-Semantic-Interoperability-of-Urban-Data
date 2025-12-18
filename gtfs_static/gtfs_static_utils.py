@@ -771,7 +771,17 @@ def validate_gtfs_fare_attributes_entity(entity: dict[str, Any]) -> None:
         raise ValueError(f"'transfer_duration' must be a non-negative integer, got {transfer_duration}")
 
 def validate_gtfs_levels_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS level entity.
 
+    This function performs:
+    - Validation of required fields
+    Args:
+        entity (dict[str, Any]): A parsed GTFS level entity.
+
+    Raises:
+        ValueError: If any required field is missing
+    """
     # Required fields
     required_fields = ["level_id", "level_index"]
     validate_required_fields(entity, required_fields)
@@ -1276,6 +1286,21 @@ def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str,
                 "value": entity.get("transfer_duration")
             }
         }
+
+def convert_gtfs_levels_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+    return {
+            "id": f"urn:ngsi-ld:GtfsLevel:{entity.get("level_id")}",
+            "type": "GtfsLevel",
+            "name": {
+                "type": "Property",
+                "value": entity.get("level_name")
+            },
+            
+            "level_index": {
+                "type": "Property",
+                "value": entity.get("level_index")
+            }
+        }
 # -----------------------------------------------------
 # Remove None values
 # -----------------------------------------------------
@@ -1359,52 +1384,14 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     """
     ngsi_ld_data = []
     
-    required_fields = ["level_id", "level_index"]
     
     for level in raw_data:
-        
-        # Check if a level entity contains the required fields
-        validate_required_fields(level, required_fields)
-        
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        level_id = (level.get("level_id") or "").strip()
-        level_name = (level.get("level_name") or "").strip() or None
-        raw_level_index = (level.get("level_index") or "").strip()
-        
-        if validation_utils.is_string(level_id) is False:
-            raise ValueError(f"Invalid type for 'level_id': {type(level_id)}")
-        
-        if level_name is not None and level_name != "":
-            if validation_utils.is_string(level_name) is False:
-                raise ValueError(f"Invalid type for 'level_name': {type(level_name)}")
 
-        if validation_utils.is_float(raw_level_index) is False:
-            raise ValueError(f"Invalid value for 'level_index': must be a floating point number")
-        level_index = float(raw_level_index)
-        
-        # Create custom NGSI-LD data model and populate it
-        ngsi_ld_level = {
-            "id": f"urn:ngsi-ld:GtfsLevel:{level_id}",
-            "type": "GtfsLevel",
-            "name": {
-                "type": "Property",
-                "value": level_name
-            },
-            
-            "level_index": {
-                "type": "Property",
-                "value": level_index
-            }
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_level = {
-            k: v for k, v in ngsi_ld_level.items()
-            if not (isinstance(v, dict) and None in v.values())
-        }
-        
-        # Append every NGSI-LD entity after transformation
-        ngsi_ld_data.append(ngsi_ld_level)
+        parsed_entity = parse_gtfs_levels_data(level)
+        validate_gtfs_levels_entity(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_levels_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        ngsi_ld_data.append(ngsi_ld_entity)
         
     # Return the list of NGSI-LD GtfsLevel
     return ngsi_ld_data
