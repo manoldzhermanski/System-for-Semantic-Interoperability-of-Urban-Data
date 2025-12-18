@@ -21,7 +21,6 @@ def test_validate_gtfs_pathways_entity_all_valid_fields():
 
     validate_gtfs_pathways_entity(entity)
 
-
 def test_validate_gtfs_pathways_entity_missing_required_field():
     """
     Check that if a required field is missing, ValueError is raised
@@ -43,7 +42,7 @@ def test_validate_gtfs_pathways_entity_missing_required_field():
 
     assert "Missing required GTFS field:" in str(err.value)
 
-def test_validate_gtfs_levels_entity_none_value_as_required_field():
+def test_validate_gtfs_pathways_entity_none_value_as_required_field():
     """
     Check that if a required field has a None value, ValueError is raised
     """

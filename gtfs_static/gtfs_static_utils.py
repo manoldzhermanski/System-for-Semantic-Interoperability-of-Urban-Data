@@ -818,6 +818,11 @@ def validate_gtfs_pathways_entity(entity: dict[str, Any]) -> None:
     required_fields = ["pathway_id", "from_stop_id", "to_stop_id", "pathway_mode", "is_bidirectional"]
     validate_required_fields(entity, required_fields)
 
+    # If present, write 'from_stop_id' and 'to_stop_id' as NGSI URN
+    entity["from_stop_id"] = f"urn:ngsi-ld:GtfsStop:{entity["from_stop_id"]}"
+    entity["to_stop_id"] = f"urn:ngsi-ld:GtfsStop:{entity["to_stop_id"]}"    
+  
+
     # Validate 'pathway_mode'
     pathway_mode = entity.get("pathway_mode")
     if not validation_utils.is_valid_pathway_mode(pathway_mode):
@@ -858,62 +863,88 @@ def validate_gtfs_pathways_entity(entity: dict[str, Any]) -> None:
         raise ValueError(f"'min_width' must be a positive float, got {min_width}")
 
 def validate_gtfs_routes_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS route entity.
 
+    This function performs:
+    - Validation of required fields
+    - Validation that either 'route_short_name' or 'route_long_name' is defined
+    - Validate that 'route_short_name' is not more than 12 characters long
+    - Validate of 'route_type', 'continuous_pickup', 'continuous_drop_off' and 'cemv_support' values
+    - Validate that 'route_url' is a valid URL
+    - Validate that 'route_color' and 'route_text_color' are valid color codes
+    - Validate that 'route_sort_order' is a non-negative integer
+
+    Args:
+        entity (dict[str, Any]): A parsed GTFS route entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
+
+    # Required fields
     required_fields = ["route_id", "route_type"]
     validate_required_fields(entity, required_fields)
 
-    route_id = entity.get("route_id")
-    if route_id is None:
-        raise ValueError(f"'route_id' cannot be None")
-    entity["route_id"] = f"urn:ngsi-ld:GtfsRoute:{route_id}"
-
+    # If present, write 'agency_id' as NGSI URN
     agency_id = entity.get("agency_id")
-    if agency_id is not None:
+    if not agency_id:
         entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{agency_id}"
 
+    # Validate that either 'route_short_name' or 'route_long_name' are defined
     has_route_short_name = bool(entity.get("route_short_name"))
     has_route_long_name = bool(entity.get("route_long_name"))
 
     if not has_route_short_name and not has_route_long_name:
         raise ValueError("Either 'route_short_name' or 'route_long_name' has to be defined")
     
+    # Validate 'route_short_name' length
     if has_route_short_name:
         route_short_name = entity.get("route_short_name")
         if len(route_short_name) > 12:
-            raise ValueError(f"'route_short_name' has to be no longer than 12 characters")
+            raise ValueError("'route_short_name' has to be no longer than 12 characters")
         
+    # Validate 'route_type' values
     route_type = entity.get("route_type")
     if not validation_utils.is_valid_route_type(route_type):
         raise ValueError(f"'route_type' has to be 0, 1, 2, 3, 4, 5, 6, 7, 11 or 12, got {route_type}")
     
+    # Validate that 'route_url' is a valid URL
     route_url = entity.get("route_url")
     if route_url is not None and not validation_utils.is_valid_url(route_url):
         raise ValueError(f"Invalid URL for 'route_url': {route_url}")
     
+    # Validate that 'route_color' is a valid color code
     route_color = entity.get("route_color")
     if route_color is not None and not validation_utils.is_valid_color(route_color):
         raise ValueError(f"Invalid color code for 'route_color': {route_color}")
     
+    # Validate that 'route_text_color' is a valid color code
     route_text_color = entity.get("route_text_color")
     if route_text_color is not None and not validation_utils.is_valid_color(route_text_color):
         raise ValueError(f"Invalid color code for 'route_text_color': {route_text_color}")
 
+    # Validate that 'route_sort_order' is a non-negative integer
     route_sort_order = entity.get("route_sort_order")
     if route_sort_order is not None and route_sort_order < 0:
-        raise ValueError(f"'route_sort_order' must be a non-negative integer")
+        raise ValueError("'route_sort_order' must be a non-negative integer")
 
+    # Validate 'continuous_pickup' values
     continuous_pickup = entity.get("continuous_pickup")
     if continuous_pickup is not None and not validation_utils.is_valid_continuous_pickup(continuous_pickup):
         raise ValueError(f"'continuous_pickup' has to be 0, 1, 2 or 3, got {continuous_pickup}")
     
+    # Validate 'continuous_drop_off' values
     continuous_drop_off = entity.get("continuous_drop_off")
     if continuous_drop_off is not None and not validation_utils.is_valid_continuous_drop_off(continuous_drop_off):
         raise ValueError(f"'continuous_drop_off' has to be 0, 1, 2 or 3, got {continuous_drop_off}")
     
+    # If present, write 'network_id' as NGSI URN
     network_id = entity.get("network_id")
     if network_id is not None:
         entity["network_id"] = f"urn:ngsi-ld:Network:{entity["network_id"]}"
 
+    # Validate 'cemv_support' values
     cemv_support = entity.get("cemv_support")
     if cemv_support is not None and not validation_utils.is_valid_cemv_support(cemv_support):
         raise ValueError(f"'cemv_support' has to be 0, 1 or 2, got {cemv_support}")
