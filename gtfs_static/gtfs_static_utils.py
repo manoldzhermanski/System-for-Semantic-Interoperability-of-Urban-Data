@@ -1420,6 +1420,67 @@ def convert_gtfs_pathways_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
                 "value": entity.get("reversed_signposted_as")
             }
         }
+
+def convert_gtfs_routes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+    return {
+            "id": f"urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:{entity.get("route_id")}",
+            "type": "GtfsRoute",
+            
+            "operatedBy": {
+                "type": "Relationship",
+                "object": entity.get("agency_id")
+            },
+            
+            "shortName": {
+                "type": "Property", 
+                "value": entity.get("route_short_name")
+            },
+            
+            "name": {
+                "type": "Property", 
+                "value": entity.get("route_long_name")
+            },
+            
+            "description": {
+                "type": "Property", 
+                "value": entity.get("route_desc")
+            },
+            
+            "routeType": {
+                "type": "Property", 
+                "value": entity.get("route_type")
+            },
+            
+            "route_url": {
+                "type": "Property", 
+                "value": entity.get("route_url")
+            },
+            
+            "routeColor": {
+                "type": "Property", 
+                "value": entity.get("route_color")
+            },
+            
+            "routeTextColor": {
+                "type": "Property", 
+                "value": entity.get("route_text_color")
+            },
+            
+            "routeSortOrder": {
+                "type": "Property", 
+                "value": entity.get("route_sort_order")
+            },
+            
+            "continuous_pickup": {
+                "type": "Property", 
+                "value": entity.get("continuous_pickup")
+            },
+            
+            "continuous_drop_off": {
+                "type": "Property", 
+                "value": entity.get("continuous_drop_off")
+            }
+        }
 # -----------------------------------------------------
 # Remove None values
 # -----------------------------------------------------
@@ -1548,158 +1609,12 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     """
     ngsi_ld_data = []
     
-    required_fields = ["route_id", "route_type"]
-    
     for route in raw_data:
-        
-        # Check if a routes entity contains the required fields
-        validate_required_fields(route, required_fields)
-        
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        route_id = (route.get("route_id") or "").strip()
-        agency_id = (route.get("agency_id") or "").strip()
-        route_short_name = (route.get("route_short_name") or "").strip()
-        route_long_name = (route.get("route_long_name") or "").strip()
-        raw_route_type = (route.get("route_type") or "").strip()
-        
-        route_desc = (route.get("route_desc") or "").strip() or None
-        route_url = (route.get("route_url") or "").strip() or None
-        route_color = (route.get("route_color") or "").strip() or None
-        route_text_color = (route.get("route_text_color") or "").strip() or None
-        
-        raw_route_sort_order = (route.get("route_sort_order") or "").strip() or None
-        raw_continuous_pickup = (route.get("continuous_pickup") or "").strip() or None
-        raw_continuous_drop_off = (route.get("continuous_drop_off") or "").strip() or None
-        
-        route_type = None
-        route_sort_order = None
-        continuous_pickup = None
-        continuous_drop_off = None
-        
-        if validation_utils.is_string(route_id) is False:
-            raise ValueError(f"Invalid type for 'route_id': {type(route_id)}")
-        
-        if agency_id is not None and agency_id != "":
-            if validation_utils.is_string(agency_id) is False:
-                raise ValueError(f"Invalid type for 'agency_id': {type(agency_id)}")
-        
-        if not route_short_name and not route_long_name:
-            raise ValueError("At least one of route_short_name or route_long_name must be defined")
-        
-        if route_short_name is not None and route_short_name != "":
-            if validation_utils.is_string(route_short_name) is False:
-                raise ValueError(f"Invalid type for 'route_short_name': {type(route_short_name)}")
-        
-        if route_long_name is not None and route_long_name != "":
-            if validation_utils.is_string(route_long_name) is False:
-                raise ValueError(f"Invalid type for 'route_long_name': {type(route_long_name)}")
-        
-        if validation_utils.is_valid_route_type(raw_route_type) is False:
-            raise ValueError(f"Invalid value for 'route_type': {raw_route_type}")
-        route_type = int(raw_route_type)
-        
-        if route_desc is not None and route_desc != "":
-            if validation_utils.is_string(route_desc) is False:
-                raise ValueError(f"Invalid type for 'route_desc': {type(route_desc)}")
-        
-        if route_url is not None and route_url != "":
-            if validation_utils.is_valid_url(route_url) is False:
-                raise ValueError(f"Invalid URL format 'route_url': {route_url}")
-        
-        if route_color is not None and route_color != "":
-            if validation_utils.is_valid_color(route_color) is False:
-                raise ValueError(f"Invalid Color format 'route_color': {route_color}")
-        
-        if route_text_color is not None and route_text_color != "":
-            if validation_utils.is_valid_color(route_text_color) is False:
-                raise ValueError(f"Invalid Color format 'route_text_color': {route_text_color}")
-        
-        if raw_route_sort_order is not None and raw_route_sort_order != "":
-            if validation_utils.is_int(raw_route_sort_order) is False:
-                raise ValueError(f"Invalid type for 'route_sort_order': {type(raw_route_sort_order)}")
-            route_sort_order = int(raw_route_sort_order)
-            if route_sort_order < 0:
-                raise ValueError(f"Invalid value for 'route_sort_order': {route_sort_order}")
-            
-        if raw_continuous_pickup is not None and raw_continuous_pickup != "":
-            if validation_utils.is_valid_continuous_pickup(raw_continuous_pickup) is False:
-                raise ValueError(f"Invalid value for 'continuous_pickup': {raw_continuous_pickup}")
-            continuous_pickup = int(raw_continuous_pickup)
-            
-        if raw_continuous_drop_off is not None and raw_continuous_drop_off != "":
-            if validation_utils.is_valid_continuous_pickup(raw_continuous_drop_off) is False:
-                raise ValueError(f"Invalid value for 'continuous_drop_off': {raw_continuous_drop_off}")
-            continuous_drop_off = int(raw_continuous_drop_off)
-        
-        # Populate FIWARE's data model
-        ngsi_ld_route = {
-            "id": f"urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:{route_id}",
-            "type": "GtfsRoute",
-            
-            "operatedBy": {
-                "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsAgency:{agency_id}"
-            },
-            
-            "shortName": {
-                "type": "Property", 
-                "value": route_short_name
-            },
-            
-            "name": {
-                "type": "Property", 
-                "value": route_long_name
-            },
-            
-            "description": {
-                "type": "Property", 
-                "value": route_desc
-            },
-            
-            "routeType": {
-                "type": "Property", 
-                "value": route_type
-            },
-            
-            "route_url": {
-                "type": "Property", 
-                "value": route_url
-            },
-            
-            "routeColor": {
-                "type": "Property", 
-                "value": route_color
-            },
-            
-            "routeTextColor": {
-                "type": "Property", 
-                "value": route_text_color
-            },
-            
-            "routeSortOrder": {
-                "type": "Property", 
-                "value": route_sort_order
-            },
-            
-            "continuous_pickup": {
-                "type": "Property", 
-                "value": continuous_pickup
-            },
-            
-            "continuous_drop_off": {
-                "type": "Property", 
-                "value": continuous_drop_off
-            }
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_route = {
-            k: v for k, v in ngsi_ld_route.items()
-            if not (isinstance(v, dict) and None in v.values())
-        }
-        
-        # Append every NGSI-LD entity after transformation
-        ngsi_ld_data.append(ngsi_ld_route)
+        parsed_entity = parse_gtfs_routes_data(route)
+        validate_gtfs_routes_entity(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_routes_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        ngsi_ld_data.append(ngsi_ld_entity)
         
     # Return the list of NGSI-LD GtfsRoute
     return ngsi_ld_data
