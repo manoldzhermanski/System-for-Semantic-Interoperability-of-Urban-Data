@@ -2,6 +2,9 @@ import pytest
 from gtfs_static.gtfs_static_utils import validate_gtfs_routes_entity
 
 def test_validate_gtfs_routes_entity_all_fields_valid():
+    """
+    Check that all fields are provided and valid, the validation passes
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -21,6 +24,9 @@ def test_validate_gtfs_routes_entity_all_fields_valid():
     validate_gtfs_routes_entity(entity)
 
 def test_validate_gtfs_routes_entity_missing_required_field():
+    """
+    Check that if a required field is missing, ValueError is raised
+    """
     entity = {
         "agency_id": "A1",
         "route_short_name": "Metro",
@@ -42,6 +48,9 @@ def test_validate_gtfs_routes_entity_missing_required_field():
     assert "Missing required GTFS field:" in str(err.value)
 
 def test_validate_gtfs_routes_entity_none_value_as_required_field():
+    """
+    Check that if a required field has a None value, ValueError is raised
+    """
     entity = {
         "route_id": None,
         "agency_id": "A1",
@@ -64,6 +73,9 @@ def test_validate_gtfs_routes_entity_none_value_as_required_field():
     assert "Missing required GTFS field:" in str(err.value)
 
 def test_validate_gtfs_routes_entity_optional_fields_none():
+    """
+    Check that if optinal fields have None as a value, the validation passes
+    """
     entity = {
         "route_id": "R1",
         "agency_id": None,
@@ -83,6 +95,9 @@ def test_validate_gtfs_routes_entity_optional_fields_none():
     validate_gtfs_routes_entity(entity)
 
 def test_validate_gtfs_routes_entity_missing_both_names():
+    """
+    Check that if 'route_short_name' and 'route_long_name' are missing, ValueError is raised
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -103,6 +118,9 @@ def test_validate_gtfs_routes_entity_missing_both_names():
     assert "Either 'route_short_name' or 'route_long_name' has to be defined" in str(err.value)
 
 def test_validate_gtfs_routes_entity_route_short_name_too_long():
+    """
+    Check that if 'route_short_name' is longer than 12 characters, ValueError is raised
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -125,6 +143,9 @@ def test_validate_gtfs_routes_entity_route_short_name_too_long():
     assert "'route_short_name' has to be no longer than 12 characters" in str(err.value)
 
 def test_validate_gtfs_routes_entity_invalid_route_type():
+    """
+    Check that invalid value for 'route_type' raises ValueError
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -147,6 +168,9 @@ def test_validate_gtfs_routes_entity_invalid_route_type():
     assert "'route_type' has to be" in str(err.value)
 
 def test_validate_gtfs_routes_entity_invalid_route_url():
+    """
+    Check that invalid UEL for 'route_url' raises ValueError
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -169,6 +193,9 @@ def test_validate_gtfs_routes_entity_invalid_route_url():
     assert "Invalid URL for 'route_url'" in str(err.value)
 
 def test_validate_gtfs_routes_entity_invalid_route_color():
+    """
+    Check that invalid color code for 'route_color' raises ValueError
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -191,6 +218,9 @@ def test_validate_gtfs_routes_entity_invalid_route_color():
     assert "Invalid color code for" in str(err.value)
 
 def test_validate_gtfs_routes_entity_invalid_route_text_color():
+    """
+    Check that invalid color code for 'route_text_color' raises ValueError
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -213,6 +243,9 @@ def test_validate_gtfs_routes_entity_invalid_route_text_color():
     assert "Invalid color code for" in str(err.value)
 
 def test_validate_gtfs_routes_entity_negative_sort_order():
+    """
+    Check that if 'route_sort_order' is not a non-negative integer, ValueError is raised
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -235,6 +268,9 @@ def test_validate_gtfs_routes_entity_negative_sort_order():
     assert "'route_sort_order' must be a non-negative integer" in str(err.value)
 
 def test_validate_gtfs_routes_entity_invalid_continuous_pickup():
+    """
+    Check that invalid value for 'continuous_pickup' raises ValueError
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -257,6 +293,9 @@ def test_validate_gtfs_routes_entity_invalid_continuous_pickup():
     assert "'continuous_pickup' has to be" in str(err.value)
 
 def test_validate_gtfs_routes_entity_invalid_continuous_drop_off():
+    """
+    Check that invalid value for 'continuous_drop_off' raises ValueError
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",
@@ -279,6 +318,9 @@ def test_validate_gtfs_routes_entity_invalid_continuous_drop_off():
     assert "'continuous_drop_off' has to be" in str(err.value)
 
 def test_validate_gtfs_routes_entity_invalid_cemv_support():
+    """
+    Check that invalid value for 'cemv_support' raises ValueError
+    """
     entity = {
         "route_id": "R1",
         "agency_id": "A1",

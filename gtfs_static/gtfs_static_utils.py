@@ -1210,34 +1210,60 @@ def validate_gtfs_transfers_entity(entity: dict[str, Any]) -> None:
         raise ValueError(f"'min_transfer_time' must be a non-negative integer, got {min_transfer_time}")
 
 def validate_gtfs_trips_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS trip entity.
 
+    This function performs:
+    - Validation of required fields
+    - If present, turns 'route_id' and 'service_id' into NGSI URN
+    - Validate of 'wheelchair_accessible', 'bikes_allowed' and 'cars_allowed' values
+
+    Args:
+        entity (dict[str, Any]): A parsed GTFS trip entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
+    # Required fields
     required_fields = ["route_id", "service_id", "trip_id"]
     validate_required_fields(entity, required_fields)
 
+    # Write 'route_id' as NGSI URN
+    entity["route_id"] = f"urn:ngsi-ld:GtfsRoute:{entity["route_id"]}"
+
+    # Write 'service_id' as NGSI URN
+    entity["service_id"] = f"urn:ngsi-ld:GtfsService:{entity["service_id"]}"
+
+    # Validate 'direction_id' value
     direction_id = entity.get("direction_id")
-    if not validation_utils.is_valid_direction_id(direction_id):
+    if direction_id is not None and not validation_utils.is_valid_direction_id(direction_id):
         raise ValueError(f"'direction_id' must be 0 or 1, got {direction_id}")
-    
+
+    # If present, write 'block_id' as NGSI URN 
     block_id = entity.get("block_id")
     if block_id is not None:
         block_id = f"urn:ngsi-ld:GtfsBlock:{block_id}"
 
+    # If present, write 'shape_id' as NGSI URN 
     shape_id = entity.get("shape_id")
     if shape_id is not None:
         shape_id = f"urn:ngsi-ld:GtfsShape:{shape_id}"
 
+    # Validate 'wheelchair_accessible' value
     wheelchair_accessible = entity.get("wheelchair_accessible")
-    if not validation_utils.is_valid_wheelchair_accessible(wheelchair_accessible):
+    if wheelchair_accessible is not None and not validation_utils.is_valid_wheelchair_accessible(wheelchair_accessible):
         raise ValueError(f"'wheelchair_accessible' must be 0, 1 or 2, got {wheelchair_accessible}")
 
+    # Validate 'bikes_allowed' value
     bikes_allowed = entity.get("bikes_allowed")
-    if not validation_utils.is_valid_bikes_allowed(bikes_allowed):
+    if bikes_allowed is not None and not validation_utils.is_valid_bikes_allowed(bikes_allowed):
         raise ValueError(f"'bikes_allowed' must be 0, 1 or 2, got {bikes_allowed}")
     
+    # Validate 'cars_allowed' value
     cars_allowed = entity.get("cars_allowed")
-    if not validation_utils.is_valid_cars_allowed(cars_allowed):
+    if cars_allowed is not None and not validation_utils.is_valid_cars_allowed(cars_allowed):
         raise ValueError(f"'cars_allowed' must be 0, 1 or 2, got {cars_allowed}")
-    pass
+
 # -----------------------------------------------------
 # Convert GTFS-Static data to NGSI-LD
 # -----------------------------------------------------
@@ -1479,6 +1505,62 @@ def convert_gtfs_routes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
             "continuous_drop_off": {
                 "type": "Property", 
                 "value": entity.get("continuous_drop_off")
+            }
+        }
+
+def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+    return {
+            "id": f"urn:ngsi-ld:GtfsTrip:{entity.get("trip_id")}",
+            "type": "GtfsTrip",
+            
+            "route": {
+                "type": "Relationship",
+                "object": entity.get("route_id")
+            },
+            
+            "service": {
+                "type": "Relationship",
+                "object": entity.get("service_id")
+            },
+            
+            "headSign": {
+                "type": "Property",
+                "value": entity.get("trip_headsign")
+            },
+
+            "shortName": {
+                "type": "Property",
+                "value": entity.get("trip_short_name")
+            },
+            
+            "direction": {
+                "type": "Property",
+                "value": entity.get("direction_id")
+            },
+
+            "block": {
+                "type": "Relationship",
+                "object": entity.get("block_id")
+            },
+            
+            "hasShape": {
+                "type": "Relationship",
+                "object": entity.get("shape_id")
+            },
+            
+            "wheelChairAccessible": {
+                "type": "Property",
+                "value": entity.get("wheelchair_accessible")
+            },
+            
+            "bikesAllowed": {
+                "type": "Property",
+                "value": entity.get("bikes_allowed")
+            },
+            
+            "carsAllowed": {
+                "type": "Property",
+                "value": entity.get("cars_allowed")
             }
         }
 # -----------------------------------------------------
