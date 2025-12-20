@@ -179,7 +179,7 @@ def parse_float(value: str | None, field: str) -> float | None:
     except ValueError:
         raise ValueError(f"{field} must be float, got '{value}'")
     
-def parse_date(value: str, field: str) -> str:    
+def parse_date(value: str | None, field: str) -> str | None:    
     """
     Parses a date into a YYYYMMDD format.
 
@@ -188,21 +188,21 @@ def parse_date(value: str, field: str) -> str:
         field (str): The name of the field (used in error messages).
 
     Returns:
-        str: The date in YYYYMMDD format.
+        str | None: The date in YYYYMMDD format, or None if input is empty or None.
 
     Raises:
         ValueError: If not in the expected YYYYMMDD format.
     """
 
-    value = cleanup_string(value)
-    if value in {None, ""}:
+    clean_value = cleanup_string(value)
+    if clean_value in (None, ""):
         return None
     try:
-        return datetime.strptime(value, "%Y%m%d").date().strftime("%Y%m%d")
+        return datetime.strptime(clean_value, "%Y%m%d").date().strftime("%Y%m%d")
     except ValueError:
-        raise ValueError(f"{field} must be a valid date in YYYYMMDD format, got '{value}'")
-    
-def parse_time(value: str, field: str) -> str:
+        raise ValueError(f"{field} must be a valid date in YYYYMMDD format, got '{clean_value}'")
+
+def parse_time(value: str | None, field: str) -> str | None:
     """
     Parses a time string into HH:MM:SS format
 
@@ -211,20 +211,20 @@ def parse_time(value: str, field: str) -> str:
         field (str): The name of the field (used in error messages).
 
     Returns:
-        string: A string representing the parsed time.
+        string: A string representing the parsed time, or None if input is empty or None.
 
     Raises:
         ValueError: If the input is empty, not in HH:MM:SS format, or contains invalid numbers
         (minutes or seconds not in 0–59, hours negative).
     """
 
-    value = cleanup_string(value)
-    if value in {None, ""}:
+    clean_value = cleanup_string(value)
+    if clean_value in (None, ""):
         return None
 
-    parts = value.split(":")
+    parts = clean_value.split(":")
     if len(parts) != 3:
-        raise ValueError(f"{field} must be in HH:MM:SS format, got '{value}'")
+        raise ValueError(f"{field} must be in HH:MM:SS format, got '{clean_value}'")
 
     try:
         hours, minutes, seconds = map(int, parts)
@@ -901,7 +901,7 @@ def validate_gtfs_routes_entity(entity: dict[str, Any]) -> None:
     # Validate 'route_short_name' length
     if has_route_short_name:
         route_short_name = entity.get("route_short_name")
-        if len(route_short_name) > 12:
+        if route_short_name is not None and len(route_short_name) > 12:
             raise ValueError("'route_short_name' has to be no longer than 12 characters")
         
     # Validate 'route_type' values
@@ -959,16 +959,8 @@ def validate_gtfs_shapes_entity(entity: dict[str, Any]) -> None:
         raise ValueError(f"'shape_id' cannot be None")
     entity["shape_id"] = f"urn:ngsi-ld:GtfsShape:{entity['shape_id']}"
 
-    shape_pt_lat = entity.get("shape_pt_lat")
-    if not validation_utils.is_float(shape_pt_lat):
-        raise ValueError(f"'shape_pt_lat' must be a float, got {shape_pt_lat}")
-    
-    shape_pt_lon = entity.get("shape_pt_lon")
-    if not validation_utils.is_float(shape_pt_lon):
-        raise ValueError(f"'shape_pt_lon' must be a float, got {shape_pt_lon}")  
-
     shape_pt_sequence = entity.get("shape_pt_sequence")
-    if shape_pt_sequence < 0:
+    if shape_pt_sequence is not None and shape_pt_sequence < 0:
         raise ValueError(f"'shape_pt_sequence' must be a non-negative integer, got {shape_pt_sequence}")
 
     shape_dist_traveled = entity.get("shape_dist_traveled")
@@ -1177,34 +1169,34 @@ def validate_gtfs_transfers_entity(entity: dict[str, Any]) -> None:
     if transfer_type in {1, 2, 3}:
         from_stop_id = entity.get("from_stop_id")
         if from_stop_id is None:
-            raise ValueError("'from_stop_id' is requited when transfer_type is 1, 2 or 3")
-        from_stop_id = f"urn:ngsi-ld:GtfsStop:{from_stop_id}"
+            raise ValueError("'from_stop_id' is required when transfer_type is 1, 2 or 3")
+        entity["from_stop_id"] = f"urn:ngsi-ld:GtfsStop:{entity["from_stop_id"]}"
         
         to_stop_id = entity.get("to_stop_id")
         if to_stop_id is None:
-            raise ValueError("'to_stop_id' is requited when transfer_type is 1, 2 or 3")
-        to_stop_id = f"urn:ngsi-ld:GtfsStop:{to_stop_id}"
+            raise ValueError("'to_stop_id' is required when transfer_type is 1, 2 or 3")
+        entity["to_stop_id"] = f"urn:ngsi-ld:GtfsStop:{entity["to_stop_id"]}"
 
     if transfer_type in {4, 5}:
 
         from_trip_id = entity.get("from_trip_id")
         if from_trip_id is None:
-            raise ValueError("'from_trip_id' is requited when transfer_type is 4 or 5")
-        from_trip_id = f"urn:ngsi-ld:GtfsTrip:{from_trip_id}"
+            raise ValueError("'from_trip_id' is required when transfer_type is 4 or 5")
+        entity["from_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{entity["from_trip_id"]}"
         
         to_trip_id = entity.get("to_trip_id")
         if to_trip_id is None:
-            raise ValueError("'to_trip_id' is requited when transfer_type is 4 or 5")
-        to_trip_id = f"urn:ngsi-ld:GtfsTrip:{to_trip_id}"
+            raise ValueError("'to_trip_id' is required when transfer_type is 4 or 5")
+        entity["to_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{entity["to_trip_id"]}"
 
     from_route_id = entity.get("from_route_id")
     if from_route_id is not None:
-        from_route_id = f"urn:ngsi-ld:GtfsRoute:{from_route_id}"
+        entity["from_route_id"] = f"urn:ngsi-ld:GtfsRoute:{from_route_id}"
 
     to_route_id = entity.get("to_route_id")
     if to_route_id is not None:
-        to_route_id = f"urn:ngsi-ld:GtfsRoute:{to_route_id}"
-
+        entity["to_route_id"] = f"urn:ngsi-ld:GtfsRoute:{to_route_id}"
+        
     min_transfer_time = entity.get("min_transfer_time")
     if min_transfer_time is not None and min_transfer_time < 0:
         raise ValueError(f"'min_transfer_time' must be a non-negative integer, got {min_transfer_time}")
