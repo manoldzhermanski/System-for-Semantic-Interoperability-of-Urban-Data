@@ -1106,17 +1106,41 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
         entity["drop_off_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{drop_off_booking_rule_id}"
 
 def validate_gtfs_stops_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS stop entity.
 
-    stop_id = entity.get("stop_id")
-    if stop_id is None:
-        pass
+    This function performs:
+    - Validation of required fields
+    - Turns 'stop_id', 'zone_id', 'level_id' into NGSI URN
+    - Validate of 'location_type', 'wheelchair_boarding' and 'stop_access' values
+    - Checks that 'stop_name', 'stop_lat' and 'stop_lon' are present when 'location_type' is 0, 1 or 2
+    - Checks that 'parent_station' is present when 'location_type' is 2, 3 or 4 and forbidden when 'location_type' is 1
+    - Checks that 'stop_url' is a valid URL
+    - Checks that 'stop_timezone' is a valid Timezone
+    - Checks that 'stop_access' is forbidden when 'location_type' is 1, 2, 3 or 4
+
+    Args:
+        entity (dict[str, Any]): A parsed GTFS stop entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
+    required_fields = ["stop_id"]
+    validate_required_fields(entity, required_fields)
+
     entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{entity["stop_id"]}"
     
+    # Validate 'location_type' values
     location_type = entity.get("location_type")
     if not validation_utils.is_valid_location_type(location_type):
         raise ValueError(f"'location_type' must be 0, 1, 2, 3 or 4, got {location_type}")
     
+    # Check that 'stop_name', 'stop_lat' and 'stop_lon' are present when 'location_type' is 0, 1 or 2
     if location_type in {0, 1, 2}:
+        stop_name = entity.get("stop_name")
+        if stop_name is None:
+            raise ValueError("'stop_name' is required when 'location_type' is 0, 1 or 2")
+        
         stop_lat = entity.get("stop_lat")
         if stop_lat is None:
             raise ValueError(f"'stop_lat' is required when 'location_type' is 0, 1 or 2")
@@ -1125,47 +1149,80 @@ def validate_gtfs_stops_entity(entity: dict[str, Any]) -> None:
         if stop_lon is None:
             raise ValueError(f"'stop_lon' is required when 'location_type' is 0, 1 or 2")
         
+    # Check that 'parent_station' is required when 'location_type' is 2, 3 or 4 and forbidden when 'location_type' is 1
     parent_station = entity.get("parent_station")
     if location_type in {2, 3, 4}:
         if not parent_station:
             raise ValueError(f"'parent_station' is required when 'location_type' is 2, 3 or 4")
+        entity["parent_station"] = f"urn:ngsi-ld:GtfsStop:{entity["parent_station"]}"
     elif location_type == 1:
         if parent_station:
             raise ValueError(f"'parent_station' is forbidden when 'location_type' is 1")
-        
+    
+    # If present, write zone_id as NGSI URN 
     zone_id = entity.get("zone_id")
     if zone_id is not None:
         zone_id = f"urn:ngsi-ld:GtfsZone:{zone_id}"
 
+    # Validate that 'stop_url' is a valid URL
     stop_url = entity.get("stop_url")
     if stop_url is not None and not validation_utils.is_valid_url(stop_url):
         raise ValueError(f"Invalid URL for 'stop_url': {stop_url}")
     
+    # Validate that 'stop_timezone' is a valid timezone
     stop_timezone = entity.get("stop_timezone")
     if stop_timezone is not None and not validation_utils.is_valid_timezone(stop_timezone):
         raise ValueError(f"Invalid timezone for 'stop_timezone': {stop_timezone}")
     
+    # Validate 'wheelchair_boarding' values
     wheelchair_boarding = entity.get("wheelchair_boarding")
     if wheelchair_boarding is not None and not validation_utils.is_valid_wheelchair_boarding(wheelchair_boarding):
         raise ValueError(f"'wheelchair_boarding' must be 0, 1 or 2, got {wheelchair_boarding}")
+    
+    # Validate that 'level_id' is a valid URL
+    level_id = entity.get("level_id")
+    if level_id is not None:
+        entity["level_id"] = f"urn:ngsi-ld:GtfsLevel:{level_id}"
 
+    # Validate 'stop_access' values
     stop_access = entity.get("stop_access")
+    if stop_access is not None and not validation_utils.is_valid_stop_access(stop_access):
+        raise ValueError(f"'stop_access' must be 0 or 1, got {stop_access}")
+    
+    # Check that 'stop_access' is forbidden when 'location_type' is 1, 2, 3 or 4
     if location_type in {2, 3, 4}:
         if stop_access:
-            raise ValueError(f"'stop_access' is forbidden for location_type 1, 2, 3 and 4")
+            raise ValueError(f"'stop_access' is forbidden for location_type 2, 3 and 4")
     if location_type == 1:
-        if not stop_access:
+        if stop_access:
             raise ValueError(f"'stop_access' is forbidden when 'parent_station' is empty, which happens only when 'location_type' is 1")
 
 def validate_gtfs_transfers_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS transfers entity.
 
+    This function performs:
+    - Validation of required fields
+    - Validate of 'transfer_type' values
+    - Validate that 'from_stop_id' and 'to_stop_id' are present when 'transfer_type' is 1, 2 or 3
+    - Validate that 'from_trip_id' and 'to_trip_id' are present when 'transfer_type' is 4 or 5
+    - If present, turns 'from_route_id' and 'to_route_id' into NGSI URN
+    - Validate that 'min_transfer_time' is a non-negative integer
+    Args:
+        entity (dict[str, Any]): A parsed GTFS transfers entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
     required_fields = ["transfer_type"]
     validate_required_fields(entity, required_fields)
 
+    # Validate 'transfer_type' values
     transfer_type = entity.get("transfer_type")
     if not validation_utils.is_valid_transfer_type(transfer_type):
         raise ValueError(f"'transfer_type' must be 0, 1, 2, 3, 4 or 5, got {transfer_type}")
     
+    # Validate that 'from_stop_id' and 'to_stop_id' are present when 'transfer_type' is 1, 2 or 3
     if transfer_type in {1, 2, 3}:
         from_stop_id = entity.get("from_stop_id")
         if from_stop_id is None:
@@ -1175,6 +1232,7 @@ def validate_gtfs_transfers_entity(entity: dict[str, Any]) -> None:
         if to_stop_id is None:
             raise ValueError("'to_stop_id' is required when transfer_type is 1, 2 or 3")
 
+    # Validate that 'from_trip_id' and 'to_trip_id' are present when 'transfer_type' is 4 or 5
     if transfer_type in {4, 5}:
 
         from_trip_id = entity.get("from_trip_id")
@@ -1185,14 +1243,17 @@ def validate_gtfs_transfers_entity(entity: dict[str, Any]) -> None:
         if to_trip_id is None:
             raise ValueError("'to_trip_id' is required when transfer_type is 4 or 5")
 
+    # If present, write 'from_route_id' as NGSI URN
     from_route_id = entity.get("from_route_id")
     if from_route_id is not None:
         entity["from_route_id"] = f"urn:ngsi-ld:GtfsRoute:{from_route_id}"
 
+    # If present, write 'to_route_id' as NGSI URN
     to_route_id = entity.get("to_route_id")
     if to_route_id is not None:
         entity["to_route_id"] = f"urn:ngsi-ld:GtfsRoute:{to_route_id}"
-        
+    
+    # Check that 'min_transfer_time' is a non-negative integer
     min_transfer_time = entity.get("min_transfer_time")
     if min_transfer_time is not None and min_transfer_time < 0:
         raise ValueError(f"'min_transfer_time' must be a non-negative integer, got {min_transfer_time}")

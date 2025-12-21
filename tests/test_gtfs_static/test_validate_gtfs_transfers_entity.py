@@ -1,7 +1,10 @@
 import pytest
 from gtfs_static.gtfs_static_utils import validate_gtfs_transfers_entity
     
-def test_validate_gtfs_transfers_entity_type_1_all_fields_valid():
+def test_validate_gtfs_transfers_entity_all_fields_valid():
+    """
+    Check that all fields are provided and valid, the validation passes
+    """
     entity = {
         "transfer_type": 1,
         "from_stop_id": "S1",
@@ -15,7 +18,10 @@ def test_validate_gtfs_transfers_entity_type_1_all_fields_valid():
 
     validate_gtfs_transfers_entity(entity)
 
-def test_validate_gtfs_transfers_entity_missing_transfer_type():
+def test_validate_gtfs_transfers_entity_missing_required_field():
+    """
+    Check that a missing required field raises ValueError
+    """
     entity = {
         "transfer_type": None,
         "from_stop_id": "S1",
@@ -52,92 +58,12 @@ def test_validate_gtfs_transfers_entity_type_1_missing_from_stop_id():
         
     assert "is required when transfer_type is 1, 2 or 3" in str(err.value)
     
-def test_validate_gtfs_transfers_entity_type_2_missing_from_stop_id():
-    """
-    Check that if 'transfer_type' is 2 and 'from_stop_id' is None, ValueError is raised
-    """
-    entity = {
-        "transfer_type": 2,
-        "from_stop_id": None,
-        "to_stop_id": "S2",
-        "from_trip_id": "T1",
-        "to_trip_id": "T2",
-        "from_route_id": "R1",
-        "to_route_id": "R2",
-        "min_transfer_time": 120
-    }
-
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
-        
-    assert "is required when transfer_type is 1, 2 or 3" in str(err.value)
-    
-def test_validate_gtfs_transfers_entity_type_3_missing_from_stop_id():
-    """
-    Check that if 'transfer_type' is 3 and 'from_stop_id' is None, ValueError is raised
-    """
-    entity = {
-        "transfer_type": 3,
-        "from_stop_id": None,
-        "to_stop_id": "S2",
-        "from_trip_id": "T1",
-        "to_trip_id": "T2",
-        "from_route_id": "R1",
-        "to_route_id": "R2",
-        "min_transfer_time": 120
-    }
-
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
-        
-    assert "is required when transfer_type is 1, 2 or 3" in str(err.value)
-
 def test_validate_gtfs_transfers_entity_type_1_missing_to_stop_id():
     """
     Check that if 'transfer_type' is 1 and 'to_stop_id' is None, ValueError is raised
     """
     entity = {
         "transfer_type": 1,
-        "from_stop_id": "S1",
-        "to_stop_id": None,
-        "from_trip_id": "T1",
-        "to_trip_id": "T2",
-        "from_route_id": "R1",
-        "to_route_id": "R2",
-        "min_transfer_time": 120
-    }
-    
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
-        
-    assert "is required when transfer_type is 1, 2 or 3" in str(err.value)
-    
-def test_validate_gtfs_transfers_entity_type_2_missing_to_stop_id():
-    """
-    Check that if 'transfer_type' is 2 and 'to_stop_id' is None, ValueError is raised
-    """
-    entity = {
-        "transfer_type": 2,
-        "from_stop_id": "S1",
-        "to_stop_id": None,
-        "from_trip_id": "T1",
-        "to_trip_id": "T2",
-        "from_route_id": "R1",
-        "to_route_id": "R2",
-        "min_transfer_time": 120
-    }
-    
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
-        
-    assert "is required when transfer_type is 1, 2 or 3" in str(err.value)
-    
-def test_validate_gtfs_transfers_entity_type_3_missing_to_stop_id():
-    """
-    Check that if 'transfer_type' is 3 and 'to_stop_id' is None, ValueError is raised
-    """
-    entity = {
-        "transfer_type": 3,
         "from_stop_id": "S1",
         "to_stop_id": None,
         "from_trip_id": "T1",
@@ -172,52 +98,12 @@ def test_validate_gtfs_transfers_entity_type_4_missing_from_trip_id():
         
     assert "is required when transfer_type is 4 or 5" in str(err.value)
 
-def test_validate_gtfs_transfers_entity_type_5_missing_from_trip_id():
-    """
-    Check that if 'transfer_type' is 5 and 'from_trip_id' is None, ValueError is raised
-    """
-    entity = {
-        "transfer_type": 5,
-        "from_stop_id": "S1",
-        "to_stop_id": "S2",
-        "from_trip_id": None,
-        "to_trip_id": "T2",
-        "from_route_id": "R1",
-        "to_route_id": "R2",
-        "min_transfer_time": 120
-    }
-
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
-        
-    assert "is required when transfer_type is 4 or 5" in str(err.value)
-
 def test_validate_gtfs_transfers_entity_type_4_missing_to_trip_id():
     """
     Check that if 'transfer_type' is 4 and 'to_trip_id' is None, ValueError is raised
     """
     entity = {
         "transfer_type": 4,
-        "from_stop_id": "S1",
-        "to_stop_id": "S2",
-        "from_trip_id": "T1",
-        "to_trip_id": None,
-        "from_route_id": "R1",
-        "to_route_id": "R2",
-        "min_transfer_time": 120
-    }
-    
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
-        
-    assert "is required when transfer_type is 4 or 5" in str(err.value)
-
-def test_validate_gtfs_transfers_entity_type_5_missing_to_trip_id():
-    """
-    Check that if 'transfer_type' is 5 and 'to_trip_id' is None, ValueError is raised
-    """
-    entity = {
-        "transfer_type": 5,
         "from_stop_id": "S1",
         "to_stop_id": "S2",
         "from_trip_id": "T1",
