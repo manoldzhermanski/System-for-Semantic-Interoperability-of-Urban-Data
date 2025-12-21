@@ -981,7 +981,7 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
     if timepoint is not None and validation_utils.is_valid_timepoint(timepoint):
         raise ValueError(f"'timepoint' should be 0 or 1, got {timepoint}")
     
-    arrival_time = entity.get(arrival_time)
+    arrival_time = entity.get("arrival_time")
 
     if arrival_time is not None and  not validation_utils.is_valid_time(arrival_time):
         raise ValueError(f"'arrival_time' has an invalid time, got {arrival_time}")
@@ -989,7 +989,7 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
     if arrival_time is None and timepoint == 1:
         raise ValueError(f"'arrival_time' is required for timepoint = 1")
     
-    departure_time = entity.get(departure_time)
+    departure_time = entity.get("departure_time")
 
     if departure_time is not None and  not validation_utils.is_valid_time(departure_time):
         raise ValueError("'departure_time' has an invalid time")
@@ -1058,11 +1058,11 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
             raise ValueError(f"'end_pickup_drop_off_window' is not a valid time, got {end_pickup_drop_off_window}")
 
     stop_sequence = entity.get("stop_sequence")
-    if stop_sequence < 0:
+    if stop_sequence is not None and stop_sequence < 0:
         raise ValueError(f"'stop_sequence' must be a non-negative integer, got {stop_sequence}")
     
     pickup_type = entity.get("pickup_type")
-    if pickup_type is not None and not validation_utils.is_valid_pickup_drop_off_type(pickup_type):
+    if pickup_type is not None and not validation_utils.is_valid_pickup_type(pickup_type):
         raise ValueError(f"'pickup_type' must be 0, 1, 2 or 3, got {pickup_type}")
     
     if has_location_group_id or has_location_id:
@@ -1070,7 +1070,7 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
             raise ValueError(f"'pickup_type' cannot be 0 or 3 when using location_group_id or location_id")
         
     drop_off_type = entity.get("drop_off_type")
-    if drop_off_type is not None and not validation_utils.is_valid_pickup_drop_off_type(drop_off_type):
+    if drop_off_type is not None and not validation_utils.is_valid_drop_off_type(drop_off_type):
         raise ValueError(f"'drop_off_type' must be 0, 1, 2 or 3, got {drop_off_type}")
     
     if has_location_group_id or has_location_id:
@@ -1078,7 +1078,7 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
             raise ValueError(f"'drop_off_type' cannot be 0 or 3 when using location_group_id or location_id")
         
     continuous_pickup = entity.get("continuous_pickup")
-    if continuous_pickup is not None and not validation_utils.is_valid_continuous_pickup_drop_off(continuous_pickup):
+    if continuous_pickup is not None and not validation_utils.is_valid_continuous_pickup(continuous_pickup):
         raise ValueError(f"'continuous_pickup' must be 0, 1, 2 or 3, got {continuous_pickup}")
     
     if has_location_group_id or has_location_id:
@@ -1086,7 +1086,7 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
             raise ValueError(f"'continuous_pickup' cannot be 0, 2 or 3 when using location_group_id or location_id")
     
     continuous_drop_off = entity.get("continuous_drop_off")
-    if continuous_drop_off is not None and not validation_utils.is_valid_continuous_pickup_drop_off(continuous_drop_off):
+    if continuous_drop_off is not None and not validation_utils.is_valid_continuous_drop_off(continuous_drop_off):
         raise ValueError(f"'continuous_drop_off' must be 0, 1, 2 or 3, got {continuous_drop_off}")
     
     if has_location_group_id or has_location_id:
@@ -1554,6 +1554,88 @@ def convert_gtfs_routes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
             "continuous_drop_off": {
                 "type": "Property", 
                 "value": entity.get("continuous_drop_off")
+            }
+        }
+
+def convert_gtfs_stops_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+    return {
+            "id": entity.get("stop_id"),
+            "type": "GtfsStop",
+            
+            "code": {
+                "type": "Property", 
+                "value": entity.get("stop_code")
+            },
+            
+            "name": {
+                "type": "Property", 
+                "value": entity.get("stop_name")
+            },
+            
+            "tts_stop_name":{
+                "type": "Property",
+                "value": entity.get("tts_stop_name")
+            },
+            
+            "description": {
+                "type": "Property", 
+                "value": entity.get("stop_desc")
+            },
+            
+            "location": {
+                "type": "GeoProperty",
+                "value": {
+                    "type": "Point",
+                    "coordinates": [
+                        entity.get("stop_lon"),
+                        entity.get("stop_lat")
+                    ]
+                }
+            },
+            
+            "zone_id": {
+                "type": "Relationship",
+                "object": entity.get("zone_id")
+            },
+            
+            "stop_url": {
+                "type": "Property",
+                "value": entity.get("stop_url")
+            },
+            
+            "locationType": {
+                "type": "Property", 
+                "value": entity.get("location_type")
+            },
+            
+            "hasParentStation": {  
+                "type": "Relationship",
+                "object": entity.get("parent_station")
+            },
+            
+            "timezone": {
+                "type": "Property", 
+                "value": entity.get("stop_timezone")
+            },
+            
+            "wheelchair_boarding": {
+                "type": "Property",
+                "value": entity.get("wheelchair_boarding")
+            },
+            
+            "level": {
+                "type": "Relationship",
+                "object": entity.get("level_id")
+            },
+            
+            "platform_code": {
+                "type": "Property",
+                "value": entity.get("platform_code")
+            },
+            
+            "stop_access": {
+                "type": "Property",
+                "value": entity.get("stop_access")
             }
         }
 
@@ -2252,216 +2334,13 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
     """
     ngsi_ld_data = []
     
-    required_fields = ["stop_id"]
     for stop in raw_data:
+        parsed_entity = parse_gtfs_stops_data(stop)
+        validate_gtfs_stops_entity(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_stops_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        ngsi_ld_data.append(ngsi_ld_entity)
         
-        # Check if a stop entity contains the required fields
-        validate_required_fields(stop, required_fields)
-            
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        stop_id = (stop.get("stop_id") or "").strip()
-        stop_code = (stop.get("stop_code") or "").strip() or None
-        stop_name = (stop.get("stop_name") or "").strip()
-        tts_stop_name = (stop.get("tts_stop_name") or "").strip() or None
-        stop_desc = (stop.get("stop_desc") or "").strip() or None
-        raw_stop_longitude = (stop.get("stop_lon") or "").strip()
-        raw_stop_latitude = (stop.get("stop_lat") or "").strip()
-        raw_zone_id = (stop.get("zone_id") or "").strip() or None
-        stop_url = (stop.get("stop_url") or "").strip() or None
-        raw_location_type = (stop.get("location_type") or "").strip() or None
-        raw_parent_station = (stop.get("parent_station") or "").strip() or None
-        stop_timezone = (stop.get("stop_timezone") or "") or None
-        raw_wheelchair_boarding = (stop.get("wheelchair_boarding") or "").strip() or None
-        raw_level_id = (stop.get("level_id") or "").strip() or None
-        platform_code = (stop.get("platform_code") or "").strip() or None
-        raw_stop_access = (stop.get("stop_access") or "").strip() or None
-        
-        stop_longitude = None
-        stop_latitude = None
-        zone_id = None
-        location_type = None
-        parent_station = None
-        wheelchair_boarding = None
-        level_id = None
-        stop_access = None
-
-        # TO-DO:
-        # FIX BUSINESS LOGIC
-        
-        if validation_utils.is_string(stop_id) is False:
-            raise ValueError(f"Invalid type for 'stop_id': {type(stop_id)}")
-        
-        if stop_code is not None and stop_code != "":
-            if validation_utils.is_string(stop_code) is False:
-                raise ValueError(f"Invalid type for 'stop_code': {type(stop_code)}")
-        
-        if validation_utils.is_string(stop_name) is False:
-            raise ValueError(f"Invalid type for 'stop_name': {type(stop_name)}")
-        
-        if stop_code is not None and stop_code != "":
-            if validation_utils.is_string(tts_stop_name) is False:
-                raise ValueError(f"Invalid type for 'tts_stop_name': {type(tts_stop_name)}")
-            
-        if stop_desc is not None and stop_desc != "":
-            if validation_utils.is_string(stop_desc) is False:
-                raise ValueError(f"Invalid type for 'stop_desc': {type(stop_desc)}")
-        
-        if validation_utils.is_float(raw_stop_longitude) is False:
-            raise ValueError(f"Invalid type for 'stop_lon': {type(raw_stop_longitude)}")
-        stop_longitude = float(raw_stop_longitude)
-        
-        if validation_utils.is_float(raw_stop_latitude) is False:
-            raise ValueError(f"Invalid type for 'stop_lat': {type(raw_stop_latitude)}")
-        stop_latitude = float(raw_stop_latitude)
-        
-        if raw_zone_id is not None and raw_zone_id != "":
-            if validation_utils.is_string(raw_zone_id) is False:
-               raise ValueError(f"Invalid type for 'zone_id': {type(raw_zone_id)}") 
-            zone_id = f"urn:ngsi-ld:GtfsZone:{raw_zone_id}"
-            
-        if stop_url is not None and stop_url != "":
-            if validation_utils.is_valid_url(stop_url) is False:
-                raise ValueError(f"Invalid URL for 'stop_url': {stop_url}")
-            
-        if raw_location_type is not None and raw_location_type != "":
-            if validation_utils.is_valid_location_type(raw_location_type) is False:
-                raise ValueError(f"Invalid value for 'location_type': {raw_location_type}")
-            location_type = int(raw_location_type)
-            
-        if location_type == 1:
-            if raw_parent_station:
-                raise ValueError("parent_station is forbidden when location_type = 1 (station)")
-        elif location_type in (2, 3, 4):
-            if not raw_parent_station:
-                raise ValueError(f"parent_station is required when location_type = {location_type}")
-            parent_station = f"urn:ngsi-ld:GtfsStation:{raw_parent_station}"
-        elif location_type == 0:
-            if raw_parent_station:
-                parent_station = f"urn:ngsi-ld:GtfsStation:{raw_parent_station}"
-        else:
-            raise ValueError(f"Invalid location_type: {location_type}")
-        
-        if stop_timezone is not None and stop_timezone != "":
-            if validation_utils.is_valid_timezone(stop_timezone) is False:
-                raise ValueError(f"Invalid timezone for 'stop_timezone'")
-            
-        if raw_wheelchair_boarding is not None and raw_wheelchair_boarding != "":
-            if validation_utils.is_valid_wheelchair_boarding(raw_wheelchair_boarding) is False:
-                raise ValueError(f"Invalid value for 'wheelchair_boarding': {raw_wheelchair_boarding}")
-            wheelchair_boarding = int(raw_wheelchair_boarding)
-        
-        if raw_level_id is not None and raw_level_id != "":
-            if validation_utils.is_string(raw_level_id) is False:
-                raise ValueError(f"Invalid type for 'level_id': {type(raw_level_id)}")
-            level_id = f"urn:ngsi-ld:GtfsLevel:{raw_level_id}"
-            
-        if platform_code is not None and platform_code != "":
-            if validation_utils.is_string(platform_code) is False:
-                raise ValueError(f"Invalid type for 'platform_code': {type(platform_code)}")
-            
-        if raw_stop_access:
-            if validation_utils.is_valid_stop_access(raw_stop_access) is False:
-                raise ValueError(f"Invalid value for 'stop_access': {raw_stop_access}")
-
-            if location_type in (1, 2, 3, 4):
-                raise ValueError(f"stop_access is forbidden when location_type={location_type}")
-
-            if not raw_parent_station:
-                raise ValueError("stop_access is forbidden when parent_station is empty")
-
-            stop_access = int(raw_stop_access)
-        
-        # Populate FIWARE's data model
-        ngsi_ld_stop = {
-            "id": f"urn:ngsi-ld:GtfsStop:{stop_id}",
-            "type": "GtfsStop",
-            
-            "code": {
-                "type": "Property", 
-                "value": stop_code
-            },
-            
-            "name": {
-                "type": "Property", 
-                "value": stop_name
-            },
-            
-            "tts_stop_name":{
-                "type": "Property",
-                "value": tts_stop_name
-            },
-            
-            "description": {
-                "type": "Property", 
-                "value": stop_desc
-            },
-            
-            "location": {
-                "type": "GeoProperty",
-                "value": {
-                    "type": "Point",
-                    "coordinates": [
-                        stop_longitude,
-                        stop_latitude
-                    ]
-                }
-            },
-            
-            "zone_id": {
-                "type": "Relationship",
-                "object": zone_id
-            },
-            
-            "stop_url": {
-                "type": "Property",
-                "value": stop_url
-            },
-            
-            "locationType": {
-                "type": "Property", 
-                "value": location_type
-            },
-            
-            "hasParentStation": {  
-                "type": "Relationship",
-                "object": parent_station
-            },
-            
-            "timezone": {
-                "type": "Property", 
-                "value": stop_timezone
-            },
-            
-            "wheelchair_boarding": {
-                "type": "Property",
-                "value": wheelchair_boarding
-            },
-            
-            "level": {
-                "type": "Relationship",
-                "object": level_id
-            },
-            
-            "platform_code": {
-                "type": "Property",
-                "value": platform_code
-            },
-            
-            "stop_access": {
-                "type": "Property",
-                "value": stop_access
-            }
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_stop = {
-            k: v for k, v in ngsi_ld_stop.items()
-            if not (isinstance(v, dict) and None in v.values())
-        }
-        
-        # Append every NGSI-LD entity after transformation
-        ngsi_ld_data.append(ngsi_ld_stop)
-    
     # Return the list of NGSI-LD GtfsStop
     return ngsi_ld_data
 
