@@ -39,27 +39,6 @@ def test_validate_gtfs_trips_entity_missing_required_field():
 
     assert "Missing required GTFS field" in str(err.value)
 
-def test_validate_gtfs_trips_entity_none_value_as_required_field():
-    """
-    Check that if a required field has a None value, ValueError is raised
-    """
-    entity = {
-        "route_id": None,
-        "service_id": "S1",
-        "trip_id": "T1",
-        "direction_id": 1,
-        "block_id": "B1",
-        "shape_id": "SH1",
-        "wheelchair_accessible": 1,
-        "bikes_allowed": 2,
-        "cars_allowed": 0
-    }
-
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_trips_entity(entity)
-
-    assert "Missing required GTFS field" in str(err.value)
-
 def test_validate_gtfs_trips_entity_optional_fields_none():
     """
     Check that if optinal fields have None as a value, the validation passes

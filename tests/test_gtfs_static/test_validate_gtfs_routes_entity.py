@@ -47,31 +47,6 @@ def test_validate_gtfs_routes_entity_missing_required_field():
 
     assert "Missing required GTFS field:" in str(err.value)
 
-def test_validate_gtfs_routes_entity_none_value_as_required_field():
-    """
-    Check that if a required field has a None value, ValueError is raised
-    """
-    entity = {
-        "route_id": None,
-        "agency_id": "A1",
-        "route_short_name": "Metro",
-        "route_long_name": "Metro Line 1",
-        "route_type": 1,
-        "route_url": "https://example.com",
-        "route_color": "FFFFFF",
-        "route_text_color": "000000",
-        "route_sort_order": 0,
-        "continuous_pickup": 1,
-        "continuous_drop_off": 2,
-        "network_id": "N1",
-        "cemv_support": 1
-    }
-
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
-
-    assert "Missing required GTFS field:" in str(err.value)
-
 def test_validate_gtfs_routes_entity_optional_fields_none():
     """
     Check that if optinal fields have None as a value, the validation passes

@@ -1150,7 +1150,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any]) -> None:
     
     # Validate 'location_type' values
     location_type = entity.get("location_type")
-    if not validation_utils.is_valid_location_type(location_type):
+    if location_type is not None and not validation_utils.is_valid_location_type(location_type):
         raise ValueError(f"'location_type' must be 0, 1, 2, 3 or 4, got {location_type}")
     
     # Check that 'stop_name', 'stop_lat' and 'stop_lon' are present when 'location_type' is 0, 1 or 2

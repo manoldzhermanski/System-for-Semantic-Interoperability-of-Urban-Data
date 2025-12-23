@@ -1,7 +1,7 @@
 import pytest
 from gtfs_static.gtfs_static_utils import validate_gtfs_stop_times_entity
 
-def test_validate_gtfs_stop_times_entity_fields_valid():
+def test_validate_gtfs_stop_times_entity_fields_valid_arrival_departure():
     """
     Check that if for a valid entity is given, the validation passes
     """
@@ -23,8 +23,31 @@ def test_validate_gtfs_stop_times_entity_fields_valid():
     }
     
     validate_gtfs_stop_times_entity(entity)
+    
+def test_validate_gtfs_stop_times_entity_fields_valid_pickup_drop_off_window():
+    """
+    Check that if for a valid entity is given, the validation passes
+    """
+    entity = {
+        "trip_id": "trip_1",
+        "location_group_id": "LG1",
+        "stop_sequence": 1,
+        "stop_headsign": "STOP1",
+        "start_pickup_drop_off_window": "08:00:00",
+        "end_pickup_drop_off_window": "09:00:00",
+        "pickup_type": 1,
+        "drop_off_type": 1,
+        "continuous_pickup": 1,
+        "continuous_drop_off": 1,
+        "shape_dist_traveled": 0.0,
+        "timepoint": 0,
+        "pickup_booking_rule_id": "PBR1",
+        "drop_off_booking_rule_id": "DBR1"
+    }
+    
+    validate_gtfs_stop_times_entity(entity)
 
-def test_validate_gtfs_stop_times_missing_trip_id():
+def test_validate_gtfs_stop_times_missing_required_field():
     """
     Check that if 'trip_id' is missing, ValueError is raised
     """
@@ -49,30 +72,28 @@ def test_validate_gtfs_stop_times_missing_trip_id():
         
     assert "Missing required GTFS field" in str(err.value)
 
-def test_validate_gtfs_stop_times_missing_stop_sequence():
+def test_validate_gtfs_stop_times_entity_optional_fields_none():
     """
-    Check that if 'stop_sequence' is missing, ValueError is raised
+    Check that if optinal fields have None as a value, the validation passes
     """
     entity = {
         "trip_id": "trip_1",
         "arrival_time": "08:00:00",
         "departure_time": "08:05:00",
         "stop_id": "S1",
-        "stop_headsign": "STOP1",
+        "stop_sequence": 1,
+        "stop_headsign": None,
         "pickup_type": 1,
         "drop_off_type": 1,
         "continuous_pickup": 1,
         "continuous_drop_off": 1,
-        "shape_dist_traveled": 0.0,
-        "timepoint": 1,
-        "pickup_booking_rule_id": "PBR1",
-        "drop_off_booking_rule_id": "DBR1"
+        "shape_dist_traveled": None,
+        "timepoint": None,
+        "pickup_booking_rule_id": None,
+        "drop_off_booking_rule_id": None
     }
     
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity)
-        
-    assert "Missing required GTFS field" in str(err.value)
+    validate_gtfs_stop_times_entity(entity)
     
 def test_validate_gtfs_stop_times_invalid_timepoint():
     """

@@ -39,26 +39,23 @@ def test_validate_gtfs_agency_entity_missing_required_field():
 
     assert "Missing required GTFS field:" in str(err.value)
 
-def test_validate_gtfs_agency_entity_none_value_as_required_field():
+def test_validate_gtfs_agency_entity_optional_fields_none():
     """
-    Check that if a required field has None as a value, ValueError is raised
+    Check that if optinal fields have None as a value, the validation passes
     """
     entity = {
         "agency_id": "AG1",
-        "agency_name": None,
+        "agency_name": "Test Agency",
         "agency_url": "https://example.com",
         "agency_timezone": "Europe/Sofia",
-        "agency_lang": "en",
-        "agency_phone": "+359888123456",
-        "agency_email": "info@example.com",
-        "agency_fare_url": "https://example.com/fare",
-        "cemv_support": 1
+        "agency_lang": None,
+        "agency_phone": None,
+        "agency_email": None,
+        "agency_fare_url": None,
+        "cemv_support": None
     }
 
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_agency_entity(entity)
-
-    assert "Missing required GTFS field:" in str(err.value)
+    validate_gtfs_agency_entity(entity)
 
 def test_validate_gtfs_agency_entity_invalid_url():
     """

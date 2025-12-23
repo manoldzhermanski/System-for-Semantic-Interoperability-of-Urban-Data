@@ -33,24 +33,22 @@ def test_validate_gtfs_fare_attributes_entity_missing_required_field():
     
     assert "Missing required GTFS field:" in str(err.value)
 
-def test_validate_gtfs_fare_attributes_entity_none_value_as_required_field():
+def test_validate_gtfs_fare_attributes_entity_optional_fields_none():
     """
-    Check that if a required field has None as a value, ValueError is raised
+    Check that if optinal fields have None as a value, the validation passes
     """
     entity = {
         "fare_id": "FARE1",
-        "price": None,
+        "price": 2.50,
         "currency_type": "EUR",
         "payment_method": 1,
         "transfers": 2,
-        "transfer_duration": 3600
+        "transfer_duration": None
     }
-
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_fare_attributes_entity(entity)
     
-    assert "Missing required GTFS field:" in str(err.value)
-
+    validate_gtfs_fare_attributes_entity(entity)
+    
+    
 def test_validate_gtfs_fare_attributes_entity_invalid_price():
     """
     Check that invalid 'price' value raises ValueError

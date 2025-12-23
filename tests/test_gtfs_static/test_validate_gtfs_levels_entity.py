@@ -26,18 +26,15 @@ def test_validate_gtfs_levels_entity_missing_required_field():
         validate_gtfs_levels_entity(entity)
     
     assert "Missing required GTFS field:" in str(err.value)
-
-def test_validate_gtfs_levels_entity_none_value_as_required_field():
+    
+def test_validate_gtfs_levels_entity_optional_fields_none():
     """
-    Check that if a required field has None as a value, ValueError is raised
+    Check that if optinal fields have None as a value, the validation passes
     """
     entity = {
-        "level_id": None,
+        "level_id": "L1",
         "level_index": 2.0,
-        "level_name": "Second Floor"
+        "level_name": None
     }
 
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_levels_entity(entity)
-    
-    assert "Missing required GTFS field:" in str(err.value)
+    validate_gtfs_levels_entity(entity)

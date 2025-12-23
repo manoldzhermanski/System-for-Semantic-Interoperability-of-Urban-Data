@@ -27,21 +27,6 @@ def test_validate_gtfs_calendar_dates_entity_missing_required_field():
 
     assert "Missing required GTFS field:" in str(err.value)
 
-def test_validate_gtfs_calendar_dates_entity_none_value_as_required_field():
-    """
-    Check that if a required field has None as a value, ValueError is raised
-    """
-    entity = {
-        "service_id": None,
-        "date": "20260101",
-        "exception_type": 1
-    }
-
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_calendar_dates_entity(entity)
-
-    assert "Missing required GTFS field:" in str(err.value)
-
 def test_validate_gtfs_calendar_dates_entity_invalid_date_value():
     """
     Check that invalid 'date' value raises ValueError

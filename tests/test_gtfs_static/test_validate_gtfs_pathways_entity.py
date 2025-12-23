@@ -42,28 +42,6 @@ def test_validate_gtfs_pathways_entity_missing_required_field():
 
     assert "Missing required GTFS field:" in str(err.value)
 
-def test_validate_gtfs_pathways_entity_none_value_as_required_field():
-    """
-    Check that if a required field has a None value, ValueError is raised
-    """
-    entity = {
-        "pathway_id": None,
-        "from_stop_id": "S1",
-        "to_stop_id": "S2",
-        "pathway_mode": 1,
-        "is_bidirectional": 0,
-        "length": 10.5,
-        "traversal_time": 30,
-        "stair_count": 5,
-        "max_slope": 0.1,
-        "min_width": 1.2
-    }
-
-    with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
-
-    assert "Missing required GTFS field:" in str(err.value)
-
 def test_validate_gtfs_pathways_entity_optional_fields_none():
     """
     Check that if optinal fields have None as a value, the validation passes

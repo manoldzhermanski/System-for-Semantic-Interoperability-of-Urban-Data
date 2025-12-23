@@ -38,6 +38,23 @@ def test_validate_gtfs_transfers_entity_missing_required_field():
         
     assert "Missing required GTFS field" in str(err.value)
 
+def test_validate_gtfs_transfers_entity_optional_fields_none():
+    """
+    Check that if optinal fields have None as a value, the validation passes
+    """
+    entity = {
+        "transfer_type": 1,
+        "from_stop_id": "S1",
+        "to_stop_id": "S2",
+        "from_trip_id": "T1",
+        "to_trip_id": "T2",
+        "from_route_id": None,
+        "to_route_id": None,
+        "min_transfer_time": None
+    }
+
+    validate_gtfs_transfers_entity(entity)
+    
 def test_validate_gtfs_transfers_entity_type_1_missing_from_stop_id():
     """
     Check that if 'transfer_type' is 1 and 'from_stop_id' is None, ValueError is raised
