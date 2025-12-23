@@ -1,4 +1,3 @@
-import pytest
 from gtfs_static.gtfs_static_utils import cleanup_string
 
 def test_cleanup_string_none_value_as_input():

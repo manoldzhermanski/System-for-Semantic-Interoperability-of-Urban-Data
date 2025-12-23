@@ -1,20 +1,18 @@
-import sys
-import requests
-import zipfile
 import os
 import csv
-from pathlib import Path
-from io import BytesIO
+import sys
+import config
+import zipfile
+import requests
 from typing import Any
+from io import BytesIO
+from pathlib import Path
 from datetime import datetime
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
 import validation_functions.validation_utils as validation_utils
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import config
 
 # -----------------------------------------------------
 # Get Data

@@ -1,4 +1,3 @@
-import pytest
 from gtfs_static.gtfs_static_utils import remove_none_values
 
 def test_remove_none_values_no_nested_dicts():
