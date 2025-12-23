@@ -352,7 +352,7 @@ def is_valid_transfers(value: Any) -> bool:
     """
     if type(value) is not int:
         return False
-    return value in {0, 1, 2}
+    return value in {-1, 0, 1, 2}
 
 def is_valid_pathway_mode(value: Any) -> bool:
     """

@@ -737,7 +737,8 @@ def validate_gtfs_fare_attributes_entity(entity: dict[str, Any]) -> None:
     - The currency_type is a valid ISO 4217 currency code
     - Validation of 'payment_method', 'transfers' values
     - If provided, 'transfer_duration' is a non-negative integer
-
+    - NOTE: In GTFS Static 'transfers' can be empty and means 'Unlimited transfers are permitted'
+      NGSI-LD does not allow empty values, thus -1 is assigned as 'Unlimited transfers are permitted'
     Args:
         entity (dict[str, Any]): A parsed GTFS fare attributes entity.
 
@@ -968,38 +969,49 @@ def validate_gtfs_shapes_entity(entity: dict[str, Any]) -> None:
         raise ValueError(f"'shape_dist_traveled' must be a non-negative float, got {shape_dist_traveled}") 
 
 def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS stop entity.
 
+    This function performs:
+    - Validation of required fields
+    - Validate 'timepoint', 'pickup_type', 'drop_off_type', 'continuous_pickup', 'continuous_drop_off'
+    - Validate that if 'timepoint' is 1, 'arrival_time' and 'departure_time' are defined
+    - Validate that either 'arrival_time' and 'departure_time' OR 'start_pickup_drop_off_window' and 'end_pickup_drop_off_window'
+      are defined but not at the same time
+    - Validate that exactly one location identifier is defined - stop_id, location_group_id or location_id
+    - Write the defined location identified into NGSI URN
+    - Validate that location_group_id or location_id is defined, 'start_pickup_drop_off_window' and 'end_pickup_drop_off_window'
+      are also defined
+    - Validate that 'stop_sequence' is a non-negative integer
+    - Validate that location_group_id or location_id is defined, 'continuous_pickup' and 'continuous_drop_off' are 1 
+    - Validate that location_group_id or location_id is defined,'pickup_type' cannot be 0 or 3
+    - Validate that location_group_id or location_id is defined,'drop_off_type' cannot be 0
+    - Validate that 'shape_dist_traveled' is a non-negative float
+    - If present, write pickup_booking_rule_id and drop_off_booking_rule_id as NGSI URN
+
+    Args:
+        entity (dict[str, Any]): A parsed GTFS stop time entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
+    # Check that the required fields are defined
     required_fields = ["trip_id", "stop_sequence"]
     validate_required_fields(entity, required_fields)
 
-    trip_id = entity.get("trip_id")
-    if trip_id is None:
-        raise ValueError(f"'trip_id' cannot be None")
-    entity["trip_id"] = f"urn:ngsi-ld:GtfsTrip:{trip_id}"
-
+    # Validate 'timepoint' values
     timepoint = entity.get("timepoint")
-    if timepoint is not None and validation_utils.is_valid_timepoint(timepoint):
+    if timepoint is not None and not validation_utils.is_valid_timepoint(timepoint):
         raise ValueError(f"'timepoint' should be 0 or 1, got {timepoint}")
     
-    arrival_time = entity.get("arrival_time")
-
-    if arrival_time is not None and  not validation_utils.is_valid_time(arrival_time):
-        raise ValueError(f"'arrival_time' has an invalid time, got {arrival_time}")
-
-    if arrival_time is None and timepoint == 1:
-        raise ValueError(f"'arrival_time' is required for timepoint = 1")
-    
-    departure_time = entity.get("departure_time")
-
-    if departure_time is not None and  not validation_utils.is_valid_time(departure_time):
-        raise ValueError("'departure_time' has an invalid time")
-
-    if departure_time is None and timepoint == 1:
-        raise ValueError(f"'departure_time' is required for timepoint = 1")
-
     has_arrival_departure = (bool(entity.get("arrival_time")) and bool(entity.get("departure_time")))
     has_pickup_window = (bool(entity.get("start_pickup_drop_off_window")) and bool(entity.get("end_pickup_drop_off_window")))
-        
+    
+    # Check that if 'timepoint' is 1 than 'arrival_time and 'departure_time' are defined
+    if timepoint == 1 and not has_arrival_departure:
+        raise ValueError("arrival_time and departure_time are required when timepoint = 1")
+    
+    # Validate that both time groups are not defined at the same time
     if has_arrival_departure and has_pickup_window:
         raise ValueError(
             "arrival_time/departure_time and "
@@ -1007,100 +1019,97 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
             "cannot be defined at the same time"
         )
 
+    # Validate that either one of the time groups are defined
     if not has_arrival_departure and not has_pickup_window:
         raise ValueError(
             "Either arrival_time/departure_time or "
             "start_pickup_drop_off_window/end_pickup_drop_off_window "
             "must be defined"
         )
-            
-    if bool(entity.get("arrival_time")) ^ bool(entity.get("departure_time")):
-        raise ValueError("arrival_time and departure_time must be defined together")
-
-    if bool(entity.get("start_pickup_drop_off_window")) ^ bool(entity.get("end_pickup_drop_off_window")):
-        raise ValueError("start_pickup_drop_off_window and end_pickup_drop_off_window must be defined together")
-                
+      
+    # Check that exactly one location identifier is defined
     has_stop_id = bool(entity.get("stop_id"))
     has_location_group_id = bool(entity.get("location_group_id"))
     has_location_id = bool(entity.get("location_id"))
-        
-    if has_location_group_id or has_location_id:
-        if has_stop_id:
-            raise ValueError("stop_id is forbidden when location_group_id or location_id is defined")
-    else:
-        if not has_stop_id:
-            raise ValueError("stop_id is required when location_group_id and location_id are not defined")
+
+    if sum([has_stop_id, has_location_group_id, has_location_id]) != 1:
+        raise ValueError("Exactly one of stop_id, location_group_id or location_id must be defined")
+
+    # Write NGSI-LD URNs based on which location identifier is defined
+    if has_stop_id:
         entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{entity['stop_id']}"
-          
-    if has_stop_id or has_location_id:
-        if has_location_group_id:
-            raise ValueError("location_group_id is forbidden when stop_id or location_id is defined")
-    else:
-        if not has_location_group_id:
-            raise ValueError("location_group_id is required when stop_id and location_id are not defined")
-        entity["location_group_id"] = f"urn:ngsi-ld:LocationGroup:{entity["location_group_id"]}"
 
-    if has_stop_id or has_location_group_id:
-        if has_location_id:
-            raise ValueError("location_id is forbidden when stop_id or location_group_id is defined")
-    else:
-        if not has_location_id:
-            raise ValueError("location_id is required when stop_id and location_group_id are not defined")
-        entity["location_id"] = f"urn:ngsi-ld:Location:{entity["location_id"]}"
+    if has_location_group_id:
+        entity["location_group_id"] = (f"urn:ngsi-ld:LocationGroup:{entity['location_group_id']}")
 
-    if has_location_group_id or has_location_id:
-        start_pickup_drop_off_window = entity.get("start_pickup_drop_off_window")
-        if not validation_utils.is_valid_time(start_pickup_drop_off_window):
-            raise ValueError(f"'start_pickup_drop_off_window' is not a valid time, got {start_pickup_drop_off_window}")
+    if has_location_id:
+        entity["location_id"] = f"urn:ngsi-ld:Location:{entity['location_id']}"
         
-        end_pickup_drop_off_window = entity.get("end_pickup_drop_off_window")
-        if not validation_utils.is_valid_time(end_pickup_drop_off_window):
-            raise ValueError(f"'end_pickup_drop_off_window' is not a valid time, got {end_pickup_drop_off_window}")
-
+    # Validate that if 'location_id' or 'location_group_id' are defined, 
+    # start_pickup_drop_off_window and end_pickup_drop_off_window must also be defined
+    if has_location_id or has_location_group_id:
+        if not has_pickup_window:
+            raise ValueError(
+            "start_pickup_drop_off_window and end_pickup_drop_off_window "
+            "are required when using location_id or location_group_id"
+            )
+    
+    # Validate that 'stop_sequence' is a non-negative integer
     stop_sequence = entity.get("stop_sequence")
     if stop_sequence is not None and stop_sequence < 0:
         raise ValueError(f"'stop_sequence' must be a non-negative integer, got {stop_sequence}")
     
+    # Validate 'pickup_type' values
     pickup_type = entity.get("pickup_type")
     if pickup_type is not None and not validation_utils.is_valid_pickup_type(pickup_type):
         raise ValueError(f"'pickup_type' must be 0, 1, 2 or 3, got {pickup_type}")
     
+    # Validate that if 'location_id' or 'location_group_id' are defined, 'pickup_type' cannot be 0 or 3
     if has_location_group_id or has_location_id:
         if pickup_type in {0, 3}:
             raise ValueError(f"'pickup_type' cannot be 0 or 3 when using location_group_id or location_id")
-        
+    
+    # Validate 'drop_off_type' values 
     drop_off_type = entity.get("drop_off_type")
     if drop_off_type is not None and not validation_utils.is_valid_drop_off_type(drop_off_type):
         raise ValueError(f"'drop_off_type' must be 0, 1, 2 or 3, got {drop_off_type}")
     
+    # Validate that if 'location_id' or 'location_group_id' are defined, 'drop_off_type' cannot be 0
     if has_location_group_id or has_location_id:
         if drop_off_type == 0:
-            raise ValueError(f"'drop_off_type' cannot be 0 or 3 when using location_group_id or location_id")
-        
+            raise ValueError(f"'drop_off_type' cannot be 0 when using location_group_id or location_id")
+    
+    # Validate 'continuous_pickup' values    
     continuous_pickup = entity.get("continuous_pickup")
     if continuous_pickup is not None and not validation_utils.is_valid_continuous_pickup(continuous_pickup):
         raise ValueError(f"'continuous_pickup' must be 0, 1, 2 or 3, got {continuous_pickup}")
     
+    # Validate that if 'location_id' or 'location_group_id' are defined, 'continuous_pickup' can only be 1
     if has_location_group_id or has_location_id:
         if continuous_pickup != 1:
             raise ValueError(f"'continuous_pickup' cannot be 0, 2 or 3 when using location_group_id or location_id")
     
+    # Validate 'continuous_drop_off' values
     continuous_drop_off = entity.get("continuous_drop_off")
     if continuous_drop_off is not None and not validation_utils.is_valid_continuous_drop_off(continuous_drop_off):
         raise ValueError(f"'continuous_drop_off' must be 0, 1, 2 or 3, got {continuous_drop_off}")
     
+    # Validate that if 'location_id' or 'location_group_id' are defined, 'continuous_drop_off' can only be 1
     if has_location_group_id or has_location_id:
         if continuous_drop_off != 1:
             raise ValueError(f"'continuous_drop_off' cannot be 0, 2 or 3 when using location_group_id or location_id")
     
+    # Validate that 'shape_dist_traveled' is a non-negative float
     shape_dist_traveled = entity.get("shape_dist_traveled")
     if shape_dist_traveled is not None and shape_dist_traveled < 0:
-        raise ValueError(f"'shape_dist_traveled' should be a non-negative number, got {shape_dist_traveled}")
+        raise ValueError(f"'shape_dist_traveled' should be a non-negative float, got {shape_dist_traveled}")
 
+    # If present, write 'pickup_booking_rule_id' as a NGSI URN
     pickup_booking_rule_id = entity.get("pickup_booking_rule_id")
     if pickup_booking_rule_id is not None:
         entity["pickup_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{pickup_booking_rule_id}"
 
+    # If present, write 'drop_off_booking_rule_id' as a NGSI URN
     drop_off_booking_rule_id = entity.get("drop_off_booking_rule_id")
     if drop_off_booking_rule_id is not None:
         entity["drop_off_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{drop_off_booking_rule_id}"
@@ -1557,6 +1566,102 @@ def convert_gtfs_routes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
             }
         }
 
+def convert_gtfs_stop_times_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+    return {
+            "id": f"urn:ngsi-ld:GtfsStopTime:{entity.get("trip_id")}:{entity.get("stop_sequence")}",
+            "type": "GtfsStopTime",
+            
+            "hasTrip": {
+                "type": "Relationship",
+                "object": entity.get("trip_id")
+            },
+            
+            "arrivalTime": {
+                "type": "Property", 
+                "value": entity.get("arrival_time")
+            },
+            
+            "departureTime": {
+                "type": "Property", 
+                "value": entity.get("departure_time")
+            },
+            
+            "hasStop": {
+                "type": "Relationship",
+                "object": entity.get("stop_id")
+            },
+            
+            "location_group_id": {
+                "type": "Relationship",
+                "object": entity.get("location_group_id")
+            },
+            
+            "location_id": {
+                "type": "Relationship",
+                "object": entity.get("location_id")
+            },
+
+            "stopSequence": {
+                "type": "Property", 
+                "value": entity.get("stop_sequence")
+            },
+            
+            "stopHeadsign": {
+                "type": "Property", 
+                "value": entity.get("stop_headsign")
+            },
+            
+            "start_pickup_drop_off_window": {
+                "type": "Property",
+                "value": entity.get("start_pickup_drop_off_window")
+            },
+            
+            "end_pickup_drop_off_window": {
+                "type": "Property",
+                "value": entity.get("end_pickup_drop_off_window")
+            },
+            
+            "pickupType": {
+                "type": "Property", 
+                "value":entity.get("pickup_type")
+            },
+            
+            "dropOffType": {
+                "type": "Property", 
+                "value": entity.get("drop_off_type")
+            },
+            
+            "continuousPickup": {
+                "type": "Property", 
+                "value": entity.get("continuous_pickup")
+            },
+            
+            "continuousDropOff": {
+                "type": "Property", 
+                "value": entity.get("continuous_drop_off")
+            },
+            
+            "shapeDistTraveled": {  
+                "type": "Property", 
+                "value": entity.get("shape_dist_traveled")
+            },
+            
+            "timepoint": {
+                "type": "Property", 
+                "value": entity.get("timepoint")
+            },
+            
+            "pickup_booking_rule_id": {
+                "type": "Relationship",
+                "object": entity.get("pickup_booking_rule_id")
+            },
+            
+            "drop_off_booking_rule_id": {
+                "type": "Relationship",
+                "object": entity.get("drop_off_booking_rule_id")
+            }
+        }
+
 def convert_gtfs_stops_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     return {
             "id": entity.get("stop_id"),
@@ -1646,15 +1751,19 @@ def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
         
     if entity.get("from_stop_id") is not None:
         id_parts.append(f"fromStop:{entity.get("from_stop_id")}")
+        entity['from_stop_id'] = f"urn:ngsi-ld:GtfsStop:{entity['from_stop_id']}"
             
     if entity.get("to_stop_id") is not None:
         id_parts.append(f"toStop:{entity.get("to_stop_id")}")
-
+        entity['to_stop_id'] = f"urn:ngsi-ld:GtfsStop:{entity['to_stop_id']}"
+        
     if entity.get("from_trip_id") is not None:
         id_parts.append(f"fromTrip:{entity.get("from_trip_id")}")
+        entity["from_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{entity["from_trip_id"]}"
 
     if entity.get("to_trip_id") is not None:
         id_parts.append(f"toTrip:{entity.get("to_trip_id")}")
+        entity["to_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{entity["to_trip_id"]}"
             
     entity_id = "urn:ngsi-ld:GtfsTransferRule:" + ":".join(id_parts)
     
@@ -1663,12 +1772,12 @@ def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
             "type": "GtfsTransferRule",
             "hasOrigin": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsStop:{entity.get("from_stop_id")}"
+                "object": entity.get("from_stop_id")
             },
             
             "hasDestination": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsStop:{entity.get("to_stop_id")}"
+                "object": entity.get("to_stop_id")
             },
             
             "from_route_id": {
@@ -1683,12 +1792,12 @@ def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
             
             "from_trip_id": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsTrip:{entity.get("from_trip_id")}"
+                "object": entity.get("from_trip_id")
             },
             
             "to_trip_id": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsTrip:{entity.get("to_trip_id")}"
+                "object": entity.get("to_trip_id")
             },
             
             "transferType": {
@@ -1772,8 +1881,8 @@ def remove_none_values(entity: dict[str, Any]) -> dict[str, Any]:
     
 
 def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    ngsi_ld_entity = []
-
+    
+    ngsi_ld_data = []
     for agency in raw_data:
 
         parsed_entity = parse_gtfs_agency_data(agency)
@@ -2009,316 +2118,12 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[di
     """
     ngsi_ld_data = []
     
-    required_fields = ["trip_id", "stop_sequence"]
-    
     for stop_time in raw_data:
-        
-        # Check if a stop times entity contains the required fields
-        validate_required_fields(stop_time, required_fields)
-            
-        has_arrival_departure = (
-            bool(stop_time.get("arrival_time")) and
-            bool(stop_time.get("departure_time"))
-        )
-
-        has_pickup_window = (
-            bool(stop_time.get("start_pickup_drop_off_window")) and
-            bool(stop_time.get("end_pickup_drop_off_window"))
-        )
-        
-        
-        if has_arrival_departure and has_pickup_window:
-            raise ValueError(
-                "arrival_time/departure_time and "
-                "start_pickup_drop_off_window/end_pickup_drop_off_window "
-                "cannot be defined at the same time"
-            )
-
-        if not has_arrival_departure and not has_pickup_window:
-            raise ValueError(
-                "Either arrival_time/departure_time or "
-                "start_pickup_drop_off_window/end_pickup_drop_off_window "
-                "must be defined"
-            )
-            
-        if bool(stop_time.get("arrival_time")) ^ bool(stop_time.get("departure_time")):
-            raise ValueError(
-                "arrival_time and departure_time must be defined together"
-            )
-
-        if bool(stop_time.get("start_pickup_drop_off_window")) ^ bool(stop_time.get("end_pickup_drop_off_window")):
-            raise ValueError(
-                "start_pickup_drop_off_window and end_pickup_drop_off_window "
-                "must be defined together"
-            )
-            
-        has_stop_id = bool(stop_time.get("stop_id"))
-        has_location_group_id = bool(stop_time.get("location_group_id"))
-        has_location_id = bool(stop_time.get("location_id"))
-        
-        if has_location_group_id or has_location_id:
-            if has_stop_id:
-                raise ValueError("stop_id is forbidden when location_group_id or location_id is defined")
-        else:
-            if not has_stop_id:
-                raise ValueError("stop_id is required when location_group_id and location_id are not defined")
-            
-            
-        if has_stop_id or has_location_id:
-            if has_location_group_id:
-                raise ValueError("location_group_id is forbidden when stop_id or location_id is defined")
-        else:
-            if not has_location_group_id:
-                raise ValueError("location_group_id is required when stop_id and location_id are not defined")
-            
-            
-        if has_stop_id or has_location_group_id:
-            if has_location_id:
-                raise ValueError("location_id is forbidden when stop_id or location_group_id is defined")
-        else:
-            if not has_location_id:
-                raise ValueError("location_id is required when stop_id and location_group_id are not defined")
-        
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        raw_trip_id = (stop_time.get("trip_id") or "").strip()
-        
-        arrival_time = None
-        departure_time = None
-        stop_id = None
-        location_group_id = None
-        location_id = None
-        stop_sequence = None
-        start_pickup_drop_off_window = None
-        end_pickup_drop_off_window = None
-        pickup_type = None
-        drop_off_type = None
-        continuous_pickup = None
-        continuous_drop_off = None
-        shape_dist_traveled = None
-        timepoint = None
-        pickup_booking_rule_id = None
-        drop_off_booking_rule_id = None
-        
-        if validation_utils.is_string(raw_trip_id) is False:
-            raise ValueError(f"Invalid type for 'trip_id': {type(raw_trip_id)}")
-        trip_id = f"urn:ngsi-ld:GtfsTrip:{raw_trip_id}"
-        
-        if has_arrival_departure:
-            arrival_time = (stop_time.get("arrival_time") or "").strip()
-            departure_time = (stop_time.get("departure_time") or "").strip()
-            
-            if validation_utils.is_valid_time(arrival_time) is False:
-                raise ValueError(f"Invalid time format for 'arrival_time': {arrival_time}")
-            
-            if validation_utils.is_valid_time(departure_time) is False:
-                raise ValueError(f"Invalid time format for 'departure_time': {departure_time}")
-        
-        
-        if has_stop_id:
-            raw_stop_id = (stop_time.get("stop_id") or "").strip()
-            if validation_utils.is_string(raw_stop_id) is False:
-                raise ValueError(f"Invalid type for 'stop_id': {type(raw_stop_id)}")
-            stop_id = f"urn:ngsi-ld:GtfsStop:{raw_stop_id}"
-            
-        if has_location_group_id:
-            raw_location_group_id = (stop_time.get("location_group_id") or "").strip()
-            if validation_utils.is_string(raw_location_group_id) is False:
-                raise ValueError(f"Invalid type for 'location_group_id': {type(raw_location_group_id)}")
-            location_group_id = f"urn:ngsi-ld:GtfsLocationGroup:{raw_location_group_id}"
-            
-        if has_location_id:
-            raw_location_id = (stop_time.get("location_id") or "").strip()
-            if validation_utils.is_string(raw_location_id) is False:
-                raise ValueError(f"Invalid type for 'location_id': {type(raw_location_id)}")
-            location_id = f"urn:ngsi-ld:GtfsLocation:{raw_location_id}"
-            
-        raw_stop_sequence = (stop_time.get("stop_sequence") or "").strip()
-        if validation_utils.is_int(raw_stop_sequence) is False:
-            raise ValueError(f"Invalid type for 'stop_sequence': {type(raw_stop_sequence)}")
-        stop_sequence = int(raw_stop_sequence)
-        if stop_sequence < 0:
-            raise ValueError(f"Invalid value for 'stop_sequence': {stop_sequence}")
-        
-        
-        stop_headsign = (stop_time.get("stop_headsign") or "").strip() or None
-        if stop_headsign is not None and stop_headsign != "":
-            if validation_utils.is_string(stop_headsign) is False:
-                raise ValueError(f"Invalid type for 'stop_headsign': {type(stop_headsign)}")
-            
-        if has_location_group_id or has_location_id:
-            start_pickup_drop_off_window = (stop_time.get("start_pickup_drop_off_window") or "").strip()
-            end_pickup_drop_off_window = (stop_time.get("end_pickup_drop_off_window") or "").strip()
-            if validation_utils.is_valid_time(start_pickup_drop_off_window) is False:
-                raise ValueError(f"Invalid time format for 'start_pickup_drop_off_window': {start_pickup_drop_off_window}")
-            if validation_utils.is_valid_time(end_pickup_drop_off_window) is False:
-                raise ValueError(f"Invalid time format for 'end_pickup_drop_off_window': {end_pickup_drop_off_window}")
-            
-        raw_pickup_type = (stop_time.get("pickup_type") or "").strip() or None
-        if raw_pickup_type is not None and raw_pickup_type != "":
-            if validation_utils.is_valid_pickup_type(raw_pickup_type) is False:
-                raise ValueError(f"Invalid value for 'pickup_type': {raw_pickup_type}")
-            pickup_type = int(raw_pickup_type)
-            if has_location_id or has_location_group_id:
-                if raw_pickup_type in (0, 3):
-                    raise ValueError("pickup_type must not be 0 or 3 when start_pickup_drop_off_window  or end_pickup_drop_off_window is defined")
-            
-        raw_drop_off_type = (stop_time.get("drop_off_type") or "").strip() or None
-        if raw_drop_off_type is not None and raw_drop_off_type != "":
-            if validation_utils.is_valid_drop_off_type(raw_drop_off_type) is False:
-                raise ValueError(f"Invalid value for 'drop_off_type': {raw_drop_off_type}")
-            drop_off_type = int(raw_drop_off_type)
-            if has_location_id or has_location_group_id:
-                if raw_drop_off_type in (0, 3):
-                    raise ValueError("drop_off_type must not be 0 or 3 when start_pickup_drop_off_window  or end_pickup_drop_off_window is defined")
-
-        raw_continous_pickup = (stop_time.get("continuous_pickup") or "").strip() or None
-        if raw_continous_pickup is not None and raw_continous_pickup != "":
-            if validation_utils.is_valid_continuous_pickup(raw_continous_pickup) is False:
-                raise ValueError(f"Invalid value for 'continuous_pickup': {raw_continous_pickup}")
-            continuous_pickup = int(raw_continous_pickup)
-            if has_location_id or has_location_group_id:
-                if continuous_pickup != 1:
-                    raise ValueError("continuous_pickup must be 1 when start_pickup_drop_off_window or end_pickup_drop_off_window is defined")
-                
-        raw_continous_drop_off = (stop_time.get("continuous_drop_off") or "").strip() or None
-        if raw_continous_drop_off is not None and raw_continous_drop_off != "":
-            if validation_utils.is_valid_continuous_drop_off(raw_continous_drop_off) is False:
-                raise ValueError(f"Invalid value for 'continuous_drop_off': {raw_continous_drop_off}")
-            continuous_drop_off = int(raw_continous_drop_off)
-            if has_location_id or has_location_group_id:
-                if continuous_drop_off != 1:
-                    raise ValueError("continuous_drop_off must be 1 when start_pickup_drop_off_window or end_pickup_drop_off_window is defined")
-                
-        raw_shape_dist_traveled = (stop_time.get("shape_dist_traveled") or "").strip() or None
-        if raw_shape_dist_traveled is not None and raw_shape_dist_traveled != "":
-            if validation_utils.is_float(raw_shape_dist_traveled) is False:
-                raise ValueError(f"Invalid type for 'shape_dist_traveled': {type(raw_shape_dist_traveled)}")
-            shape_dist_traveled = float(raw_shape_dist_traveled)
-            if shape_dist_traveled < 0:
-                raise ValueError(f"Invalid value for 'shape_dist_traveled': {shape_dist_traveled}")
-     
-        raw_timepoint = (stop_time.get("timepoint") or "").strip() or None
-        if raw_timepoint is not None and raw_timepoint != "":
-            if validation_utils.is_valid_timepoint(raw_timepoint) is False:
-                raise ValueError(f"Invalid value for 'timepoint': {raw_timepoint}")
-            timepoint = int(raw_timepoint)
-            
-        raw_pickup_booking_rule_id = (stop_time.get("pickup_booking_rule_id") or "").strip() or None
-        if raw_pickup_booking_rule_id is not None and raw_pickup_booking_rule_id != "":
-            if validation_utils.is_string(raw_pickup_booking_rule_id) is False:
-                raise ValueError(f"Invalid type for 'pickup_booking_rule_id': {type(raw_pickup_booking_rule_id)}")
-            pickup_booking_rule_id = f"urn:ngsi-ld:GtfsBookingRule:{raw_pickup_booking_rule_id}"
-            
-        raw_drop_off_booking_rule_id = (stop_time.get("drop_off_booking_rule_id") or "").strip() or None
-        if raw_drop_off_booking_rule_id is not None and raw_drop_off_booking_rule_id != "":
-            if validation_utils.is_string(raw_drop_off_booking_rule_id) is False:
-                raise ValueError(f"Invalid type for 'drop_off_booking_rule_id': {type(raw_drop_off_booking_rule_id)}")
-            drop_off_booking_rule_id = f"urn:ngsi-ld:GtfsBookingRule:{raw_drop_off_booking_rule_id}"
-        
-        # Populate FIWARE's data model
-        ngsi_ld_stop_time = {
-            "id": f"urn:ngsi-ld:GtfsStopTime:{stop_time['trip_id']}:{stop_time['stop_sequence']}",
-            "type": "GtfsStopTime",
-            
-            "hasTrip": {
-                "type": "Relationship",
-                "object": trip_id
-            },
-            
-            "arrivalTime": {
-                "type": "Property", 
-                "value": arrival_time
-            },
-            
-            "departureTime": {
-                "type": "Property", 
-                "value": departure_time
-            },
-            
-            "hasStop": {
-                "type": "Relationship",
-                "object": stop_id
-            },
-            
-            "location_group_id": {
-                "type": "Relationship",
-                "object": location_group_id
-            },
-            
-            "location_id": {
-                "type": "Relationship",
-                "object": location_id
-            },
-
-            "stopSequence": {
-                "type": "Property", 
-                "value": stop_sequence
-            },
-            
-            "stopHeadsign": {
-                "type": "Property", 
-                "value": stop_headsign
-            },
-            
-            "start_pickup_drop_off_window": {
-                "type": "Property",
-                "value": start_pickup_drop_off_window
-            },
-            
-            "end_pickup_drop_off_window": {
-                "type": "Property",
-                "value": end_pickup_drop_off_window
-            },
-            
-            "pickupType": {
-                "type": "Property", 
-                "value": pickup_type
-            },
-            
-            "dropOffType": {
-                "type": "Property", 
-                "value": drop_off_type
-            },
-            
-            "continuousPickup": {
-                "type": "Property", 
-                "value": continuous_pickup
-            },
-            
-            "continuousDropOff": {
-                "type": "Property", 
-                "value": continuous_drop_off
-            },
-            
-            "shapeDistTraveled": {  
-                "type": "Property", 
-                "value": shape_dist_traveled
-            },
-            
-            "timepoint": {
-                "type": "Property", 
-                "value": timepoint
-            },
-            
-            "pickup_booking_rule_id": {
-                "type": "Relationship",
-                "object": pickup_booking_rule_id
-            },
-            
-            "drop_off_booking_rule_id": {
-                "type": "Relationship",
-                "object": drop_off_booking_rule_id
-            }
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_stop_time = {
-            k: v for k, v in ngsi_ld_stop_time.items()
-            if not (isinstance(v, dict) and None in v.values())
-        }
-        
-        # Append every NGSI-LD entity after transformation
-        ngsi_ld_data.append(ngsi_ld_stop_time)
+        parsed_entity = parse_gtfs_stop_times_data(stop_time)
+        validate_gtfs_stop_times_entity(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_stop_times_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        ngsi_ld_data.append(ngsi_ld_entity)
         
     # Return the list of NGSI-LD GtfsStopTime
     return ngsi_ld_data
@@ -2443,8 +2248,8 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "routes.txt"))
     #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
     
-    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
-    ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
+    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
+    #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stop_times.txt"))
     #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
@@ -2452,8 +2257,8 @@ if __name__ == "__main__":
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stops.txt"))
     #ngsi_ld_data = gtfs_static_stops_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "transfers.txt"))
-    #ngsi_ld_data = gtfs_static_transfers_to_ngsi_ld(feed_dict)
+    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "transfers.txt"))
+    ngsi_ld_data = gtfs_static_transfers_to_ngsi_ld(feed_dict)
     
     #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "trips.txt"))
     #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
