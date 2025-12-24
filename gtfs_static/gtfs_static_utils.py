@@ -2061,6 +2061,7 @@ def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
 # -----------------------------------------------------
 # Aggregate GTFS Shape Points
 # -----------------------------------------------------
+
 def collect_shape_points(shapes_dict: dict[str, Any], entity: dict[str, Any]) -> None:
     shape_id = entity["shape_id"]
     point = {
@@ -2318,11 +2319,14 @@ def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
     """
     Based on the given file_type, the function reads the correct file type
     and calls the appropriate function for NGSI-LD tranformation
+    
     Args:
         file_type: string which specifies which .txt file to be read
+        
     Allowed values: 
         agency, calendar_dates, fare_attributes, levels, pathways, routes,
         shapes, stop_times, stops, transfers, trips
+        
     Returns:
         list[dict[str, Any]]: Function call from different functions which handle GTFS Static to NGSI-LD transformation
     """
