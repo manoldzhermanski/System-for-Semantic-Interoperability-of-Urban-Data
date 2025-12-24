@@ -5,7 +5,7 @@ def test_convert_gtfs_calendar_dates_to_ngsi_ld():
     Check for proper conversion from GTFS to NGSI-LD for calendar_dates.txt
     """
     entity = {
-        "service_id": "weekday_service",
+        "service_id": "S1",
         "date": "20240101",
         "exception_type": 1,
     }
@@ -13,11 +13,11 @@ def test_convert_gtfs_calendar_dates_to_ngsi_ld():
     result = convert_gtfs_calendar_dates_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsCalendarDateRule:Sofia:weekday_service:20240101",
+        "id": "urn:ngsi-ld:GtfsCalendarDateRule:Sofia:S1:20240101",
         "type": "GtfsCalendarDateRule",
         "hasService": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsService:weekday_service",
+            "object": "urn:ngsi-ld:GtfsService:S1",
         },
         "appliesOn": {
             "type": "Property",

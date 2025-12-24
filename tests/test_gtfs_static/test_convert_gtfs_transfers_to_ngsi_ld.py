@@ -5,10 +5,10 @@ def test_convert_gtfs_transfers_to_ngsi_ld():
     Check for proper conversion from GTFS to NGSI-LD for transfers.txt
     """
     entity = {
-        "from_stop_id": "STOP_A",
-        "to_stop_id": "STOP_B",
-        "from_trip_id": "TRIP_1",
-        "to_trip_id": "TRIP_2",
+        "from_stop_id": "S1",
+        "to_stop_id": "S2",
+        "from_trip_id": "T1",
+        "to_trip_id": "T2",
         "from_route_id": "urn:ngsi-ld:GtfsRoute:R1",
         "to_route_id": "urn:ngsi-ld:GtfsRoute:R2",
         "transfer_type": 2,
@@ -18,22 +18,15 @@ def test_convert_gtfs_transfers_to_ngsi_ld():
     result = convert_gtfs_transfers_to_ngsi_ld(entity)
 
     assert result == {
-        "id": (
-            "urn:ngsi-ld:GtfsTransferRule:"
-            "Transfer:"
-            "fromStop:STOP_A:"
-            "toStop:STOP_B:"
-            "fromTrip:TRIP_1:"
-            "toTrip:TRIP_2"
-        ),
+        "id": "urn:ngsi-ld:GtfsTransferRule:Transfer:fromStop:S1:toStop:S2:fromTrip:T1:toTrip:T2",
         "type": "GtfsTransferRule",
         "hasOrigin": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:STOP_A",
+            "object": "urn:ngsi-ld:GtfsStop:S1",
         },
         "hasDestination": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:STOP_B",
+            "object": "urn:ngsi-ld:GtfsStop:S2",
         },
         "from_route_id": {
             "type": "Relationship",
@@ -45,11 +38,11 @@ def test_convert_gtfs_transfers_to_ngsi_ld():
         },
         "from_trip_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsTrip:TRIP_1",
+            "object": "urn:ngsi-ld:GtfsTrip:T1",
         },
         "to_trip_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsTrip:TRIP_2",
+            "object": "urn:ngsi-ld:GtfsTrip:T2",
         },
         "transferType": {
             "type": "Property",
@@ -66,32 +59,25 @@ def test_convert_gtfs_transfers_to_ngsi_ld_missing_optional_fields():
     Check for proper conversion from GTFS to NGSI-LD for transfers.txt when optional fileds are missing
     """
     entity = {
-        "from_stop_id": "STOP_A",
-        "to_stop_id": "STOP_B",
-        "from_trip_id": "TRIP_1",
-        "to_trip_id": "TRIP_2",
+        "from_stop_id": "S1",
+        "to_stop_id": "S2",
+        "from_trip_id": "T1",
+        "to_trip_id": "T2",
         "transfer_type": 2,
     }
 
     result = convert_gtfs_transfers_to_ngsi_ld(entity)
 
     assert result == {
-        "id": (
-            "urn:ngsi-ld:GtfsTransferRule:"
-            "Transfer:"
-            "fromStop:STOP_A:"
-            "toStop:STOP_B:"
-            "fromTrip:TRIP_1:"
-            "toTrip:TRIP_2"
-        ),
+        "id": "urn:ngsi-ld:GtfsTransferRule:Transfer:fromStop:S1:toStop:S2:fromTrip:T1:toTrip:T2",
         "type": "GtfsTransferRule",
         "hasOrigin": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:STOP_A",
+            "object": "urn:ngsi-ld:GtfsStop:S1",
         },
         "hasDestination": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:STOP_B",
+            "object": "urn:ngsi-ld:GtfsStop:S2",
         },
         "from_route_id": {
             "type": "Relationship",
@@ -103,11 +89,11 @@ def test_convert_gtfs_transfers_to_ngsi_ld_missing_optional_fields():
         },
         "from_trip_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsTrip:TRIP_1",
+            "object": "urn:ngsi-ld:GtfsTrip:T1",
         },
         "to_trip_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsTrip:TRIP_2",
+            "object": "urn:ngsi-ld:GtfsTrip:T2",
         },
         "transferType": {
             "type": "Property",

@@ -5,11 +5,11 @@ def test_convert_gtfs_trips_to_ngsi_ld():
     Check for proper conversion from GTFS to NGSI-LD for trips.txt
     """
     entity = {
-        "trip_id": "TRIP_42",
+        "trip_id": "T1",
         "route_id": "urn:ngsi-ld:GtfsRoute:R1",
         "service_id": "urn:ngsi-ld:GtfsService:S1",
         "trip_headsign": "Downtown",
-        "trip_short_name": "D42",
+        "trip_short_name": "D1",
         "direction_id": 1,
         "block_id": "urn:ngsi-ld:GtfsBlock:B1",
         "shape_id": "urn:ngsi-ld:GtfsShape:SH1",
@@ -21,7 +21,7 @@ def test_convert_gtfs_trips_to_ngsi_ld():
     result = convert_gtfs_trips_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsTrip:TRIP_42",
+        "id": "urn:ngsi-ld:GtfsTrip:T1",
         "type": "GtfsTrip",
 
         "route": {
@@ -41,7 +41,7 @@ def test_convert_gtfs_trips_to_ngsi_ld():
 
         "shortName": {
             "type": "Property",
-            "value": "D42",
+            "value": "D1",
         },
 
         "direction": {
@@ -80,7 +80,7 @@ def test_convert_gtfs_trips_to_ngsi_ld_missing_optional_fields():
     Check for proper conversion from GTFS to NGSI-LD for trips.txt when optional fileds are missing
     """
     entity = {
-        "trip_id": "TRIP_42",
+        "trip_id": "T1",
         "route_id": "urn:ngsi-ld:GtfsRoute:R1",
         "service_id": "urn:ngsi-ld:GtfsService:S1",
         "shape_id": "urn:ngsi-ld:GtfsShape:SH1",
@@ -89,7 +89,7 @@ def test_convert_gtfs_trips_to_ngsi_ld_missing_optional_fields():
     result = convert_gtfs_trips_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsTrip:TRIP_42",
+        "id": "urn:ngsi-ld:GtfsTrip:T1",
         "type": "GtfsTrip",
 
         "route": {

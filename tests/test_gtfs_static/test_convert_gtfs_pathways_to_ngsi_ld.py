@@ -5,9 +5,9 @@ def test_convert_gtfs_pathways_to_ngsi_ld():
     Check for proper conversion from GTFS to NGSI-LD for pathways.txt
     """
     entity = {
-        "pathway_id": "path_1",
-        "from_stop_id": "urn:ngsi-ld:GtfsStop:STOP_A",
-        "to_stop_id": "urn:ngsi-ld:GtfsStop:STOP_B",
+        "pathway_id": "P1",
+        "from_stop_id": "urn:ngsi-ld:GtfsStop:S1",
+        "to_stop_id": "urn:ngsi-ld:GtfsStop:S2",
         "pathway_mode": 1,
         "is_bidirectional": 1,
         "length": 120.5,
@@ -22,15 +22,15 @@ def test_convert_gtfs_pathways_to_ngsi_ld():
     result = convert_gtfs_pathways_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsPathway:path_1",
+        "id": "urn:ngsi-ld:GtfsPathway:P1",
         "type": "GtfsPathway",
         "hasOrigin": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:STOP_A",
+            "object": "urn:ngsi-ld:GtfsStop:S1",
         },
         "hasDestination": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:STOP_B",
+            "object": "urn:ngsi-ld:GtfsStop:S2",
         },
         "pathway_mode": {
             "type": "Property",
@@ -75,9 +75,9 @@ def test_convert_gtfs_pathways_to_ngsi_ld_missing_optional_fields():
     Check for proper conversion from GTFS to NGSI-LD for pathways.txt when optional fileds are missing
     """
     entity = {
-        "pathway_id": "path_1",
-        "from_stop_id": "urn:ngsi-ld:GtfsStop:STOP_A",
-        "to_stop_id": "urn:ngsi-ld:GtfsStop:STOP_B",
+        "pathway_id": "P1",
+        "from_stop_id": "urn:ngsi-ld:GtfsStop:S1",
+        "to_stop_id": "urn:ngsi-ld:GtfsStop:S2",
         "pathway_mode": 1,
         "is_bidirectional": 1,
     }
@@ -85,15 +85,15 @@ def test_convert_gtfs_pathways_to_ngsi_ld_missing_optional_fields():
     result = convert_gtfs_pathways_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsPathway:path_1",
+        "id": "urn:ngsi-ld:GtfsPathway:P1",
         "type": "GtfsPathway",
         "hasOrigin": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:STOP_A",
+            "object": "urn:ngsi-ld:GtfsStop:S1",
         },
         "hasDestination": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:STOP_B",
+            "object": "urn:ngsi-ld:GtfsStop:S2",
         },
         "pathway_mode": {
             "type": "Property",

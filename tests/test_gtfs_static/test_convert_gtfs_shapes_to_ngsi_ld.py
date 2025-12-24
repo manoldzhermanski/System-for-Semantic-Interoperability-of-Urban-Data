@@ -4,7 +4,7 @@ def test_convert_gtfs_shapes_with_distance_travelled():
     """
     Check for proper conversion from GTFS to NGSI-LD for shapes.txt
     """
-    shape_id = "shape_1"
+    shape_id = "S1"
     points = [
         {"seq": 2, "coords": [23.32, 42.70], "dist": 100.0},
         {"seq": 1, "coords": [23.31, 42.69], "dist": 0.0},
@@ -14,11 +14,11 @@ def test_convert_gtfs_shapes_with_distance_travelled():
     result = convert_gtfs_shapes_to_ngsi_ld(shape_id, points)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsShape:shape_1",
+        "id": "urn:ngsi-ld:GtfsShape:S1",
         "type": "GtfsShape",
         "name": {
             "type": "Property",
-            "value": "shape_1",
+            "value": "S1",
         },
         "location": {
             "type": "GeoProperty",
@@ -42,7 +42,7 @@ def test_convert_gtfs_shapes_without_distance_travelled():
     Check that if 'shape_dist_traveled' is None for the individual shape points,
     the aggreagation would also be None
     """
-    shape_id = "shape_no_dist"
+    shape_id = "S2"
     points = [
         {"seq": 2, "coords": [23.32, 42.70], "dist": None},
         {"seq": 1, "coords": [23.31, 42.69], "dist": None},
@@ -51,11 +51,11 @@ def test_convert_gtfs_shapes_without_distance_travelled():
     result = convert_gtfs_shapes_to_ngsi_ld(shape_id, points)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsShape:shape_no_dist",
+        "id": "urn:ngsi-ld:GtfsShape:S2",
         "type": "GtfsShape",
         "name": {
             "type": "Property",
-            "value": "shape_no_dist",
+            "value": "S2",
         },
         "location": {
             "type": "GeoProperty",

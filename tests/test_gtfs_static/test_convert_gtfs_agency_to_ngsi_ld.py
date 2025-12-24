@@ -5,7 +5,7 @@ def test_convert_gtfs_agency_to_ngsi_ld():
     Check for proper conversion from GTFS to NGSI-LD for agency.txt
     """
     entity = {
-        "agency_id": "agency_1",
+        "agency_id": "A1",
         "agency_name": "Test Agency",
         "agency_url": "https://example.com",
         "agency_timezone": "Europe/Sofia",
@@ -19,7 +19,7 @@ def test_convert_gtfs_agency_to_ngsi_ld():
     result = convert_gtfs_agency_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsAgency:agency_1",
+        "id": "urn:ngsi-ld:GtfsAgency:A1",
         "type": "GtfsAgency",
         "agency_name": {
             "type": "Property",
@@ -60,7 +60,7 @@ def test_convert_gtfs_agency_to_ngsi_ld_missing_optional_fields():
     Check for proper conversion from GTFS to NGSI-LD for agency.txt when optional fileds are missing
     """
     entity = {
-        "agency_id": "agency_1",
+        "agency_id": "A1",
         "agency_name": "Test Agency",
         "agency_url": "https://example.com",
         "agency_timezone": "Europe/Sofia",
@@ -69,7 +69,7 @@ def test_convert_gtfs_agency_to_ngsi_ld_missing_optional_fields():
     result = convert_gtfs_agency_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsAgency:agency_1",
+        "id": "urn:ngsi-ld:GtfsAgency:A1",
         "type": "GtfsAgency",
         "agency_name": {
             "type": "Property",
