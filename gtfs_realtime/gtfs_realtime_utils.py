@@ -23,23 +23,51 @@ def iso8601_to_unix(timestamp: str) -> int:
     unix_timestamp = int(dt.timestamp())
     return unix_timestamp
 
-def get_gtfs_realtime_feed(api_endpoint: config.GtfsSource) -> bytes:
+# -----------------------------------------------------
+# GET GTFS Realtime Data
+# -----------------------------------------------------
+
+def gtfs_realtime_get_feed(api_endpoint: config.GtfsSource) -> bytes:
     """
-    Based on the API endpoint, sends a GET request to fetch the GTFS-Realtime feed.
+    Fetches a GTFS-Realtime feed from the specified API endpoint.
+
+    The function sends an HTTP GET request to the URL stored in the provided
+    GtfsSource enum and returns the raw GTFS-Realtime feed content
+    (Protocol Buffers binary format).
+
     Args:
-        api_endpoint (config.GtfsSource): enum behid which stays an API endpoint for GTFS Realtime data
+        api_endpoint (config.GtfsSource): Enum value containing the GTFS-Realtime API endpoint URL.
+
     Returns:
-        GTFS Realtime data as .pb
+        bytes: Raw GTFS-Realtime feed data in Protocol Buffers (.pb) format.
+
+    Raises:
+        ValueError:
+            If the API endpoint does not have a URL configured.
+        requests.exceptions.RequestException:
+            If the request fails or the server returns an error response.
     """
     try:
+        
+        # Extract the URL from the enum configuration
         url = api_endpoint.value
-        if url is None:
+        
+        # If url is None or empty string, raise ValueError
+        if url is None or url.strip() == "":
             raise ValueError(f"API endpoint {api_endpoint.name} has no URL configured")
+        
+        # Perform HTTP GET request to fetch the GTFS-Realtime feed
         response = requests.get(url)
+        
+        # Raise an exception for HTTP error responses
         response.raise_for_status()
+        
+        # Return raw protobuf binary content
         return response.content
-    except requests.exceptions.RequestException as e:
-        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}") from e
+    except requests.exceptions.RequestException:
+        
+        # Raise exception error whein handling the API endpoint
+        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}")
         
 def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: Optional[config.GtfsSource] = None) -> "gtfs_realtime_pb2.FeedMessage":
     """
@@ -469,21 +497,21 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
 
 
 if __name__ == "__main__":
-    #api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
     #feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
     #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     #ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
-    #api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
     #feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
     #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     #ngsi_ld_trip_updates = gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_trip_updates, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
-    #api_response = get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
+    #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
     #feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
     #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     #ngsi_ld_alerts = gtfs_realtime_alerts_to_ngsi_ld(feed_dict)
