@@ -21,16 +21,35 @@ import validation_functions.validation_utils as validation_utils
 
 def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs_static") -> None:
     """
-    Downloads a GTFS-Static ZIP file from the given API URL and extracts its contents to the specified directory.
+    Downloads a GTFS Static ZIP archive from the given API endpoint and extracts
+    its contents into a local directory structure.
+
+    The function always creates a "data" subdirectory in "base_dir" where
+    the GTFS Static files are extracted.
+
+    Args:
+        api_endpoint (config.GtfsSource): Enum value containing the GTFS Static ZIP API endpoint.
+        base_dir (str, optional): Base directory where the GTFS data will be stored. Default is "gtfs_static".
+
+    Raises:
+        ValueError: If the API endpoint is not configured or contains an empty URL.
+        requests.exceptions.RequestException: If the ZIP file cannot be downloaded.
+        zipfile.BadZipFile: If the downloaded content is not a valid ZIP archive.
     """
+    
     try:
+        # Extract URL from the enum
         url = api_endpoint.value or ""
         if url == "":
             raise ValueError(f"API endpoint for {api_endpoint.name} is not set.")
+        
+        # Download GTFS Static ZIP file
         response = requests.get(url)
         response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}: {e}") from e
+        
+    except requests.exceptions.RequestException:
+        # Display error message if the download was unsuccessful
+        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}")
     
     # Ensure base_dir exists
     os.makedirs(base_dir, exist_ok=True)
@@ -49,10 +68,33 @@ def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_d
 
 def gtfs_static_read_file(file_path: str) -> list[dict[str, Any]]:
     """
-    Reads a GTFS file and returns its contents as a list of dictionaries.
-    Each dictionary corresponds to a row in the GTFS file, with keys from the header row.
-    Because the expected delimiter in the GTFS Static files is ',' (comma), we check if this is true
+    Reads a GTFS Static CSV file and returns its contents as a list of dictionaries.
+
+    The keys come from the header row and the values from the remaining rows
+
+    The function enforces basic GTFS Static file integrity checks:
+        - The file must not be empty
+        - The delimiter must be a comma (',') as required by the GTFS specification
+        - A valid, non-empty header row must be present
+        - Header column names must not be purely numeric
+
+    Args:
+        file_path (str):
+            Absolute or relative path to the GTFS ".txt" file.
+
+    Returns:
+        list[dict[str, Any]]:
+            A list of dictionaries representing the parsed GTFS records.
+            Returns an empty list if the file is empty.
+
+    Raises:
+        FileNotFoundError:
+            If the specified file path does not exist.
+        ValueError:
+            If the file does not conform to expected GTFS CSV format
+            (invalid delimiter, missing or invalid header).
     """
+    # Try and read the specified .txt GTFS Static file
     with open(file_path, mode='r', encoding='utf-8-sig') as file:
         first_line = file.readline()
         
@@ -702,7 +744,6 @@ def validate_gtfs_calendar_dates_entity(entity: dict[str, Any]) -> None:
 
     This function performs:
     - Validation of required fields
-    - Validation of date (YYYYMMDD format)
     - Validation of 'exception_type' values
 
     Args:
@@ -2059,13 +2100,30 @@ def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
 # -----------------------------------------------------
 
 def collect_shape_points(shapes_dict: dict[str, Any], entity: dict[str, Any]) -> None:
+    """
+    Aggregates points and distances travelled into lists for each shape.
+    Those lists are sorted by point sequence number.
+    
+    Args:
+        shapes_dict (dict): Dictionary grouping points by shape_id. 
+                            Keys are shape_id strings, values are lists of points and distances.
+        entity (dict): Dictionary with data for a single shape point, including:
+                       - shape_id: the identifier of the shape
+                       - shape_pt_sequence: sequence number of the point
+                       - shape_pt_lon: longitude
+                       - shape_pt_lat: latitude
+                       - shape_dist_traveled (optional): distance traveled along the shape
+    """
+    
+    # Get shape_id and point and distance data from the entity
     shape_id = entity["shape_id"]
     point = {
         "seq": entity["shape_pt_sequence"],
         "coords": [entity["shape_pt_lon"], entity["shape_pt_lat"]],
         "dist": entity.get("shape_dist_traveled"),
     }
-
+    
+    # Append the point and distance to the corresponding shape_id in shapes_dict
     shapes_dict.setdefault(shape_id, []).append(point)
 
 # -----------------------------------------------------
@@ -2073,13 +2131,21 @@ def collect_shape_points(shapes_dict: dict[str, Any], entity: dict[str, Any]) ->
 # -----------------------------------------------------
 
 def remove_none_values(entity: dict[str, Any]) -> dict[str, Any]:
-        
-        entity = {
+    """
+    Removes NGSI-LD attributes whose values contain None.
+
+    Args:
+        entity (dict[str, Any]): A dictionary representing an NGSI-LD entity.
+
+    Returns:
+        dict[str, Any]: A new dictionary with invalid attributes removed.
+    """
+    entity = {
             k: v for k, v in entity.items()
             if not (isinstance(v, dict) and None in v.values())
         }
 
-        return entity
+    return entity
 
 # -----------------------------------------------------
 # Main conversion functions
@@ -2643,7 +2709,7 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") 
         base_dir (str, optional):
             Base directory where the GTFS static data is stored.
             "gtfs_static_download_and_extract_zip" always 
-            creates a data sub-directory inside the base_dir
+            creates a data subdirectory inside the base_dir
             Default directory is "gtfs_static".
 
     Returns:
@@ -2689,5 +2755,3 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") 
     # Convert raw GTFS data to NGSI-LD entities
     return transformer(raw_data)
     
-if __name__ == "__main__":
-    gtfs_static_download_and_extract_zip(config.GtfsSource.GTFS_STATIC_ZIP_URL)
