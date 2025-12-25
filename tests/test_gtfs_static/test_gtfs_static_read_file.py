@@ -1,10 +1,5 @@
 
-import sys
 import pytest
-from pathlib import Path
-
-project_root = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(project_root))
 
 from gtfs_static.gtfs_static_utils import gtfs_static_read_file
 

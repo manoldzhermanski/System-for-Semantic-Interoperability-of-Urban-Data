@@ -1,13 +1,9 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from gtfs_static.gtfs_static_utils import gtfs_static_agency_to_ngsi_ld
 
-# Mock function behavior
-@patch("gtfs_static.gtfs_static_utils.remove_none_values")
-@patch("gtfs_static.gtfs_static_utils.convert_gtfs_agency_to_ngsi_ld")
-@patch("gtfs_static.gtfs_static_utils.validate_gtfs_agency_entity")
-@patch("gtfs_static.gtfs_static_utils.parse_gtfs_agency_data")
-def test_gtfs_agency_to_ngsi_ld(mock_parse, mock_validate, mock_convert, mock_remove_none):
+
+def test_gtfs_agency_to_ngsi_ld():
     """
     Unit test for gtfs_static_agency_to_ngsi_ld:
     - Check for proper function call order (parse, validate, convert, remove_none)
@@ -45,8 +41,6 @@ def test_gtfs_agency_to_ngsi_ld(mock_parse, mock_validate, mock_convert, mock_re
             },
         ]
     
-    mock_parse.side_effect = parsed_data
-    
     # Mock result from convert_gtfs_agency_to_ngsi_ld
     converted_data = [
         {
@@ -64,9 +58,7 @@ def test_gtfs_agency_to_ngsi_ld(mock_parse, mock_validate, mock_convert, mock_re
             "agency_timezone": {"type": "Property","value": "Europe/Sofia",},
             },
         ]
-    
-    mock_convert.side_effect = converted_data
-    
+        
     # Mock result from remove_none_values
     cleaned_data = [
         {
@@ -84,11 +76,21 @@ def test_gtfs_agency_to_ngsi_ld(mock_parse, mock_validate, mock_convert, mock_re
             "agency_timezone": {"type": "Property","value": "Europe/Sofia",},
             },
         ]
-    
-    mock_remove_none.side_effect = cleaned_data
-    
-    # Function call result from gtfs_static_agency_to_ngsi_ld
-    result = gtfs_static_agency_to_ngsi_ld(sample_raw_data)
+        
+    mock_parse = MagicMock(side_effect=parsed_data)
+    mock_validate = MagicMock()
+    mock_convert = MagicMock(side_effect=converted_data)
+    mock_remove_none = MagicMock(side_effect=cleaned_data)
+
+    # Mock function behavior
+    with \
+        patch("gtfs_static.gtfs_static_utils.parse_gtfs_agency_data", mock_parse), \
+        patch("gtfs_static.gtfs_static_utils.validate_gtfs_agency_entity", mock_validate), \
+        patch("gtfs_static.gtfs_static_utils.convert_gtfs_agency_to_ngsi_ld", mock_convert), \
+        patch("gtfs_static.gtfs_static_utils.remove_none_values", mock_remove_none):
+
+            # Function call result from gtfs_static_agency_to_ngsi_ld
+            result = gtfs_static_agency_to_ngsi_ld(sample_raw_data)
 
     # Check that result is as expected
     assert result == cleaned_data
