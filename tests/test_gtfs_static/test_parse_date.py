@@ -18,14 +18,14 @@ def test_parse_date_empty_string_as_input():
 
 
 def test_parse_date_invalid_format_raises_value_error():
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as err:
         parse_date("2023-01-01", "start_date")
 
-    assert str(exc.value) == "start_date must be a valid date in YYYYMMDD format, got '2023-01-01'"
+    assert str(err.value) == "start_date must be a valid date in YYYYMMDD format, got '2023-01-01'"
 
 
 def test_parse_date_invalid_date_raises_value_error():
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as err:
         parse_date("20230231", "start_date")
 
-    assert str(exc.value) == "start_date must be a valid date in YYYYMMDD format, got '20230231'"
+    assert str(err.value) == "start_date must be a valid date in YYYYMMDD format, got '20230231'"

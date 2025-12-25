@@ -136,37 +136,8 @@ def is_valid_color(color_code: Any) -> bool:
     return bool(re.fullmatch(r"[A-Fa-f0-9]{6}", color_code))
 
 # -----------------------------------------------------
-# Date, Time, Timezone checks
+# Timezone check
 # -----------------------------------------------------
-
-def is_valid_date(date_str: Any) -> bool:
-    """
-    Check if argument is a date in the format YYYYMMDD
-
-    Args:
-        date_str (Any): Argument to check
-
-    Returns:
-        bool: True if argument is a date in the format YYYY-MM-DD, False otherwise
-    """
-    # Return False, if not a string
-    if not isinstance(date_str, str):
-        return False
-    
-    # Remove white spaces around the string
-    date_str = date_str.strip()
-    
-    # Return False, if empty string
-    if date_str == "":
-        return False
-    
-    try:
-        # Attempt to parse the string as a date in YYYY-MM-DD format
-        datetime.strptime(date_str, "%Y%m%d")
-        return True
-    except Exception:
-        # If parsing fails, the string is not a valid date in this format
-        return False
 
 def is_valid_timezone(timezone: Any) -> bool:
     """
@@ -195,39 +166,6 @@ def is_valid_timezone(timezone: Any) -> bool:
         return True
     except Exception:
         # If parsing fails, the string is not a valid timezone
-        return False
-
-def is_valid_time(value: Any) -> bool:
-    """
-    Check if argument is time in HH:MM:SS format
-
-    Args:
-        value (Any): Argument to check
-
-    Returns:
-        bool: True if argument is time in HH:MM:SS format, False otherwise
-    """
-    # Return False, if not a string
-    if not isinstance(value, str):
-        return False
-    
-    # Remove white spaces around the string
-    value = value.strip()
-    
-    # Return False, if empty string
-    if value == "":
-        return False
-    
-    # Strict regex for HH:MM:SS
-    if not re.fullmatch(r"[0-2][0-9]:[0-5][0-9]:[0-5][0-9]", value):
-        return False
-    
-    try:
-        # Attempt to parse the string as time in HH:MM:SS format
-        datetime.strptime(value, "%H:%M:%S")
-        return True
-    except ValueError:
-        # If parsing fails, the string is not a valid time in this format
         return False
 
 # -----------------------------------------------------

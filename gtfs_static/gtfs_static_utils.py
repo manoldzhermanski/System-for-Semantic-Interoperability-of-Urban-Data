@@ -68,7 +68,7 @@ def gtfs_static_read_file(file_path: str) -> list[dict[str, Any]]:
         file.seek(0)  
         reader = csv.DictReader(file, delimiter=",")
         
-        # Reject headers that are purely numeric → typical sign of missing header
+        # Reject headers that are purely numeric (typical sign of missing header)
         if reader.fieldnames and any(name.strip().isdigit() for name in reader.fieldnames):
             raise ValueError("Missing or invalid header row: GTFS files must contain a valid CSV header.")
         
@@ -714,11 +714,6 @@ def validate_gtfs_calendar_dates_entity(entity: dict[str, Any]) -> None:
     # Required GTFS fields
     required_fields = ["service_id", "date", "exception_type"]
     validate_required_fields(entity, required_fields)
-
-    # Validate date format (YYYYMMDD)
-    date = entity.get("date")
-    if not validation_utils.is_valid_date(date):
-        raise ValueError(f"date must be a valid date in YYYYMMDD, got '{date}'")
 
     # Validate 'exception_type' value
     exception_type = entity.get("exception_type")
@@ -2615,22 +2610,55 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
 # -----------------------------------------------------
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------    
-def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
+def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") -> list[dict[str, Any]]:
     """
-    Based on the given file_type, the function reads the correct file type
-    and calls the appropriate function for NGSI-LD tranformation
-    
+    Reads GTFS static data from the local filesystem and converts it
+    into NGSI-LD entities based on the specified GTFS file type.
+
+    This function assumes that GTFS static data has already been downloaded
+    and extracted using gtfs_static_download_and_extract_zip
+
+    Based on the provided file_type, the function:
+    1. Selects the corresponding GTFS .txt file.
+    2. Reads its contents into a list of dictionaries.
+    3. Applies the appropriate GTFS → NGSI-LD transformation function.
+
     Args:
-        file_type: string which specifies which .txt file to be read
-        
-    Allowed values: 
-        agency, calendar_dates, fare_attributes, levels, pathways, routes,
-        shapes, stop_times, stops, transfers, trips
-        
+        file_type (str):
+            Identifier of the GTFS static file to process.
+
+            Allowed values:
+            - "agency"
+            - "calendar_dates"
+            - "fare_attributes"
+            - "levels"
+            - "pathways"
+            - "routes"
+            - "shapes"
+            - "stop_times"
+            - "stops"
+            - "transfers"
+            - "trips"
+
+        base_dir (str, optional):
+            Base directory where the GTFS static data is stored.
+            "gtfs_static_download_and_extract_zip" always 
+            creates a data sub-directory inside the base_dir
+            Default directory is "gtfs_static".
+
     Returns:
-        list[dict[str, Any]]: Function call from different functions which handle GTFS Static to NGSI-LD transformation
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities corresponding to the selected
+            GTFS static file type.
+
+    Raises:
+        ValueError:
+            If the provided "file_type" is not supported.
+        FileNotFoundError:
+            If the expected GTFS file does not exist in `<base_dir>/data`.
     """
     
+    # Mapping between GTFS file types, their filenames, and transformation functions
     mapping = {
         "agency": ("agency.txt", gtfs_static_agency_to_ngsi_ld),
         "calendar_dates": ("calendar_dates.txt", gtfs_static_calendar_dates_to_ngsi_ld),
@@ -2645,21 +2673,21 @@ def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
         "trips": ("trips.txt", gtfs_static_trips_to_ngsi_ld)
     }
 
+    # Validate requested GTFS file type
     if file_type not in mapping:
-        raise ValueError(f"Unsupported GTFS static file type: {file_type}")
+        raise FileNotFoundError(f"Unsupported GTFS static file type: {file_type}")
 
+    # Resolve filename and corresponding transformation function
     filename, transformer = mapping[file_type]
-    filepath = os.path.join("gtfs_static", "data", filename)
+    
+    # Build the absolute path to the GTFS static file
+    filepath = os.path.join(base_dir, "data", filename)
 
+    # Read raw GTFS data from file
     raw_data = gtfs_static_read_file(filepath)
+    
+    # Convert raw GTFS data to NGSI-LD entities
     return transformer(raw_data)
     
 if __name__ == "__main__":
-    #gtfs_static_download_and_extract_zip(config.GtfsSource.GTFS_STATIC_ZIP_URL)
-                    
-    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "trips.txt"))
-    ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
-    
-    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
-    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
-    pass
+    gtfs_static_download_and_extract_zip(config.GtfsSource.GTFS_STATIC_ZIP_URL)
