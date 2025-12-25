@@ -1,7 +1,7 @@
 import os
 import csv
 import sys
-import config
+import json
 import zipfile
 import requests
 from typing import Any
@@ -12,6 +12,7 @@ from datetime import datetime
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
+import config
 import validation_functions.validation_utils as validation_utils
 
 # -----------------------------------------------------
@@ -1307,12 +1308,12 @@ def validate_gtfs_trips_entity(entity: dict[str, Any]) -> None:
     # If present, write 'block_id' as NGSI URN 
     block_id = entity.get("block_id")
     if block_id is not None:
-        block_id = f"urn:ngsi-ld:GtfsBlock:{block_id}"
+        entity["block_id"] = f"urn:ngsi-ld:GtfsBlock:{entity["block_id"]}"
 
     # If present, write 'shape_id' as NGSI URN 
     shape_id = entity.get("shape_id")
     if shape_id is not None:
-        shape_id = f"urn:ngsi-ld:GtfsShape:{shape_id}"
+        entity["shape_id"] = f"urn:ngsi-ld:GtfsShape:{entity["shape_id"]}"
 
     # Validate 'wheelchair_accessible' value
     wheelchair_accessible = entity.get("wheelchair_accessible")
@@ -1726,7 +1727,7 @@ def convert_gtfs_stop_times_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]
             
             "hasTrip": {
                 "type": "Relationship",
-                "object": entity.get("trip_id")
+                "object": f"urn:ngsi-ld:GtfsTrip:{entity.get("trip_id")}"
             },
             
             "arrivalTime": {
@@ -2090,119 +2091,279 @@ def remove_none_values(entity: dict[str, Any]) -> dict[str, Any]:
 # ----------------------------------------------------- 
 
 def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    
+    """
+    Converts GTFS static agency data into NGSI-LD entities.
+
+    The function processes each GTFS agency entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed agency entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsAgency entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
+    Args:
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS agency entities
+
+    Returns:
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing 'GtfsAgency'
+    Raises:
+        ValueError:
+            If any parsed agency entity does not satisfy the GTFS validation rules.
+    """
+
+    # Container for the resulting NGSI-LD GtfsAgency entities
     ngsi_ld_data = []
+
+    # Process each GTFS agency entity
     for agency in raw_data:
 
+        # Parse raw GTFS agency data to the according data types
         parsed_entity = parse_gtfs_agency_data(agency)
+
+        # Validate the parsed agency entity (mandatory fields, data types, etc.)
         validate_gtfs_agency_entity(parsed_entity)
+
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_agency_to_ngsi_ld(parsed_entity)
+
+        # Remove attributes with None values to ensure a clean NGSI-LD payload
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
-        
-    # Return the list of NGSI-LD GtfsAgency
+
+    # Return the list of NGSI-LD GtfsAgency entities
     return ngsi_ld_data
-    
+
 def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static Calendar Date Rule attributes data to NGSI-LD format.
+    Converts GTFS static calendar date rules into NGSI-LD entities.
+
+    The function processes each GTFS calendar date entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed calendar date entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsCalendarDateRule entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS calendar date entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing 'GtfsCalendarDateRule'
+
+    Raises:
+        ValueError:
+            If any parsed calendar date entity does not satisfy the GTFS validation rules.
     """
+
+    # Container for the resulting NGSI-LD calendar date rule entities
     ngsi_ld_data = []
-        
+
+    # Process each GTFS calendar date entity
     for calendar_date in raw_data:
-        
+
+        # Parse raw GTFS calendar date data to the according data types
         parsed_entity = parse_gtfs_calendar_dates_data(calendar_date)
+
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_calendar_dates_entity(parsed_entity)
+
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_calendar_dates_to_ngsi_ld(parsed_entity)
+
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
-        
-    # Return the list of NGSI-LD GtfsCalendarDateRule
+
+    # Return the list of NGSI-LD GtfsCalendarDateRule entities
     return ngsi_ld_data
     
 def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static fare attributes data to NGSI-LD format.
+    Converts GTFS static fare attributes into NGSI-LD entities.
+
+    The function processes each GTFS fare attribute entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed fare attribute entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsFareAttributes entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS fare attribute entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsFareAttributes
+
+    Raises:
+        ValueError:
+            If any parsed fare attribute entity does not satisfy the GTFS validation rules.
     """
+    
+    # Container for the resulting NGSI-LD fare attribute entities
     ngsi_ld_data = []
     
+    # Process each GTFS fare attributes entity
     for fare in raw_data:
 
+        # Parse raw GTFS fare atributes data to the according data types
         parsed_entity = parse_gtfs_fare_attributes_data(fare)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_fare_attributes_entity(parsed_entity)
+        
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_fare_attributes_to_ngsi_ld(parsed_entity)
+        
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
         
-    # Return the list of NGSI-LD GtfsFareAttributes
+    # Return the list of NGSI-LD GtfsFareAttributes entities
     return ngsi_ld_data
 
 def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static level data to NGSI-LD format.
+    Converts GTFS static levels into NGSI-LD entities.
+
+    The function processes each GTFS level entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed level entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsLevel entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS level entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsLevel
+
+    Raises:
+        ValueError:
+            If any parsed level entity does not satisfy the GTFS validation rules.
     """
+    
+    # Container for the resulting NGSI-LD level entities
     ngsi_ld_data = []
     
-    
+    # Process each GTFS levels entity
     for level in raw_data:
 
+        # Parse raw GTFS levels data to the according data types
         parsed_entity = parse_gtfs_levels_data(level)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_levels_entity(parsed_entity)
+        
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_levels_to_ngsi_ld(parsed_entity)
+        
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
         
-    # Return the list of NGSI-LD GtfsLevel
+    # Return the list of NGSI-LD GtfsLevel entities
     return ngsi_ld_data
     
 def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static pathways data to NGSI-LD format.
+    Converts GTFS static pathways into NGSI-LD entities.
+
+    The function processes each GTFS pathway entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed pathway entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsPathway entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS pathway entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsPathway
+
+    Raises:
+        ValueError:
+            If any parsed pathway entity does not satisfy the GTFS validation rules.
     """
-    
+    # Container for the resulting NGSI-LD pathway entities
     ngsi_ld_data = []
 
+    # Process each GTFS pathway entity
     for pathway in raw_data:
+        
+        # Parse raw GTFS pathway data to the according data types
         parsed_entity = parse_gtfs_pathways_data(pathway)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_pathways_entity(parsed_entity)
+        
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_pathways_to_ngsi_ld(parsed_entity)
+        
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
         
-    # Return the list of NGSI-LD GtfsPathway
+    # Return the list of NGSI-LD GtfsPathway entities
     return ngsi_ld_data
     
 def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static routes data to NGSI-LD format.
+    Converts GTFS static routes into NGSI-LD entities.
+
+    The function processes each GTFS route entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed route entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsRoute entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS route entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsRoute
+
+    Raises:
+        ValueError:
+            If any parsed route entity does not satisfy the GTFS validation rules.
     """
+    # Container for the resulting NGSI-LD route entities
     ngsi_ld_data = []
     
+    # Process each GTFS route entity
     for route in raw_data:
+        
+        # Parse raw GTFS route data to the according data types
         parsed_entity = parse_gtfs_routes_data(route)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_routes_entity(parsed_entity)
+        
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_routes_to_ngsi_ld(parsed_entity)
+        
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
         
     # Return the list of NGSI-LD GtfsRoute
@@ -2210,106 +2371,245 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
 
 def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static shapes data to NGSI-LD format.
+    Converts GTFS static shapes into NGSI-LD entities.
+
+    The function processes each GTFS shape entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed shapes entity against GTFS rules.
+    3. Aggregating all points and 'shape_dist_traveled' into lists based on the 'shape_id'
+    4. Converting the aggregated entity into an NGSI-LD GtfsShape entity.
+    5. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS shape entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsShape
+
+    Raises:
+        ValueError:
+            If any parsed shape entity does not satisfy the GTFS validation rules.
     """
+    # Container for the resulting NGSI-LD shape entities
     ngsi_ld_data = []
+    
+    # Container for the aggregated points and travelled distance
     shapes_dict = {}
 
+    # Process each GTFS shape entity
     for shape in raw_data:
+        
+        # Parse raw GTFS shape data to the according data types
         parsed_entity = parse_gtfs_shapes_data(shape)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_shapes_entity(parsed_entity)
+        
+        # Aggregate the shape points and distance travelled and store it in the shape_dict container
         collect_shape_points(shapes_dict, parsed_entity)
 
-                    
+    # Process each record in the shape_dict container                
     for shape_id, points in shapes_dict.items():
+        
+        # Convert the aggregated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_shapes_to_ngsi_ld(shape_id, points)
+        
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
 
-    # Return the list of NGSI-LD GtfsShape
+    # Return the list of NGSI-LD GtfsShape entities
     return ngsi_ld_data
 
 def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static stop times data to NGSI-LD format.
+    Converts GTFS static stop times into NGSI-LD entities.
+
+    The function processes each GTFS stop time entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed stop time entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsStopTime entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS stop times entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsStopTime
+
+    Raises:
+        ValueError:
+            If any parsed stop time entity does not satisfy the GTFS validation rules.
     """
+    
+    # Container for the resulting NGSI-LD stop time entities
     ngsi_ld_data = []
     
+    # Process each GTFS stop time entity
     for stop_time in raw_data:
+        
+        # Parse raw GTFS stop time data to the according data types
         parsed_entity = parse_gtfs_stop_times_data(stop_time)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_stop_times_entity(parsed_entity)
+        
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_stop_times_to_ngsi_ld(parsed_entity)
+        
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
         
-    # Return the list of NGSI-LD GtfsStopTime
+    # Return the list of NGSI-LD GtfsStopTime entities
     return ngsi_ld_data
 
 def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static stops data to NGSI-LD format.
+    Converts GTFS static stops into NGSI-LD entities.
+
+    The function processes each GTFS stop entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed stop entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsStop entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS stop entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trip
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsStop
+
+    Raises:
+        ValueError:
+            If any parsed stop entity does not satisfy the GTFS validation rules.
     """
+    # Container for the resulting NGSI-LD stop entities
     ngsi_ld_data = []
     
+    # Process each GTFS stop entity
     for stop in raw_data:
+        
+        # Parse raw GTFS stop data to the according data types
         parsed_entity = parse_gtfs_stops_data(stop)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_stops_entity(parsed_entity)
+        
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_stops_to_ngsi_ld(parsed_entity)
+        
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
         
-    # Return the list of NGSI-LD GtfsStop
+    # Return the list of NGSI-LD GtfsStop entities
     return ngsi_ld_data
 
 def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static transfers data to NGSI-LD format.
+    Converts GTFS static transfers into NGSI-LD entities.
+
+    The function processes each GTFS transfer entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed transfer entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsTransfer entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS transfer entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trips
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsTransfer
+
+    Raises:
+        ValueError:
+            If any parsed transfer entity does not satisfy the GTFS validation rules.
     """
+    
+    # Container for the resulting NGSI-LD transfer entities
     ngsi_ld_data = []
     
+    # Process each GTFS transfer entity
     for transfer in raw_data:
+        
+        # Parse raw GTFS transfer data to the according data types
         parsed_entity = parse_gtfs_transfers_data(transfer)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_transfers_entity(parsed_entity)
+        
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_transfers_to_ngsi_ld(parsed_entity)
+        
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
         
+    # Return the list of NGSI-LD GtfsTransfer entities
     return ngsi_ld_data
 
 def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Converts GTFS static trips data to NGSI-LD format.
+    Converts GTFS static trips into NGSI-LD entities.
+
+    The function processes each GTFS trip entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed trip entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsTrip entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
     Args:
-        raw_data (list[dict[str, Any]]): List of dictionaries containing trip data from GTFS static files.
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS trip entities
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS trips.
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsTrip
+
+    Raises:
+        ValueError:
+            If any parsed trip entity does not satisfy the GTFS validation rules.
     """
+    
+    # Container for the resulting NGSI-LD trip entities
     ngsi_ld_data = []
+    
+    # Process each GTFS trip entity
     for trip in raw_data:
+        
+        # Parse raw GTFS trip data to the according data types
         parsed_entity = parse_gtfs_trips_data(trip)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
         validate_gtfs_trips_entity(parsed_entity)
+        
+        # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_trips_to_ngsi_ld(parsed_entity)
+        
+        # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
         ngsi_ld_data.append(ngsi_ld_entity)
 
-        
-    # Return the list of NGSI-LD GtfsTrip
+    # Return the list of NGSI-LD GtfsTrip entities
     return ngsi_ld_data
 
 # -----------------------------------------------------
@@ -2356,40 +2656,10 @@ def gtfs_static_get_ngsi_ld_data(file_type: str) -> list[dict[str, Any]]:
     
 if __name__ == "__main__":
     #gtfs_static_download_and_extract_zip(config.GtfsSource.GTFS_STATIC_ZIP_URL)
+                    
+    feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "trips.txt"))
+    ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
     
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "agency.txt"))
-    #ngsi_ld_data = gtfs_static_agency_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "calendar_dates.txt"))
-    #ngsi_ld_data = gtfs_static_calendar_dates_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "fare_attributes.txt"))
-    #ngsi_ld_data = gtfs_static_fare_attributes_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "levels.txt"))
-    #ngsi_ld_data = gtfs_static_levels_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "pathways.txt"))
-    #ngsi_ld_data = gtfs_static_pathways_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "routes.txt"))
-    #ngsi_ld_data = gtfs_static_routes_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "shapes.txt"))
-    #ngsi_ld_data = gtfs_static_shapes_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stop_times.txt"))
-    #ngsi_ld_data = gtfs_static_stop_times_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "stops.txt"))
-    #ngsi_ld_data = gtfs_static_stops_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "transfers.txt"))
-    #ngsi_ld_data = gtfs_static_transfers_to_ngsi_ld(feed_dict)
-    
-    #feed_dict = gtfs_static_read_file(os.path.join("gtfs_static", "data", "trips.txt"))
-    #ngsi_ld_data = gtfs_static_trips_to_ngsi_ld(feed_dict)
-    
-    #print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
+    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
     pass

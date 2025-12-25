@@ -6,7 +6,7 @@ def test_convert_gtfs_stop_times_to_ngsi_ld():
     Check for proper conversion from GTFS to NGSI-LD for stop_times.txt
     """
     entity = {
-        "trip_id": "urn:ngsi-ld:GtfsTrip:T1",
+        "trip_id": "T1",
         "arrival_time": "08:15:00",
         "departure_time": "08:17:00",
         "stop_id": "urn:ngsi-ld:GtfsStop:S1",
@@ -29,7 +29,7 @@ def test_convert_gtfs_stop_times_to_ngsi_ld():
     result = convert_gtfs_stop_times_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsStopTime:urn:ngsi-ld:GtfsTrip:T1:5",
+        "id": "urn:ngsi-ld:GtfsStopTime:T1:5",
         "type": "GtfsStopTime",
         "hasTrip": {
             "type": "Relationship",
@@ -110,7 +110,7 @@ def test_convert_gtfs_stop_times_to_ngsi_ld_missing_optional_fields():
     Check for proper conversion from GTFS to NGSI-LD for stop_times.txt when optional fileds are missing
     """
     entity = {
-        "trip_id": "urn:ngsi-ld:GtfsTrip:T1",
+        "trip_id": "T1",
         "arrival_time": "08:15:00",
         "departure_time": "08:17:00",
         "stop_id": "urn:ngsi-ld:GtfsStop:S1",
@@ -128,7 +128,7 @@ def test_convert_gtfs_stop_times_to_ngsi_ld_missing_optional_fields():
     result = convert_gtfs_stop_times_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsStopTime:urn:ngsi-ld:GtfsTrip:T1:5",
+        "id": "urn:ngsi-ld:GtfsStopTime:T1:5",
         "type": "GtfsStopTime",
         "hasTrip": {
             "type": "Relationship",
