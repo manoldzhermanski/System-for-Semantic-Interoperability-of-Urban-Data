@@ -49,10 +49,13 @@ def test_get_gtfs_realtime_feed_404_not_found():
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.name = "GTFS_REALTIME"
     mock_api_endpoint.value = "http://fake-url.com/feed"
-    mock_api_endpoint.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
+
+    # Mock response with raise_for_status that raises HTTPError
+    mock_response = MagicMock()
+    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
 
     # Trigger HTTPError exception
-    with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_api_endpoint):
+    with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_response):
         with pytest.raises(requests.exceptions.RequestException) as err:
             gtfs_realtime_get_feed(mock_api_endpoint)
 
@@ -68,10 +71,9 @@ def test_get_gtfs_realtime_feed_timeout_error():
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.name = "GTFS_REALTIME"
     mock_api_endpoint.value = "http://fake-url.com/feed"
-    mock_api_endpoint.side_effect = requests.exceptions.Timeout("The request timed out")
 
-    # Trigger Timeout exception
-    with patch("gtfs_static.gtfs_static_utils.requests.get", mock_api_endpoint):
+    # Mock requests.get to raise Timeout
+    with patch("gtfs_static.gtfs_static_utils.requests.get", side_effect=requests.exceptions.Timeout("The request timed out")):
         with pytest.raises(requests.exceptions.RequestException) as err:
             gtfs_realtime_get_feed(mock_api_endpoint)
 

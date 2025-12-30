@@ -2,11 +2,10 @@ import os
 import sys
 import json
 import requests
-from google.transit import gtfs_realtime_pb2
-from google.transit.gtfs_realtime_pb2 import FeedMessage
+from google.transit.gtfs_realtime_pb2 import FeedMessage # type: ignore
 from google.protobuf.message import DecodeError
 from google.protobuf.json_format import MessageToDict
-from typing import Any, Optional
+from typing import Any
 from datetime import datetime, timezone
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -24,7 +23,7 @@ def iso8601_to_unix(timestamp: str) -> int:
     return unix_timestamp
 
 # -----------------------------------------------------
-# GET GTFS Realtime Data
+# GTFS Realtime Data Manipulations
 # -----------------------------------------------------
 
 def gtfs_realtime_get_feed(api_endpoint: config.GtfsSource) -> bytes:
@@ -69,7 +68,7 @@ def gtfs_realtime_get_feed(api_endpoint: config.GtfsSource) -> bytes:
         # Raise exception error whein handling the API endpoint
         raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}")
         
-def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: Optional[config.GtfsSource] = None) -> "gtfs_realtime_pb2.FeedMessage":
+def gtfs_realtime_parse_feed(feed_data: bytes, api_endpoint: config.GtfsSource | None = None) -> FeedMessage:
     """
     Parses the GTFS-Realtime feed data into a FeedMessage object.
     Provide an optional api_endpoint for debugging purposes.
@@ -79,24 +78,194 @@ def parse_gtfs_realtime_feed(feed_data: bytes, api_endpoint: Optional[config.Gtf
     Returns:
         FeedMessage: GTFS Realtime Feed data
     """
-    feed = gtfs_realtime_pb2.FeedMessage()
+    
+    # Create an empty GTFS-Realtime FeedMessage protobuf object
+    feed = FeedMessage()
+    
     try:
+        
+        # Try and parse the binary protobuf payload into a FeedMessage
         feed.ParseFromString(feed_data)
-    except DecodeError as e:
-        endpoint_info = f" from {api_endpoint.name}" if api_endpoint else ""
-        raise ValueError(f"Error parsing GTFS-Realtime feed data from {endpoint_info}: {e}")
+        
+    except DecodeError:
+        
+        # Raise DecodeError if parsing fails
+        raise DecodeError(f'Error parsing GTFS-Realtime feed data {"from " + api_endpoint.name if api_endpoint else ""}')
+    
+    # Return the successfully parsed GTFS-Realtime feed
     return feed
 
-def gtfs_realtime_feed_to_dict(feed_data: FeedMessage) -> MessageToDict:
+def gtfs_realtime_feed_to_dict(feed_data: FeedMessage) -> dict[str, Any]:
     """
-    Converts a FeedMessage object to a dictionary using MessageToDict.
+    Converts a GTFS-Realtime FeedMessage protobuf object into a Python dictionary.
+
     Args:
-        feed_data (FeedMessage): GTFS Realtime Feed Data
+        feed_data (FeedMessage): Parsed GTFS-Realtime feed protobuf message.
+
     Returns:
-        MessageToDict: Dictionary of GTFS Realtime Feed Data
+        dict[str, Any]: Dictionary representation of the GTFS-Realtime feed.
     """
+    
     feed_dict = MessageToDict(feed_data)
     return feed_dict
+
+# -----------------------------------------------------
+# Normalization Functions
+# -----------------------------------------------------
+def gtfs_realtime_normalize_trip_descriptor_message(trip: dict) -> dict[str, Any]:
+    """
+    Normalize a GTFS-realtime TripDescriptor message.
+
+    This function takes a raw TripDescriptor dictionary and 
+    returns a normalized dictionary structure. Missing fields are 
+    handled by being set to None.
+
+    Args:
+        trip (dict): Raw trip descriptor dictionary. Expected to potentially
+            contain a nested "modified_trip" dictionary.
+
+    Returns:
+        dict[str, Any]: Normalized trip descriptor with the following structure:
+            {
+                "trip_id": str | None,
+                "route_id": str | None,
+                "direction_id": int | None,
+                "start_time": str | None,
+                "start_date": str | None,
+                "schedule_relationship": str | None,
+                "modified_trip": {
+                    "modifications_id": str | None,
+                    "affected_trip_id": str | None,
+                    "start_time": str | None,
+                    "start_date": str | None
+                }
+            }
+    """
+
+    # Extract nested modified_trip dictionary if present
+    modified_trip = trip.get("modified_trip")
+
+    return {
+        "trip_id": trip.get("trip_id"),
+        "route_id": trip.get("route_id"),
+        "direction_id": trip.get("direction_id"),
+        "start_time": trip.get("start_time"),
+        "start_date": trip.get("start_date"),
+        "schedule_relationship": trip.get("schedule_relationship"),
+
+        # Normalize modified_trip; return None values if missing
+        "modified_trip": {
+            "modifications_id": modified_trip.get("modifications_id") if modified_trip else None,
+            "affected_trip_id": modified_trip.get("affected_trip_id") if modified_trip else None,
+            "start_time": modified_trip.get("start_time") if modified_trip else None,
+            "start_date": modified_trip.get("start_date") if modified_trip else None,
+        },
+    }
+    
+
+def gtfs_realtime_normalize_translated_string_message(entity: dict[str, Any] | None, field: str) -> list[dict[str, Any]]:
+    
+    entity_field = entity.get(field) if entity else None
+    message = entity_field.get("translation") if entity_field else []
+    
+    return [
+        {
+            "text": translation.get("text"),
+            "language": translation.get("language")
+        }
+        for translation in message
+    ]
+
+def gtfs_realtime_normalize_vehicle_position(entity: dict[str, Any]) -> dict[str, Any]:
+    return {}
+
+def gtfs_realtime_normalize_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
+    return {}
+
+def gtfs_realtime_normalize_alerts(entity: dict[str, Any]) -> dict[str, Any]:
+    
+    alert_info = entity.get("alert")
+    alert_active_period = [
+        {
+            "start": period.get("start"),
+            "end": period.get("end")
+        }
+        for period in (alert_info.get("activePeriod") if alert_info else [])
+    ]
+    
+    alert_info_infromed_entity = alert_info.get("informedEntity") if alert_info else []
+    
+    alert_informed_entity = [
+        {
+            "agency_id": infromed_entity.get("agency_id"),
+            "route_id": infromed_entity.get("route_id"),
+            "route_type": infromed_entity.get("route_type"),
+            "direction_id": infromed_entity.get("direction_id"),
+            "trip": gtfs_realtime_normalize_trip_descriptor_message(infromed_entity.get("trip")),
+            "stop_id": infromed_entity.get("stop_id")
+        }
+        for infromed_entity in alert_info_infromed_entity
+    ]
+    
+    alert_cause = alert_info.get("cause") if alert_info else None
+    alert_effect = alert_info.get("effect") if alert_info else None
+    alert_severity_level = alert_info.get("severity_level") if alert_info else None
+    
+    cause_detail_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "cause_detail")    
+    effect_detail_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "effect_detail")
+    url_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "url")
+    header_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "header_text")
+    description_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "description_text")
+    tts_header_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "tts_header_text")
+    tts_description_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "tts_description_text")
+    image_alternative_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "image_alternative_text")
+    
+    alert_image = alert_info.get("image") if alert_info else None
+    alert_image_localized_image = alert_image.get("localized_image") if alert_image else []
+    localized_images = [
+        {
+            "url": image.get("url"),
+            "media_type": image.get("media_type"),
+            "language": image.get("language")
+        }
+        for image in alert_image_localized_image
+    ]
+    
+    return {
+        "id": entity.get("id"),
+        "active_period": alert_active_period,
+        "informed_entity": alert_informed_entity,
+        "cause": alert_cause,
+        "cause_detail": {
+            "translation": cause_detail_translation
+            },
+        "effect": alert_effect,
+        "effect_detail": {
+            "translation": effect_detail_translation
+            },
+        "url": {
+            "translation": url_translation
+            },
+        "header_text": {
+            "translation": header_text_translation
+            },
+        "description_text": {
+            "translation": description_text_translation
+            },
+        "tts_header_text": {
+            "translation": tts_header_text_translation
+            },
+        "tts_description_text": {
+            "translation": tts_description_text_translation
+            },
+        "severity_level": alert_severity_level,
+        "image": {
+            "localized_image": localized_images
+            },
+        "image_alternative_text": {
+            "translation": image_alternative_text_translation
+            },
+    }
 
 def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
     """
@@ -498,23 +667,23 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
 
 if __name__ == "__main__":
     #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    #feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    #feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
     #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     #ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
     #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
-    #feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    #feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
     #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     #ngsi_ld_trip_updates = gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_trip_updates, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
 
-    #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
-    #feed_data = parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
-    #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
+    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
+    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     #ngsi_ld_alerts = gtfs_realtime_alerts_to_ngsi_ld(feed_dict)
-    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
+    print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
     #print(json.dumps(ngsi_ld_alerts, indent=2, ensure_ascii=False))
     pass
