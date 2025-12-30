@@ -116,16 +116,15 @@ def gtfs_realtime_normalize_trip_descriptor_message(trip: dict) -> dict[str, Any
     """
     Normalize a GTFS-realtime TripDescriptor message.
 
-    This function takes a raw TripDescriptor dictionary and 
+    This function takes a TripDescriptor message and 
     returns a normalized dictionary structure. Missing fields are 
     handled by being set to None.
 
     Args:
-        trip (dict): Raw trip descriptor dictionary. Expected to potentially
-            contain a nested "modified_trip" dictionary.
+        trip (dict): TripDescriptor message
 
     Returns:
-        dict[str, Any]: Normalized trip descriptor with the following structure:
+        dict[str, Any]: Normalized TripDescriptor with the following structure:
             {
                 "trip_id": str | None,
                 "route_id": str | None,
@@ -153,7 +152,7 @@ def gtfs_realtime_normalize_trip_descriptor_message(trip: dict) -> dict[str, Any
         "start_date": trip.get("start_date"),
         "schedule_relationship": trip.get("schedule_relationship"),
 
-        # Normalize modified_trip; return None values if missing
+        # Normalize modified_trip; return None values if a field is missing
         "modified_trip": {
             "modifications_id": modified_trip.get("modifications_id") if modified_trip else None,
             "affected_trip_id": modified_trip.get("affected_trip_id") if modified_trip else None,
@@ -164,14 +163,42 @@ def gtfs_realtime_normalize_trip_descriptor_message(trip: dict) -> dict[str, Any
     
 
 def gtfs_realtime_normalize_translated_string_message(entity: dict[str, Any] | None, field: str) -> list[dict[str, Any]]:
-    
+    """
+    Normalize a GTFS-realtime TranslatedString message.
+
+    This function extracts from a TranslatedString message the content of
+    its 'translation' field and returns it as aa list of dictionaires
+    with "text" and "language" keys.
+
+    Missing fields or translations are safely handled and result in an empty list.
+
+    Args:
+        entity (dict[str, Any] | None): Source dictionary that may contain
+            a TranslatedString message.
+        field (str): Name of the TranslatedString message field
+            (e.g. "cause_detail", "description_text").
+
+    Returns:
+        list[dict[str, Any]]: A list of normalized translations with the structure:
+            [
+                {
+                    "text": str | None,
+                    "language": str | None
+                }
+            ]
+    """
+
+    # Extract the TranslatedString object from the entity
     entity_field = entity.get(field) if entity else None
+
+    # Get the list of translation entries, defaulting to an empty list
     message = entity_field.get("translation") if entity_field else []
-    
+
+    # Normalize each translation entry into a stable structure
     return [
         {
             "text": translation.get("text"),
-            "language": translation.get("language")
+            "language": translation.get("language"),
         }
         for translation in message
     ]
