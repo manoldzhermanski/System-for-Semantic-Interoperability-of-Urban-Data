@@ -307,7 +307,7 @@ def gtfs_realtime_normalize_vehicle_position(entity: dict[str, Any]) -> dict[str
 
 def gtfs_realtime_normalize_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
     
-    trip_update_info = entity.get("tripUpdate")
+    trip_update_info = entity.get("trip_update")
     trip_udate_info_trip = trip_update_info.get("trip") if trip_update_info else None
     trip_update_info_vehicle = trip_update_info.get("vehicle") if trip_update_info else None
     stop_time_update = trip_update_info.get("stop_time_update") if trip_update_info else []
@@ -366,10 +366,10 @@ def gtfs_realtime_normalize_alerts(entity: dict[str, Any]) -> dict[str, Any]:
             "start": period.get("start"),
             "end": period.get("end")
         }
-        for period in (alert_info.get("activePeriod") if alert_info else [])
+        for period in (alert_info.get("active_period") if alert_info else [])
     ]
     
-    alert_info_infromed_entity = alert_info.get("informedEntity") if alert_info else []
+    alert_info_infromed_entity = alert_info.get("informed_entity") if alert_info else []
     
     alert_informed_entity = [
         {
