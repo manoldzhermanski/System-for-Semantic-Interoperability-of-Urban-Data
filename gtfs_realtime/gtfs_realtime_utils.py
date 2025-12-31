@@ -271,7 +271,7 @@ def gtfs_realtime_normalize_vehicle_position(entity: dict[str, Any]) -> dict[str
     vehicle_info = entity.get("vehicle")
     vehicle_info_trip = vehicle_info.get("trip") if vehicle_info else None
     vehicle_info_vehicle = vehicle_info.get("vehicle") if vehicle_info else None
-    multi_carriage_details = vehicle_info.get("multi_carriage_details") if vehicle_info else []
+    multi_carriage_details = vehicle_info.get("multi_carriage_details", []) if vehicle_info else []
     
     carriage_details = [
         {
@@ -310,7 +310,7 @@ def gtfs_realtime_normalize_trip_updates(entity: dict[str, Any]) -> dict[str, An
     trip_update_info = entity.get("trip_update")
     trip_udate_info_trip = trip_update_info.get("trip") if trip_update_info else None
     trip_update_info_vehicle = trip_update_info.get("vehicle") if trip_update_info else None
-    stop_time_update = trip_update_info.get("stop_time_update") if trip_update_info else []
+    stop_time_update = trip_update_info.get("stop_time_update", []) if trip_update_info else []
     trip_update_info_trip_properties = trip_update_info.get("trip_properties") if trip_update_info else None
     
     
@@ -333,14 +333,15 @@ def gtfs_realtime_normalize_trip_updates(entity: dict[str, Any]) -> dict[str, An
             "departure_occupancy_status": update.get("departure_occupancy_status") if stop_time_update else None,
             "schedule_relationship": update.get("schedule_relationship") if stop_time_update else None,
             "stop_time_properties": {
-                "assigned_stop_id": update.get("stop_time_properties").get("assigned_stop_id") if stop_time_update else None,
-                "stop_headsign": update.get("stop_time_properties").get("stop_headsign") if stop_time_update else None,
-                "drop_off_type": update.get("stop_time_properties").get("drop_off_type") if stop_time_update else None,
-                "pickup_type": update.get("stop_time_properties").get("pickup_type") if stop_time_update else None,
+                "assigned_stop_id": (update.get("stop_time_properties") or {}).get("assigned_stop_id"),
+                "stop_headsign": (update.get("stop_time_properties") or {}).get("stop_headsign"),
+                "drop_off_type": (update.get("stop_time_properties") or {}).get("drop_off_type"),
+                "pickup_type": (update.get("stop_time_properties") or {}).get("pickup_type")
             }
         }
         for update in stop_time_update
     ]
+    
     return {
         "id": entity.get("id"),
         "trip": gtfs_realtime_normalize_trip_descriptor_message(trip_udate_info_trip),
@@ -413,33 +414,33 @@ def gtfs_realtime_normalize_alerts(entity: dict[str, Any]) -> dict[str, Any]:
         "informed_entity": alert_informed_entity,
         "cause": alert_cause,
         "cause_detail": {
-            "translation": translations["cause_detail_translation"]
+            "translation": translations["cause_detail"]
             },
         "effect": alert_effect,
         "effect_detail": {
-            "translation": translations["effect_detail_translation"]
+            "translation": translations["effect_detail"]
             },
         "url": {
-            "translation": translations["url_translation"]
+            "translation": translations["url"]
             },
         "header_text": {
-            "translation": translations["header_text_translation"]
+            "translation": translations["header_text"]
             },
         "description_text": {
-            "translation": translations["description_text_translation"]
+            "translation": translations["description_text"]
             },
         "tts_header_text": {
-            "translation": translations["tts_header_text_translation"]
+            "translation": translations["tts_header_text"]
             },
         "tts_description_text": {
-            "translation": translations["tts_description_text_translation"]
+            "translation": translations["tts_description_text"]
             },
         "severity_level": alert_severity_level,
         "image": {
             "localized_image": localized_images
             },
         "image_alternative_text": {
-            "translation": translations["image_alternative_text_translation"]
+            "translation": translations["image_alternative_text"]
             },
     }
 
@@ -849,13 +850,26 @@ if __name__ == "__main__":
     #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
     #feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
     #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    #normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
+    #vehicle_position = normal_feed_dict.get("entity")
+    #for position in vehicle_position:
+    #    normal_position = gtfs_realtime_normalize_vehicle_position(position)
+    #    print(json.dumps(normal_position, indent=2, ensure_ascii=False))
+    
+    #normalized_feed_dict = gtfs_realtime_normalize_vehicle_position(normal_feed_dict)
     #ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
-    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
+    #print(json.dumps(normal_feed_dict, indent=2, ensure_ascii=False))
 
     #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
     #feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
     #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    #normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
+    #trip_update = normal_feed_dict.get("entity")
+    #for update in trip_update:
+    #    normal_position = gtfs_realtime_normalize_trip_updates(update)
+    #    print(json.dumps(normal_position, indent=2, ensure_ascii=False))
+    
     #ngsi_ld_trip_updates = gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict)
     #print(json.dumps(ngsi_ld_trip_updates, indent=2, ensure_ascii=False))
     #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
@@ -863,7 +877,13 @@ if __name__ == "__main__":
     api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
     feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
+    alerts = normal_feed_dict.get("entity")
+    for alert in alerts:
+        normal_position = gtfs_realtime_normalize_alerts(alert)
+        print(json.dumps(normal_position, indent=2, ensure_ascii=False))
+
     #ngsi_ld_alerts = gtfs_realtime_alerts_to_ngsi_ld(feed_dict)
-    print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
+    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
     #print(json.dumps(ngsi_ld_alerts, indent=2, ensure_ascii=False))
     pass
