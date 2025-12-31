@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import requests
@@ -110,9 +111,56 @@ def gtfs_realtime_feed_to_dict(feed_data: FeedMessage) -> dict[str, Any]:
     return feed_dict
 
 # -----------------------------------------------------
+# Key Mapping Functions
+# -----------------------------------------------------
+
+def to_snake_case(name: str) -> str:
+    """
+    Convert a string from CamelCase or PascalCase to snake_case.
+
+    Args:
+        name (str): Input string in CamelCase or PascalCase format.
+
+    Returns:
+        str: The converted string in snake_case.
+    """
+    # Insert underscore before capital letters that start a new word
+    # Example: "activePeriod" -> "active_Period"
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    
+    # Insert underscore between a lowercase letter or digit and a capital letter
+    # Example: "TripID" -> "Trip_ID"
+    # Convert the final result to lowercase
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+def normalize_keys_to_snake_case(data: Any) -> Any:
+    """
+    Recursively normalize dictionary keys to snake_case.
+
+    Args:
+        data (Any): Input data structure. Can be a dictionary, a list, or
+            a primitive value (e.g. str, int, None).
+
+    Returns:
+        Any: A new data structure with all dictionary keys converted to
+        snake_case. Primitive values are returned unchanged.
+    """
+
+    if isinstance(data, dict):
+        return {
+            to_snake_case(key): normalize_keys_to_snake_case(value)
+            for key, value in data.items()
+        }
+
+    if isinstance(data, list):
+        return [normalize_keys_to_snake_case(item) for item in data]
+
+    return data
+
+# -----------------------------------------------------
 # Normalization Functions
 # -----------------------------------------------------
-def gtfs_realtime_normalize_trip_descriptor_message(trip: dict) -> dict[str, Any]:
+def gtfs_realtime_normalize_trip_descriptor_message(trip: dict | None) -> dict[str, Any]:
     """
     Normalize a GTFS-realtime TripDescriptor message.
 
@@ -141,6 +189,10 @@ def gtfs_realtime_normalize_trip_descriptor_message(trip: dict) -> dict[str, Any
             }
     """
 
+    # Handle None input by using empty dictionary
+    if trip is None:
+        trip = {}
+    
     # Extract nested modified_trip dictionary if present
     modified_trip = trip.get("modified_trip")
 
@@ -161,7 +213,6 @@ def gtfs_realtime_normalize_trip_descriptor_message(trip: dict) -> dict[str, Any
         },
     }
     
-
 def gtfs_realtime_normalize_translated_string_message(entity: dict[str, Any] | None, field: str) -> list[dict[str, Any]]:
     """
     Normalize a GTFS-realtime TranslatedString message.
@@ -203,11 +254,109 @@ def gtfs_realtime_normalize_translated_string_message(entity: dict[str, Any] | N
         for translation in message
     ]
 
+def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] | None) -> dict[str, Any]:
+    
+    if vehicle is None:
+        return {}
+    
+    return {
+        "id": vehicle.get("id"),
+        "label": vehicle.get("label"),
+        "license_plate": vehicle.get("license_plate"),
+        "wheelchair_accessible": vehicle.get("wheelchair_accessible")
+    }
+
 def gtfs_realtime_normalize_vehicle_position(entity: dict[str, Any]) -> dict[str, Any]:
-    return {}
+    
+    vehicle_info = entity.get("vehicle")
+    vehicle_info_trip = vehicle_info.get("trip") if vehicle_info else None
+    vehicle_info_vehicle = vehicle_info.get("vehicle") if vehicle_info else None
+    multi_carriage_details = vehicle_info.get("multi_carriage_details") if vehicle_info else []
+    
+    carriage_details = [
+        {
+            "id": carriage.get("id"),
+            "label": carriage.get("label"),
+            "occupancy_status": carriage.get("occupancy_status"),
+            "occupancy_percentage": carriage.get("occupancy_percentage"),
+            "carriage_sequence": carriage.get("carriage_sequence")
+        }
+        for carriage in multi_carriage_details
+    ]
+    
+    return {
+        "id": entity.get("id"),
+        "trip": gtfs_realtime_normalize_trip_descriptor_message(vehicle_info_trip),
+        "vehicle": gtfs_realtime_normalize_vehicle_descriptor_message(vehicle_info_vehicle),
+        "position": {
+            "latitude": vehicle_info.get("position").get("latitude") if vehicle_info else None,
+            "longitude": vehicle_info.get("position").get("longitude") if vehicle_info else None,
+            "bearing": vehicle_info.get("position").get("bearing") if vehicle_info else None,
+            "odometer": vehicle_info.get("position").get("odometer") if vehicle_info else None,
+            "speed": vehicle_info.get("position").get("speed") if vehicle_info else None,
+        },
+        "current_stop_sequence": vehicle_info.get("current_stop_sequence") if vehicle_info else None,
+        "stop_id": vehicle_info.get("stop_id") if vehicle_info else None,
+        "current_status": vehicle_info.get("current_status") if vehicle_info else None,
+        "timestamp": vehicle_info.get("timestamp") if vehicle_info else None,
+        "congestion_level": vehicle_info.get("congestion_level") if vehicle_info else None,
+        "occupancy_status": vehicle_info.get("occupancy_status") if vehicle_info else None,
+        "occupancy_percentage": vehicle_info.get("occupancy_percentage") if vehicle_info else None,
+        "multi_carriage_details": carriage_details
+    }
 
 def gtfs_realtime_normalize_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
-    return {}
+    
+    trip_update_info = entity.get("tripUpdate")
+    trip_udate_info_trip = trip_update_info.get("trip") if trip_update_info else None
+    trip_update_info_vehicle = trip_update_info.get("vehicle") if trip_update_info else None
+    stop_time_update = trip_update_info.get("stop_time_update") if trip_update_info else []
+    trip_update_info_trip_properties = trip_update_info.get("trip_properties") if trip_update_info else None
+    
+    
+    stop_time_updates = [
+        {
+            "stop_sequence": update.get("stop_sequence") if stop_time_update else None,
+            "stop_id": update.get("stop_id") if stop_time_update else None,
+            "arrival": {
+                "delay": update.get("arrival").get("delay") if stop_time_update else None,
+                "time": update.get("arrival").get("time") if stop_time_update else None,
+                "scheduled_time": update.get("arrival").get("scheduled_time") if stop_time_update else None,
+                "uncertainty": update.get("arrival").get("uncertainty") if stop_time_update else None,
+                },
+            "departure": {
+                "delay": update.get("departure").get("delay") if stop_time_update else None,
+                "time": update.get("departure").get("time") if stop_time_update else None,
+                "scheduled_time": update.get("departure").get("scheduled_time") if stop_time_update else None,
+                "uncertainty": update.get("departure").get("uncertainty") if stop_time_update else None,
+                },
+            "departure_occupancy_status": update.get("departure_occupancy_status") if stop_time_update else None,
+            "schedule_relationship": update.get("schedule_relationship") if stop_time_update else None,
+            "stop_time_properties": {
+                "assigned_stop_id": update.get("stop_time_properties").get("assigned_stop_id") if stop_time_update else None,
+                "stop_headsign": update.get("stop_time_properties").get("stop_headsign") if stop_time_update else None,
+                "drop_off_type": update.get("stop_time_properties").get("drop_off_type") if stop_time_update else None,
+                "pickup_type": update.get("stop_time_properties").get("pickup_type") if stop_time_update else None,
+            }
+        }
+        for update in stop_time_update
+    ]
+    return {
+        "id": entity.get("id"),
+        "trip": gtfs_realtime_normalize_trip_descriptor_message(trip_udate_info_trip),
+        "vehicle": gtfs_realtime_normalize_vehicle_descriptor_message(trip_update_info_vehicle),
+        "stop_time_update": stop_time_updates,
+        "timestamp": trip_update_info.get("timestamp") if trip_update_info else None,
+        "delay": trip_update_info.get("delay") if trip_update_info else None,
+        "trip_properties": {
+            "trip_id": trip_update_info_trip_properties.get("trip_id") if trip_update_info_trip_properties else None,
+            "start_date": trip_update_info_trip_properties.get("start_date") if trip_update_info_trip_properties else None,
+            "start_time": trip_update_info_trip_properties.get("start_time") if trip_update_info_trip_properties else None,
+            "trip_headsign": trip_update_info_trip_properties.get("trip_headsign") if trip_update_info_trip_properties else None,
+            "trip_short_name": trip_update_info_trip_properties.get("trip_short_name") if trip_update_info_trip_properties else None,
+            "shape_id": trip_update_info_trip_properties.get("shape_id") if trip_update_info_trip_properties else None
+        }
+    }
 
 def gtfs_realtime_normalize_alerts(entity: dict[str, Any]) -> dict[str, Any]:
     
@@ -237,15 +386,15 @@ def gtfs_realtime_normalize_alerts(entity: dict[str, Any]) -> dict[str, Any]:
     alert_cause = alert_info.get("cause") if alert_info else None
     alert_effect = alert_info.get("effect") if alert_info else None
     alert_severity_level = alert_info.get("severity_level") if alert_info else None
-    
-    cause_detail_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "cause_detail")    
-    effect_detail_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "effect_detail")
-    url_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "url")
-    header_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "header_text")
-    description_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "description_text")
-    tts_header_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "tts_header_text")
-    tts_description_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "tts_description_text")
-    image_alternative_text_translation = gtfs_realtime_normalize_translated_string_message(alert_info, "image_alternative_text")
+        
+    translated_fields = ["cause_detail", "effect_detail", "url", "header_text", "description_text",
+                         "tts_header_text", "tts_description_text", "image_alternative_text"]
+
+    translations = {
+        field: gtfs_realtime_normalize_translated_string_message(alert_info, field)
+        for field in translated_fields
+    }
+
     
     alert_image = alert_info.get("image") if alert_info else None
     alert_image_localized_image = alert_image.get("localized_image") if alert_image else []
@@ -264,35 +413,39 @@ def gtfs_realtime_normalize_alerts(entity: dict[str, Any]) -> dict[str, Any]:
         "informed_entity": alert_informed_entity,
         "cause": alert_cause,
         "cause_detail": {
-            "translation": cause_detail_translation
+            "translation": translations["cause_detail_translation"]
             },
         "effect": alert_effect,
         "effect_detail": {
-            "translation": effect_detail_translation
+            "translation": translations["effect_detail_translation"]
             },
         "url": {
-            "translation": url_translation
+            "translation": translations["url_translation"]
             },
         "header_text": {
-            "translation": header_text_translation
+            "translation": translations["header_text_translation"]
             },
         "description_text": {
-            "translation": description_text_translation
+            "translation": translations["description_text_translation"]
             },
         "tts_header_text": {
-            "translation": tts_header_text_translation
+            "translation": translations["tts_header_text_translation"]
             },
         "tts_description_text": {
-            "translation": tts_description_text_translation
+            "translation": translations["tts_description_text_translation"]
             },
         "severity_level": alert_severity_level,
         "image": {
             "localized_image": localized_images
             },
         "image_alternative_text": {
-            "translation": image_alternative_text_translation
+            "translation": translations["image_alternative_text_translation"]
             },
     }
+
+# -----------------------------------------------------
+# Main Conversion Functions
+# -----------------------------------------------------
 
 def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
     """
