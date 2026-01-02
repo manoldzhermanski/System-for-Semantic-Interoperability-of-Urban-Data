@@ -329,7 +329,7 @@ def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] |
             - id: NGSI-LD URN built from the vehicle id
             - label: Vehicle label
             - license_plate: Vehicle license plate
-            - wheelchair_accessible: Wheelchair accessibility flag
+            - wheelchair_accessible: Wheelchair accessibility enum
     """
     # If no vehicle descriptor is provided, return an empty structure
     if vehicle is None:
@@ -345,20 +345,31 @@ def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] |
 
 def gtfs_realtime_clean_empty_values(value: Any) -> Any:
     """
-    Recursively removes:
-    - None
-    - empty dicts {}
+    Recursively remove empty values from a data structure.
+    This process gets the structure ready for NGSI-LD mapping
+
+    The function removes:
+    - None values
+    - empty dictionaries {}
     - empty lists []
 
-    If after pruning a structure becomes empty,
-    it is removed as well.
+    If, after cleaning, a list or dictionary becomes empty,
+    it is removed as well (represented as None).
+
+    Args:
+        value (Any): Input value which may be a dictionary, list, or any
+            other type.
+
+    Returns:
+        Any: The cleaned data structure with empty values removed,
+            or None if the resulting structure is empty.
     """
 
-    # None → remove
+    # Base case: remove None values
     if value is None:
         return None
 
-    # List → prune items
+    # Recursively clean list items and drop empty results
     if isinstance(value, list):
         result = []
         for item in value:
@@ -367,7 +378,7 @@ def gtfs_realtime_clean_empty_values(value: Any) -> Any:
                 result.append(pruned)
         return result if result else None
 
-    # Dict → prune keys
+    # Recursively clean dictionary values and drop empty entries
     if isinstance(value, dict):
         result = {}
         for key, val in value.items():
@@ -376,7 +387,7 @@ def gtfs_realtime_clean_empty_values(value: Any) -> Any:
                 result[key] = pruned
         return result if result else None
 
-    # Primitive → keep
+    # Base case: return other types of values as unchanged
     return value
 
 # -----------------------------------------------------
