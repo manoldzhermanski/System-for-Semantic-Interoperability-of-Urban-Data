@@ -43,6 +43,7 @@ def unix_to_iso8601(timestamp: int | str | None) -> str | None:
 
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+# NOTE: SHOULD SEE IF IT IS USED AND WHAT FOR
 def iso8601_to_unix(timestamp: str) -> int:
     dt = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
     unix_timestamp = int(dt.timestamp())
@@ -164,28 +165,56 @@ def normalize_keys_to_snake_case(data: Any) -> Any:
 
     Args:
         data (Any): Input data structure. Can be a dictionary, a list, or
-            a primitive value (e.g. str, int, None).
+            any other value
 
     Returns:
         Any: A new data structure with all dictionary keys converted to
-        snake_case. Primitive values are returned unchanged.
+        snake_case. Non-collection values are returned unchanged.
     """
 
+    # Normalize dictionary keys and recurse into values
     if isinstance(data, dict):
         return {
             to_snake_case(key): normalize_keys_to_snake_case(value)
             for key, value in data.items()
         }
 
+    # Normalize every list element recursively
     if isinstance(data, list):
         return [normalize_keys_to_snake_case(item) for item in data]
 
+    # Return non-dict and non-list values unchanged
     return data
 
-def to_ngsi_ld_urn(value: Any, entity_type: str) -> Any:
+def to_ngsi_ld_urn(value: str | None, entity_type: str) -> str | None:
+    """
+    Build an NGSI-LD URN identifier.
+
+    Args:
+        value (str | None): Entity identifier value. If None, no URN is
+            generated and None is returned.
+        entity_type (str): NGSI-LD entity type name.
+
+    Returns:
+        str | None: A valid NGSI-LD URN in the form
+            'urn:ngsi-ld:<entity_type>:<value>', or None if value is None.
+
+    Raises:
+        ValueError: If entity_type is not a string.
+    """
+    stripped_entity_type = entity_type.strip()
+            
+    if isinstance(entity_type, str) and stripped_entity_type == "":
+        raise ValueError("Entity name must be a non-empty string")
+    
     if value is None:
         return None
-    return f"urn:ngsi-ld:{entity_type}:{value}"
+    
+    stripped_value = value.strip()
+    if stripped_value == "":
+        raise ValueError("Entity value must be a non-empty string")
+    
+    return f"urn:ngsi-ld:{stripped_entity_type}:{stripped_value}"
 
 # -----------------------------------------------------
 # Normalization Functions
