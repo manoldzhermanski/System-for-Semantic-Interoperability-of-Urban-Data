@@ -314,10 +314,28 @@ def gtfs_realtime_normalize_translated_string_message(entity: dict[str, Any] | N
     ]
 
 def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] | None) -> dict[str, Any]:
-    
+    """
+    Normalize a GTFS Realtime VehicleDescriptor message
+
+    The function extracts a subset of supported fields and converts the
+    vehicle identifier to an NGSI-LD URN.
+
+    Args:
+        vehicle (dict[str, Any] | None): GTFS Realtime vehicle descriptor.
+            If None, an empty dictionary is returned.
+
+    Returns:
+        dict[str, Any]: Normalized vehicle representation with the following keys:
+            - id: NGSI-LD URN built from the vehicle id
+            - label: Vehicle label
+            - license_plate: Vehicle license plate
+            - wheelchair_accessible: Wheelchair accessibility flag
+    """
+    # If no vehicle descriptor is provided, return an empty structure
     if vehicle is None:
         return {}
     
+    # Normalize and extract supported fields
     return {
         "id": to_ngsi_ld_urn(vehicle.get("id"), "GtfsVehicle"),
         "label": vehicle.get("label"),

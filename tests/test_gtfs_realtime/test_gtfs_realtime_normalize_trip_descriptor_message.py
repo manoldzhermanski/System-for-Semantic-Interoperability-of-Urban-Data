@@ -1,9 +1,9 @@
 from gtfs_realtime.gtfs_realtime_utils import gtfs_realtime_normalize_trip_descriptor_message
 
-def test_normalize_trip_with_modified_trip():
+def test_normalize_trip_full_payload():
     """
     Check that if all fields in a TripDescriptor message are present,
-    the result of the function call should be the same as the original TripDescriptor
+    the result of the function call should be have all fields and all id's should be GTFS URNs
     """
     trip = {
         "trip_id": "123",
@@ -39,7 +39,7 @@ def test_normalize_trip_with_modified_trip():
     
     assert result == expected
     
-def test_normalize_trip_wit_missing_fields():
+def test_normalize_trip_with_missing_fields():
     """
     Check that if fields are missing from a TripDescriptor message,
     the normalized dictionary structure has replaced those fields with None values
