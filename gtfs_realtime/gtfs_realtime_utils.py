@@ -3,13 +3,18 @@ import re
 import sys
 import json
 import requests
+from pathlib import Path
 from google.transit.gtfs_realtime_pb2 import FeedMessage # type: ignore
 from google.protobuf.message import DecodeError
 from google.protobuf.json_format import MessageToDict
 from typing import Any
 from datetime import datetime, timezone
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+
+project_root = Path(__file__).resolve().parent.parent
+sys.path.append(str(project_root))
+
+from gtfs_static.gtfs_static_utils import remove_none_values
 import config
 
 def unix_to_iso8601(timestamp: int | None | str) -> str | None:
@@ -1097,6 +1102,7 @@ if __name__ == "__main__":
     #normal_position = parse_gtfs_realtime_vehicle_position(vehicle_position[0])
     #cleaned_position = gtfs_realtime_clean_empty_values(normal_position)
     #ngsi_ld_position = covert_gtfs_realtime_vehicle_position_to_ngsi_ld(cleaned_position)
+    #ngsi_ld_position = remove_none_values(ngsi_ld_position)
     #print(json.dumps(ngsi_ld_position, indent=2, ensure_ascii=False))
     
     #for position in vehicle_position:
@@ -1108,15 +1114,16 @@ if __name__ == "__main__":
     #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
     #print(json.dumps(normal_feed_dict, indent=2, ensure_ascii=False))
 
-    api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
-    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
-    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
-    normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
-    trip_update = normal_feed_dict.get("entity")
-    normal_position = parse_gtfs_realtime_trip_updates(trip_update[0])
-    cleaned_normal_position = gtfs_realtime_clean_empty_values(normal_position)
-    ngsi_ld_position = convert_gtfs_realtime_trip_updates_to_ngsi_ld(cleaned_normal_position)
-    print(json.dumps(ngsi_ld_position, indent=2, ensure_ascii=False))
+    #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    #feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    #normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
+    #trip_update = normal_feed_dict.get("entity")
+    #normal_position = parse_gtfs_realtime_trip_updates(trip_update[0])
+    #cleaned_normal_position = gtfs_realtime_clean_empty_values(normal_position)
+    #ngsi_ld_position = convert_gtfs_realtime_trip_updates_to_ngsi_ld(cleaned_normal_position)
+    #ngsi_ld_position = remove_none_values(ngsi_ld_position)
+    #print(json.dumps(ngsi_ld_position, indent=2, ensure_ascii=False))
     
     #for update in trip_update:
     #    normal_position = parse_gtfs_realtime_trip_updates(update)
@@ -1135,6 +1142,7 @@ if __name__ == "__main__":
     normal_position = parse_gtfs_realtime_alerts(alerts[0])
     cleaned_normal_position =gtfs_realtime_clean_empty_values(normal_position)
     ngsi_ld_position = convert_gtfs_realtime_alerts_to_ngsi_ld(cleaned_normal_position)
+    ngsi_ld_position = remove_none_values(ngsi_ld_position)
     print(json.dumps(ngsi_ld_position, indent=2, ensure_ascii=False))
     
     #for alert in alerts:
