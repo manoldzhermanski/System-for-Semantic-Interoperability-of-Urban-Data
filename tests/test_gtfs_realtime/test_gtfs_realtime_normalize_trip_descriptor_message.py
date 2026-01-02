@@ -22,7 +22,20 @@ def test_normalize_trip_with_modified_trip():
 
     result = gtfs_realtime_normalize_trip_descriptor_message(trip)
     
-    expected = trip
+    expected = {
+        "trip_id": "urn:ngsi-ld:GtfsTrip:123",
+        "route_id": "urn:ngsi-ld:GtfsRoute:10",
+        "direction_id": "1",
+        "start_time": "08:00:00",
+        "start_date": "20240101",
+        "schedule_relationship": "SCHEDULED",
+        "modified_trip": {
+            "modifications_id": "mod-1",
+            "affected_trip_id": "urn:ngsi-ld:GtfsTrip:trip-456",
+            "start_time": "08:10:00",
+            "start_date": "20240102",
+        },
+    }
     
     assert result == expected
     
@@ -43,8 +56,8 @@ def test_normalize_trip_wit_missing_fields():
     }
 
     expected = {
-        "trip_id": "123",
-        "route_id": "10",
+        "trip_id": "urn:ngsi-ld:GtfsTrip:123",
+        "route_id": "urn:ngsi-ld:GtfsRoute:10",
         "direction_id": None,
         "start_time": "08:00:00",
         "start_date": "20240101",

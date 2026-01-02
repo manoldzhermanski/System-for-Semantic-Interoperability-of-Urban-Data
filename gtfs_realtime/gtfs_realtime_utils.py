@@ -17,14 +17,23 @@ sys.path.append(str(project_root))
 from gtfs_static.gtfs_static_utils import remove_none_values
 import config
 
-def unix_to_iso8601(timestamp: int | None | str) -> str | None:
+def unix_to_iso8601(timestamp: int | str | None) -> str | None:
     """
     Convert UNIX timestamp (seconds) to ISO 8601 UTC string.
-
-    Accepts int, str, or None.
-    Returns None if the timestamp is invalid.
+    
+    Args:
+        timestamp (int | str | None): UNIX timestamp in seconds.
+        
+    Returns:
+        str | None: ISO 8601 formatted string in UTC, or None if input is invalid.
     """
     if timestamp is None:
+        return None
+    
+    if not isinstance(timestamp, (str, int)):
+        return None
+    
+    if isinstance(timestamp, bool):
         return None
 
     try:
