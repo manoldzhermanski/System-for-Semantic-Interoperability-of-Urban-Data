@@ -1,6 +1,6 @@
 from gtfs_realtime.gtfs_realtime_utils import parse_gtfs_realtime_trip_updates
 
-def test_parse_gtfs_realtime_trip_update_full_payload():
+def test_parse_gtfs_realtime_trip_update_partial_payload():
     """
     Check that the entries with data are parsed correctly and the remaining fields have None values
     """

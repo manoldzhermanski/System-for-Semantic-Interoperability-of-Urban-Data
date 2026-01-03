@@ -409,18 +409,18 @@ def parse_gtfs_realtime_vehicle_position(entity: dict[str, Any]) -> dict[str, An
 
     Returns:
         dict[str, Any]: A normalized dictionary containing:
-            - id: NGSI-LD URN of the vehicle position
+            - id: str | None
             - trip: dict | None
             - vehicle: dict | None
             - position: dict | None
             - current_stop_sequence: int| None
-            - stop_id: NGSI-LD URN of the stop | None
+            - stop_id: str | None
             - current_status: str | None
             - timestamp: ISO 8601 UTC str | None
             - congestion_level: str | None
             - occupancy_status: str | None
             - occupancy_percentage: int or None
-            - multi_carriage_details: list | None
+            - multi_carriage_details: list[dict] | None
     """
     # Extract all feed fields which have collection-type data (lists, dictionaries)
     vehicle_info = entity.get("vehicle")
@@ -476,11 +476,11 @@ def parse_gtfs_realtime_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
 
     Returns:
         dict[str, Any]: A normalized dictionary containing:
-            - id: NGSI-LD URN of the trip update
+            - id: str | None
             - trip: dict | None
             - vehicle: dict | None
             - stop_time_update: dict | None
-            - timestamp: ISO 8601 UTC str | None
+            - timestamp: str | None
             - delay: int | None
             - trip_properties: dict | None
     """
@@ -551,20 +551,20 @@ def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
 
     Returns:
         dict[str, Any]: A normalized dictionary containing:
-            - id: NGSI-LD URN of the trip update
-            - active_period: list | None
-            - informed_entity: list | None
+            - id: str | None
+            - active_period: list[dict] | []
+            - informed_entity: list[dict] | []
             - cause: str | None
-            - cause_detail: list | None
+            - cause_detail: list[dict] | []
             - effect: str | None
-            - effect_detail: list | None
-            - url: list | None
-            - header_text: list | None
-            - description_text: list | None
-            - tts_header_text: list | None
-            - tts_description_text: list | None
-            - image: list | None
-            - image_alternative_text: list | None         
+            - effect_detail: list[dict] | []
+            - url: list[dict] | []
+            - header_text: list[dict] | []
+            - description_text: list[dict] | []
+            - tts_header_text: list[dict] | []
+            - tts_description_text: list[dict] | []
+            - image: list[dict] | []
+            - image_alternative_text: list[dict] | []         
     """
     # Extract all feed fields which have collection-type data (lists, dictionaries)
     alert_info = entity.get("alert")
@@ -663,47 +663,33 @@ def covert_gtfs_realtime_vehicle_position_to_ngsi_ld(entity: dict[str, Any]) -> 
     Convert a GTFS-Realtime VehiclePosition entity to a NGSI-LD entity.
 
     This function maps a normalized GTFS-Realtime VehiclePosition
-    message into an NGSI-LD compatible entity.
-
-    The function:
-    - Generates a stable NGSI-LD URN for the vehicle position entity
-    - Embeds normalized GTFS TripDescriptor and VehicleDescriptor data
-    - Converts positional and status fields into NGSI-LD Properties
-    - Preserves multi-carriage occupancy information if present
+    feed entity into an NGSI-LD compatible entity.
 
     Args:
         entity (dict[str, Any]):
-            A normalized GTFS-Realtime VehiclePosition message.
-            Expected structure includes a "vehicle" field containing
-            trip, vehicle, position, and occupancy-related data.
+            A normalized GTFS-Realtime VehiclePosition feed entity.
 
     Returns:
         dict[str, Any]:
             An NGSI-LD entity dictionary with the following structure:
             {
-                "id": str,
-                "trip": { "type": "Property", "value": dict },
-                "vehicle": { "type": "Property", "value": dict },
-                "position": { "type": "Property", "value": dict },
+                "id": str | None,
+                "trip": { "type": "Property", "value": dict | None },
+                "vehicle": { "type": "Property", "value": dict | None },
+                "position": { "type": "Property", "value": dict | None },
                 "current_stop_sequence": { "type": "Property", "value": int | None },
-                "stop_id": { "type": "Property", "value": str | None },
+                "stop_id": { "type": "Relationship", "object": str | None },
                 "current_status": { "type": "Property", "value": str | None },
                 "timestamp": { "type": "Property", "value": str | None },
                 "congestion_level": { "type": "Property", "value": str | None },
                 "occupancy_status": { "type": "Property", "value": str | None },
                 "occupancy_percentage": { "type": "Property", "value": int | None },
-                "multi_carriage_details": { "type": "Property", "value": list[dict] }
+                "multi_carriage_details": { "type": "Property", "value": list[dict] | [] }
             }
-
-    Notes:
-        - This function does NOT create new entities per update.
-          It follows a state-based NGSI-LD model.
-        - Missing fields are mapped to None.
-        - Timestamp values are converted from Unix time to ISO 8601.
     """
         
     return {
-        "id": to_ngsi_ld_urn(entity.get("id"), "GtfsRealtimeVehiclePosition"),
+        "id": entity.get("id"),
         "type": "GtfsRealtimeVehiclePosition",
         "trip": {
             "type": "Property",
@@ -715,7 +701,7 @@ def covert_gtfs_realtime_vehicle_position_to_ngsi_ld(entity: dict[str, Any]) -> 
             },
         "position": {
             "type": "Property",
-            "value": entity.get("positio")
+            "value": entity.get("position")
             },
         "current_stop_sequence": {
             "type": "Property",
@@ -731,7 +717,7 @@ def covert_gtfs_realtime_vehicle_position_to_ngsi_ld(entity: dict[str, Any]) -> 
             },
         "timestamp": {
             "type": "Property",
-            "value": unix_to_iso8601(entity.get("timestamp"))
+            "value": entity.get("timestamp")
             },
         "congestion_level": {
             "type": "Property",
@@ -752,9 +738,31 @@ def covert_gtfs_realtime_vehicle_position_to_ngsi_ld(entity: dict[str, Any]) -> 
     }
 
 def convert_gtfs_realtime_trip_updates_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
-    
+    """
+    Convert a GTFS-Realtime TripUpdate entity to a NGSI-LD entity.
+
+    This function maps a normalized GTFS-Realtime TripUpdate
+    feed entity into an NGSI-LD compatible entity.
+
+    Args:
+        entity (dict[str, Any]):
+            A normalized GTFS-Realtime TripUpdate feed entity.
+
+    Returns:
+        dict[str, Any]:
+            An NGSI-LD entity dictionary with the following structure:
+            {
+                "id": str | None,
+                "trip": { "type": "Property", "value": dict | None },
+                "vehicle": { "type": "Property", "value": dict | None },
+                "stop_time_update": { "type": "Property", "value": dict | None },
+                "timestamp": { "type": "Property", "value": str | None },
+                "delay": { "type": "Property", "value": int | None },
+                "trip_properties": { "type": "Property", "value": dict | None },
+            }
+    """    
     return {
-        "id": to_ngsi_ld_urn(entity.get("id"), "GtfsRealtimeTripUpdate"),
+        "id": entity.get("id"),
         "type": "GtfsRealtimeTripUpdate",
         "trip": {
             "type": "Property",
@@ -770,7 +778,7 @@ def convert_gtfs_realtime_trip_updates_to_ngsi_ld(entity: dict[str, Any]) -> dic
         },
         "timestamp": {
             "type": "Property",
-            "value": unix_to_iso8601(entity.get("timestamp"))
+            "value": entity.get("timestamp")
         },
         "delay": {
             "type": "Property",
@@ -783,9 +791,38 @@ def convert_gtfs_realtime_trip_updates_to_ngsi_ld(entity: dict[str, Any]) -> dic
     }
 
 def convert_gtfs_realtime_alerts_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
-        
+    """
+    Convert a GTFS-Realtime Alert entity to a NGSI-LD entity.
+
+    This function maps a normalized GTFS-Realtime Alert
+    feed entity into an NGSI-LD compatible entity.
+
+    Args:
+        entity (dict[str, Any]):
+            A normalized GTFS-Realtime Alert feed entity.
+
+    Returns:
+        dict[str, Any]:
+            An NGSI-LD entity dictionary with the following structure:
+            {
+                "id": str | None,
+                "active_period": { "type": "Property", "value": list[dict] | [] },
+                "informed_entity": { "type": "Property", "value": list[dict] | [] },
+                "cause": { "type": "Property", "value": str | None },
+                "cause_detail": { "type": "Property", "value": list[dict] | [] },
+                "effect": { "type": "Property", "value": str | None },
+                "effect_detail": { "type": "Property", "value": list[dict] | [] },
+                "url": { "type": "Property", "value": list[dict] | [] },
+                "header_text": { "type": "Property", "value": list[dict] | [] },
+                "description_text": { "type": "Property", "value": list[dict] | [] },
+                "tts_header_text": { "type": "Property", "value": list[dict] | [] },
+                "tts_description_text": { "type": "Property", "value": list[dict] | [] },
+                "image": { "type": "Property", "value": list[dict] | [] },
+                "image_alternative_text": { "type": "Property", "value": list[dict] | [] },
+            }
+    """ 
     return {
-        "id": to_ngsi_ld_urn(entity.get("id"), "GtfsRealtimeAlert"),
+        "id": entity.get("id"),
         "type": "GtfsRealtimeAlert",
         "active_period": {
             "type": "Property",
@@ -850,7 +887,7 @@ def convert_gtfs_realtime_alerts_to_ngsi_ld(entity: dict[str, Any]) -> dict[str,
 
 def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
     """
-    Converts a GTFS-Realtime Vehicle Position Feed (from MessageToDict) to a list of NGSI-LD entities.
+    Converts a GTFS-Realtime Vehicle Position Feed to a list of NGSI-LD entities.
     Args:
         feed_dict (dict[str, Any]): Dictionary of feed data
     Returns:

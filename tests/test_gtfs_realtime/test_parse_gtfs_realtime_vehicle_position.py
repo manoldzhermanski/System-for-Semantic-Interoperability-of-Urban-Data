@@ -1,6 +1,6 @@
 from gtfs_realtime.gtfs_realtime_utils import parse_gtfs_realtime_vehicle_position
 
-def test_parse_gtfs_realtime_vehicle_position_full_payload():
+def test_parse_gtfs_realtime_vehicle_position_partial_payload():
     """
     Check that the entries with data are parsed correctly and the remaining fields have None values
     """
@@ -55,8 +55,14 @@ def test_parse_gtfs_realtime_vehicle_position_full_payload():
         "occupancy_status": None,
         "occupancy_percentage": None,
         "multi_carriage_details": [
-            {"id": "urn:ngsi-ld:GtfsRealtimeCarriage:C1", "label": "Carriage A", "occupancy_status": "FULL", "occupancy_percentage": 100, "carriage_sequence": 1}
-        ]
+            {
+                "id": "urn:ngsi-ld:GtfsRealtimeCarriage:C1",
+                "label": "Carriage A",
+                "occupancy_status": "FULL",
+                "occupancy_percentage": 100,
+                "carriage_sequence": 1
+                }
+            ]
         }
     
     
