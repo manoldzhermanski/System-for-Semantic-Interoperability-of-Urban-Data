@@ -1,15 +1,12 @@
-import os
 import re
 import sys
-import json
 import requests
+from typing import Any
 from pathlib import Path
-from google.transit.gtfs_realtime_pb2 import FeedMessage # type: ignore
+from datetime import datetime, timezone
 from google.protobuf.message import DecodeError
 from google.protobuf.json_format import MessageToDict
-from typing import Any
-from datetime import datetime, timezone
-
+from google.transit.gtfs_realtime_pb2 import FeedMessage # type: ignore
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
