@@ -1,3 +1,4 @@
+import logging
 import requests
 import sys
 import os
@@ -17,6 +18,8 @@ from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
 from json_ld.json_ld_utils import json_ld_get_ngsi_ld_data
 import gtfs_realtime.gtfs_realtime_utils as gtfs_realtime
 import config
+
+logger = logging.getLogger(__name__)
 
 ORION_LD_URL = "http://localhost:1026/ngsi-ld/v1/entities"
 ORION_LD_BATCH_CREATE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/create"
@@ -58,31 +61,41 @@ def orion_ld_define_header(keyword: str) -> dict[str, str]:
 
 # POST Requests
 
-def orion_ld_post_batch_request(batch_ngsi_ld_data: List[Dict[str, Any]], header: dict) -> None:
+def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header: dict) -> None:
     """
-    Send a POST request to ORION-LD's endpoint for batch create of entities.
+    Sends a batch POST request to the Orion-LD broker to create multiple NGSI-LD entities.
+
     Args:
-        batch_ngsi_ld_data (List[Dict[str, Any]]): List of entities in NGSI-LD format to be created in a batch.
+        batch_ngsi_ld_data (list[dict[str, Any]]):
+            List of NGSI-LD entities
+        headers (dict[str, str]):
+            HTTP headers to be included in the request (Content-Type and Link)
+
     Returns:
-        None: The function does not return anything, but prints the result of the POST request.
+        None
     """
-    # Get ids of the entities from the batch
+    
+    # Extract entity IDs for logging and debugging purposes
     entities_ids = [entity['id'] for entity in batch_ngsi_ld_data]
 
     # Concatenate them with '\n'
     entities_ids = "\n".join(entities_ids)
     try:
-        # Send a POST request to ORION-LD's endpoint for batch create where we the data is already in NGSI-LD format
+        
+        logger.debug("Sending batch create request to Orion-LD (%d entities)", len(batch_ngsi_ld_data))
+        
+        # Send batch create request to Orion-LD
         response = requests.post(ORION_LD_BATCH_CREATE_URL, json=batch_ngsi_ld_data, headers=header)
 
-        # If successful, report which enteties were created
-        if response.status_code == 201:
-            print(f"Created batch of {len(batch_ngsi_ld_data)} entities:\n{entities_ids}\n")
-        # If failed, explain why
-        else:
-            print(f"Failed to create entities {response.status_code} {response.text}")
-    except  requests.exceptions.RequestException as e:
-        print(f" Batch POST Request Error: {e}")
+       # Report if failed to create entities
+        if response.status_code != 201:
+            logger.error("Batch failed (status=%s): %s", response.status_code, response.text)
+            return
+        
+        logger.info("Successfully created batch of %d entities:\n%s", len(batch_ngsi_ld_data), entities_ids)
+
+    except requests.exceptions.RequestException as e:
+        logger.exception("Batch POST request to Orion-LD failed: %s", e)
     
 
 def orion_ld_batch_load_to_context_broker(ngsi_ld_data: List[Dict[str, Any]], header: dict, batch_size: int = 1000, delay: float = 0.1) -> None:
