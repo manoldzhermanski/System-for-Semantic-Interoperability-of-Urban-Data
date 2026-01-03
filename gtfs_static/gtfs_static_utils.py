@@ -2675,7 +2675,8 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
 
 # -----------------------------------------------------
 # High-level function to get NGSI-LD data
-# -----------------------------------------------------    
+# -----------------------------------------------------  
+  
 def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") -> list[dict[str, Any]]:
     """
     Reads GTFS static data from the local filesystem and converts it

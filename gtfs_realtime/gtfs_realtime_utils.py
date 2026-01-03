@@ -655,9 +655,11 @@ def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
             "translation": translations["image_alternative_text"]
             }
     }  
+
 # -----------------------------------------------------
 # GTFS Realtime to NGSI-LD Conversion Functions
 # -----------------------------------------------------
+
 def covert_gtfs_realtime_vehicle_position_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Convert a GTFS-Realtime VehiclePosition entity to a NGSI-LD entity.
@@ -881,11 +883,12 @@ def convert_gtfs_realtime_alerts_to_ngsi_ld(entity: dict[str, Any]) -> dict[str,
             "value": entity.get("image_alternative_text")
             }
     }  
+
 # -----------------------------------------------------
 # Main Conversion Functions
 # -----------------------------------------------------
 
-def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
+def gtfs_realtime_vehicle_position_to_ngsi_ld() -> list[dict[str, Any]]:
     """
     Converts a GTFS-Realtime Vehicle Position Feed to a list of NGSI-LD entities.
     Args:
@@ -894,99 +897,31 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict: dict[str, Any]) -> list
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS Realtime Alert data.
     """
     ngsi_ld_entities = []
+    
+    api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
+    
 
     # Extract entities from the feed_dict
-    entities = feed_dict.get("entity", [])
+    entities = normal_feed_dict.get("entity")
 
     # Iterate through each entity and convert to NGSI-LD format
     for entity in entities:
         
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        vehicle_position_id = entity.get("id")
-        vehicle_position_trip_id = f"urn:ngsi-ld:GtfsTrip:{entity.get('vehicle').get('trip').get('tripId')}" if entity.get('vehicle').get('trip').get('tripId') else None
-        vehicle_position_trip_schedule_relationship = entity.get('vehicle').get('trip').get('scheduleRelationship') or None
-        vehicle_position_trip_route_id = f"urn:ngsi-ld:GtfsRoute:{entity.get('vehicle').get('trip').get('routeId')}" if entity.get('vehicle').get('trip').get('routeId') else None
-        longitude = float(entity.get('vehicle').get('position').get('longitude')) or 0.0
-        latitude = float(entity.get('vehicle').get('position').get('latitude')) or 0.0
-        vehicle_position_speed = float(entity.get('vehicle').get('position').get('speed')) or -1.0
-        vehicle_position_current_status = entity.get('vehicle').get('currentStatus') or None
-        vehicle_position_timestamp = unix_to_iso8601(int(entity.get('vehicle').get('timestamp'))) or None
-        vehicle_position_congestion_level = entity.get('vehicle').get('congestionLevel') or None
-        vehicle_position_stop_id = f"urn:ngsi-ld:GtfsStop:{entity.get('vehicle').get('stopId')}" if entity.get('vehicle').get('stopId') else None
-        vehicle_position_vehicle_id = f"urn:ngsi-ld:Vehicle:{entity.get('vehicle').get('vehicle').get('id')}" if entity.get('vehicle').get('vehicle').get('id') else None
-        vehicle_position_occupancy_status = entity.get('vehicle').get('occupancyStatus') or None
-        
-        # Create custom data model and populate it
-        ngsi_ld_entity = {
-            "id": f"urn:ngsi-ld:GtfsRealtimeVehiclePosition:{vehicle_position_id}",
-            "type": "GtfsRealtimeVehiclePosition",
-            "trip_id": {
-                "type": "Relationship",
-                "object": vehicle_position_trip_id
-            },
-            "schedule_relationship": {
-                "type": "Property",
-                "value": vehicle_position_trip_schedule_relationship
-            },
-            "route_id": {
-                "type": "Relationship",
-                "object": vehicle_position_trip_route_id
-            },
-            "position": {
-                "type": "GeoProperty",
-                "value": {
-                    "type": "Point",
-                    "coordinates": [longitude, latitude]
-                    }  
-            },
-            "speed": {
-                "type": "Property",
-                "value": vehicle_position_speed
-                },                
-            "current_status": {
-                "type": "Property",
-                "value": vehicle_position_current_status
-            },
-            
-            "timestamp": {
-                "type": "Property",
-                "value": vehicle_position_timestamp
-            },
-            
-            "congestion_level": {
-                "type": "Property",
-                "value": vehicle_position_congestion_level
-            },
-            
-            "stop_id": {
-                "type": "Relationship",
-                "object": vehicle_position_stop_id
-            },
-            
-            "vehicle_id": {
-                "type": "Relationship",
-                "object": vehicle_position_vehicle_id
-            },
-            
-            "occupancy_status": {
-                "type": "Property",
-                "value": vehicle_position_occupancy_status
-            }
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_entity = {
-            k: v for k, v in ngsi_ld_entity.items()
-            if not (isinstance(v, dict) and (None or -1.0) in v.values())
-        }
+        normalized_entity = parse_gtfs_realtime_vehicle_position(entity)
+        cleaned_entity = gtfs_realtime_clean_empty_values(normalized_entity)
+        ngsi_ld_entity = covert_gtfs_realtime_vehicle_position_to_ngsi_ld(cleaned_entity)
+        cleaned_ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
         
         # Append the NGSI-LD entity to the list
-        ngsi_ld_entities.append(ngsi_ld_entity)
+        ngsi_ld_entities.append(cleaned_ngsi_ld_entity)
 
     # Return the list of NGSI-LD entities
     return ngsi_ld_entities
 
-def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
+def gtfs_realtime_trip_updates_to_ngsi_ld() -> list[dict[str, Any]]:
     """
     Converts a GTFS-Realtime Trip Update feed (from MessageToDict) to a list of NGSI-LD entities.
     Args:
@@ -995,106 +930,30 @@ def gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dic
         list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS Realtime Alert data.
     """
     ngsi_ld_entities = []
+    
+    api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
 
     # Extract entities from the feed_dict
-    entities = feed_dict.get("entity", [])
+    entities = normal_feed_dict.get("entity", [])
 
     # Iterate through each entity and convert to NGSI-LD format
     for entity in entities:
         
-        # Get GTFS Static data fields and transform them into the specific data types (str, int, float etc)
-        trip_update_id = entity.get('id')
-        trip_update_is_deleted = entity.get('isDeleted') or False
-        trip_udate_trip_id = f"urn:ngsi-ld:GtfsTrip:{entity.get('tripUpdate').get('trip').get('tripId')}" if entity.get('tripUpdate').get('trip').get('tripId') else ""
-        trip_update_schedule_relationship = entity.get('tripUpdate').get('trip').get('scheduleRelationship') or ""
-        trip_update_route_id = f"urn:ngsi-ld:GtfsRoute:{entity.get('tripUpdate').get('trip').get('routeId')}" if entity.get('tripUpdate').get('trip').get('routeId') else ""
-        
-
-        # Get the stop time updates and convert them to a list of entities
-        stop_time_updates = entity.get("tripUpdate").get("stopTimeUpdate")
-        stop_time_updates_list = []
-
-        # Iterate through each stop time update and convert to NGSI-LD format
-        for stop_time_update in stop_time_updates:
-            
-            arrival_time = unix_to_iso8601(int(stop_time_update.get('arrival').get('time'))) if stop_time_update.get('arrival').get('time') else ""
-            arrival_uncertainty = stop_time_update.get('arrival').get('uncertainty') or 0
-            departure_time = unix_to_iso8601(int(stop_time_update.get('departure').get('time'))) if stop_time_update.get('departure').get('time') else ""
-            departure_uncertainty = stop_time_update.get('departure').get('uncertainty') or 0
-            stop_time_update_stop_id = f"urn:ngsi-ld:GtfsStop:{stop_time_update.get('stopId')}" if stop_time_update.get('stopId') else ""
-            stop_time_schedule_relationship = stop_time_update.get('scheduleRelationship')
-            
-            # Create a dictionary for the stop time entity
-            stop_time_entity = {
-                "arrival": {
-                    "type": "Property",
-                    "value": {
-                        "time": arrival_time,
-                        "uncertainty": arrival_uncertainty
-                    }
-                },
-                
-                "departure": {
-                    "type": "Property",
-                    "value": {
-                        "time": departure_time,
-                        "uncertainty": departure_uncertainty
-                    }
-                },
-                
-                "stop_id": {
-                    "type": "Relationship",
-                    "object": stop_time_update_stop_id
-                },
-                
-                "schedule_relationship": {
-                    "type": "Property",
-                    "value": stop_time_schedule_relationship
-                }
-            }
-            
-            # Append the stop time entity to the list
-            stop_time_updates_list.append(stop_time_entity)
-                
-        # Create custom data model and populate it
-        ngsi_ld_entity = {
-            "id": f"urn:ngsi-ld:GtfsTripUpdate:{trip_update_id}",
-            "type": "GtfsRealtimeTripUpdate",
-            "is_deleted": {
-                "type": "Property",
-                "value": trip_update_is_deleted
-            },
-            "trip_id": {
-                "type": "Relationship",
-                "object": trip_udate_trip_id
-            },
-            "schedule_relationship": {
-                "type": "Property",
-                "value": trip_update_schedule_relationship
-            },
-            "route_id": {
-                "type": "Relationship",
-                "object": trip_update_route_id
-            },
-            "stop_time_update": {
-                "type": "Property",
-                "value": stop_time_updates_list
-            }          
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_entity = {
-            k: v for k, v in ngsi_ld_entity.items()
-            if not (isinstance(v, dict) and None in v.values())
-        }
+        normalized_entity = parse_gtfs_realtime_trip_updates(entity)
+        cleaned_entity = gtfs_realtime_clean_empty_values(normalized_entity)
+        ngsi_ld_entity = convert_gtfs_realtime_trip_updates_to_ngsi_ld(cleaned_entity)
+        cleaned_ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
         
         # Append the NGSI-LD entity to the list
-        ngsi_ld_entities.append(ngsi_ld_entity)
+        ngsi_ld_entities.append(cleaned_ngsi_ld_entity)
 
     # Return the list of NGSI-LD entities
     return ngsi_ld_entities
 
-def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str, Any]]:
+def gtfs_realtime_alerts_to_ngsi_ld() -> list[dict[str, Any]]:
     """
     Converts a GTFS-Realtime alerts feed (from MessageToDict) to a list of NGSI-LD entities.
     Args:
@@ -1105,242 +964,40 @@ def gtfs_realtime_alerts_to_ngsi_ld(feed_dict: dict[str, Any]) -> list[dict[str,
     """
     ngsi_ld_entities = []
 
-    # Extract entities from the feed_dict
-    entities = feed_dict.get("entity", [])
-
-    # Iterate through each entity and convert to NGSI-LD format
-    for entity in entities:
-        
-        # Set alert id
-        alert_id = entity.get('id')
-        
-        # Get alert active periods
-        alert_active_periods = entity.get('alert').get('activePeriod')
-        
-        active_periods_list = []
-        
-        # Traverse through all start and end active periods
-        for active_period in alert_active_periods:
-            
-            # Turn into ISO 8601 date format    
-            start_of_period = unix_to_iso8601(int(active_period.get('start'))) if active_period.get('start') else ""
-            end_of_period = unix_to_iso8601(int(active_period.get('end'))) if active_period.get('end') else ""
-                
-            period = {
-                "active_period_start": {
-                    "type": "Property",
-                    "value": start_of_period
-                },
-                "active_period_end": {
-                    "type": "Property",
-                    "value": end_of_period
-                }
-            }
-
-            # Append active periods
-            active_periods_list.append(period)
-        
-        # Get informed entities
-        informed_entities = entity.get('alert').get('informedEntity')
-        informed_entities_list = []
-        
-        # Iterate through all routes in the informedEntity
-        for informed_entity in informed_entities:
-            
-            route_id = f"urn:ngsi-ld:GtfsRoute:{informed_entity.get('routeId')}" if informed_entity.get('routeId') else ""
-            
-            entity_obj = {
-                "route_id": {
-                    "type": "Relationship",
-                    "object": route_id
-                }
-            }
-            # Append the routes from informedEntity
-            informed_entities_list.append(entity_obj)
-        
-        # Get cause and effect of the alert
-        alert_cause = entity.get('alert').get('cause')
-        alert_effect = entity.get('alert').get('effect')
-        
-        # Get Url text translation    
-        alert_url_translations = entity.get('alert').get('url').get('translation')
-        alert_url_translation_list = []
-        
-        # Iterate through url translations
-        for alert_url_translation in alert_url_translations:
-            
-            alert_url_translations_text = alert_url_translation.get('text') or ""
-            alert_url_translations_language = alert_url_translation.get('language') or ""
-            
-            translation = {
-                "alert_url_text": {
-                    "type": "Property",
-                    "value": alert_url_translations_text
-                },
-                
-                "alert_url_language": {
-                    "type": "Property",
-                    "value": alert_url_translations_language
-                }
-            }
-            # Append trnaslation
-            alert_url_translation_list.append(translation)
-            
-        # Get Header text translation    
-        alert_header_translations = entity.get('alert').get('headerText').get('translation')
-        alert_header_translation_list = []
-        
-        # Iterate through the header translations
-        for alert_header_translation in alert_header_translations:
-            
-            alert_header_translations_text = alert_header_translation.get('text') or ""
-            alert_header_translations_language = alert_header_translation.get('language') or ""
-            
-            translation = {
-                "alert_header_text": {
-                    "type": "Property",
-                    "value": alert_header_translations_text
-                },
-                
-                "alert_header_language": {
-                    "type": "Property",
-                    "value": alert_header_translations_language
-                }
-            }
-            
-            # Append translation
-            alert_header_translation_list.append(translation)
-        
-        # Get Description text translation    
-        alert_description_translations = entity.get('alert').get('descriptionText').get('translation')
-        alert_description_translation_list = []
-        
-        # Iterate though the alert description translations
-        for alert_description_translation in alert_description_translations:
-            
-            alert_description_translations_text = alert_description_translation.get('text') or ""
-            alert_description_translations_language = alert_description_translation.get('language') or ""
-            
-            translation = {
-                "alert_description_text": {
-                    "type": "Property",
-                    "value": alert_description_translations_text
-                },
-                
-                "alert_description_language": {
-                    "type": "Property",
-                    "value": alert_description_translations_language
-                }
-            }
-
-            # Append translation
-            alert_description_translation_list.append(translation)
-        
-        # Create custom data model
-        ngsi_ld_entity = {
-            "id": f"urn:ngsi-ld:GtfsAlert:{alert_id}",
-            "type": "GtfsRealtimeAlert",
-            "active_period": {
-                "type": "Property",
-                "value": active_periods_list
-            },   
-            "informed_entity": {
-                "type": "Property",
-                "value": informed_entities_list
-            },   
-            "alert_cause": {
-                "type": "Property",
-                "value": alert_cause
-            },             
-            "alert_effect": {
-                "type": "Property",
-                "value": alert_effect
-            },     
-            "url_translation": {
-                "type": "Property",
-                "value": alert_url_translation_list
-            },               
-            "alert_header_translation": {
-                "type": "Property",
-                "value": alert_header_translation_list
-            },
-            "alert_description_translation": {
-                "type": "Property",
-                "value": alert_description_translation_list
-            }
-        }
-        
-        # Remove all elements which have an empty value or object, so that the entity can be posted to Orion-LD
-        ngsi_ld_entity = {
-            k: v for k, v in ngsi_ld_entity.items()
-            if not (isinstance(v, dict) and None in v.values())
-        }
-
-        # Append the NGSI-LD entity to the list
-        ngsi_ld_entities.append(ngsi_ld_entity)
-
-    # Return the list of NGSI-LD entities
-    return ngsi_ld_entities
-
-
-if __name__ == "__main__":
-    #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    #feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
-    #normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
-    #vehicle_position = normal_feed_dict.get("entity")
-    #normal_position = parse_gtfs_realtime_vehicle_position(vehicle_position[0])
-    #cleaned_position = gtfs_realtime_clean_empty_values(normal_position)
-    #ngsi_ld_position = covert_gtfs_realtime_vehicle_position_to_ngsi_ld(cleaned_position)
-    #ngsi_ld_position = remove_none_values(ngsi_ld_position)
-    #print(json.dumps(ngsi_ld_position, indent=2, ensure_ascii=False))
-    
-    #for position in vehicle_position:
-    #    normal_position = parse_gtfs_realtime_vehicle_position(position)
-    #    print(json.dumps(normal_position, indent=2, ensure_ascii=False))
-    
-    #normalized_feed_dict = gtfs_realtime_normalize_vehicle_position(normal_feed_dict)
-    #ngsi_ld_fеed = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
-    #print(json.dumps(ngsi_ld_fеed, indent=2, ensure_ascii=False))
-    #print(json.dumps(normal_feed_dict, indent=2, ensure_ascii=False))
-
-    #api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
-    #feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
-    #feed_dict = gtfs_realtime_feed_to_dict(feed_data)
-    #normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
-    #trip_update = normal_feed_dict.get("entity")
-    #normal_position = parse_gtfs_realtime_trip_updates(trip_update[0])
-    #cleaned_normal_position = gtfs_realtime_clean_empty_values(normal_position)
-    #ngsi_ld_position = convert_gtfs_realtime_trip_updates_to_ngsi_ld(cleaned_normal_position)
-    #ngsi_ld_position = remove_none_values(ngsi_ld_position)
-    #print(json.dumps(ngsi_ld_position, indent=2, ensure_ascii=False))
-    
-    #for update in trip_update:
-    #    normal_position = parse_gtfs_realtime_trip_updates(update)
-    #    #cleaned_normal_position = gtfs_realtime_clean_empty_values(normal_position)
-    #    print(json.dumps(normal_position, indent=2, ensure_ascii=False))
-    
-    #ngsi_ld_trip_updates = gtfs_realtime_trip_updates_to_ngsi_ld(feed_dict)
-    #print(json.dumps(ngsi_ld_trip_updates, indent=2, ensure_ascii=False))
-    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
-
     api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
     feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
-    alerts = normal_feed_dict.get("entity")
-    normal_position = parse_gtfs_realtime_alerts(alerts[0])
-    cleaned_normal_position =gtfs_realtime_clean_empty_values(normal_position)
-    ngsi_ld_position = convert_gtfs_realtime_alerts_to_ngsi_ld(cleaned_normal_position)
-    ngsi_ld_position = remove_none_values(ngsi_ld_position)
-    print(json.dumps(ngsi_ld_position, indent=2, ensure_ascii=False))
-    
-    #for alert in alerts:
-    #    normal_position = parse_gtfs_realtime_alerts(alert)
-        #cleaned_normal_position =gtfs_realtime_clean_empty_values(normal_position)
-    #    print(json.dumps(normal_position, indent=2, ensure_ascii=False))
 
-    #ngsi_ld_alerts = gtfs_realtime_alerts_to_ngsi_ld(feed_dict)
-    #print(json.dumps(feed_dict, indent=2, ensure_ascii=False))
-    #print(json.dumps(ngsi_ld_alerts, indent=2, ensure_ascii=False))
-    pass
+    
+    # Extract entities from the feed_dict
+    entities = normal_feed_dict.get("entity")
+
+    # Iterate through each entity and convert to NGSI-LD format
+    for entity in entities:
+        
+        normalized_entity = parse_gtfs_realtime_alerts(entity)
+        cleaned_entity =gtfs_realtime_clean_empty_values(normalized_entity)
+        ngsi_ld_entity = convert_gtfs_realtime_alerts_to_ngsi_ld(cleaned_entity)
+        cleaned_ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the NGSI-LD entity to the list
+        ngsi_ld_entities.append(cleaned_ngsi_ld_entity)
+
+    # Return the list of NGSI-LD entities
+    return ngsi_ld_entities
+
+# -----------------------------------------------------
+# High-level function to get NGSI-LD data
+# ----------------------------------------------------- 
+
+def gtfs_realtime_get_ngsi_ld_data(type: str) -> list[dict[str, Any]]:
+    
+    if type == "VehiclePosition":
+        return gtfs_realtime_vehicle_position_to_ngsi_ld()
+    elif type == "TripUpdate":
+        return gtfs_realtime_trip_updates_to_ngsi_ld()
+    elif type == "Alert":
+        return gtfs_realtime_alerts_to_ngsi_ld()
+    else:
+        raise ValueError("Unknown / Unsupported GTFS Realtime type")
