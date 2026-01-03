@@ -890,29 +890,49 @@ def convert_gtfs_realtime_alerts_to_ngsi_ld(entity: dict[str, Any]) -> dict[str,
 
 def gtfs_realtime_vehicle_position_to_ngsi_ld() -> list[dict[str, Any]]:
     """
-    Converts a GTFS-Realtime Vehicle Position Feed to a list of NGSI-LD entities.
-    Args:
-        feed_dict (dict[str, Any]): Dictionary of feed data
+    Convert a GTFS-Realtime VehiclePosition feed into NGSI-LD entities.
+
+    This function:
+    - fetches the GTFS-Realtime feed from a configured source
+    - parses and normalizes the feed structure
+    - converts each VehiclePosition entity into a normalized internal model
+    - cleans empty or unused fields
+    - transforms the result into NGSI-LD format
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS Realtime Alert data.
+        list[dict[str, Any]]: A list of NGSI-LD entities representing
+        GTFS-Realtime VehiclePosition data.
     """
     ngsi_ld_entities = []
     
+    # Fetch raw GTFS-Realtime feed from the configured source
     api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    
+    # Parse the feed into a GTFS-Realtime FeedMessage
     feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    
+    # Convert the FeedMessage into a Python dictionary
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    
+    # Normalize all keys to snake_case for consistent downstream processing
     normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
     
-
-    # Extract entities from the feed_dict
+    # Extract GTFS entities from the normalized dict
     entities = normal_feed_dict.get("entity")
 
-    # Iterate through each entity and convert to NGSI-LD format
+    # Process each VehiclePosition entity independently
     for entity in entities:
         
+        # Normalize the GTFS VehiclePosition entity into an internal model
         normalized_entity = parse_gtfs_realtime_vehicle_position(entity)
+        
+        # Remove empty or unused fields from the normalized structure
         cleaned_entity = gtfs_realtime_clean_empty_values(normalized_entity)
+        
+        # Convert the cleaned model into NGSI-LD format
         ngsi_ld_entity = covert_gtfs_realtime_vehicle_position_to_ngsi_ld(cleaned_entity)
+        
+        # Final cleanup to remove None values before publishing
         cleaned_ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
         
         # Append the NGSI-LD entity to the list
@@ -923,28 +943,49 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld() -> list[dict[str, Any]]:
 
 def gtfs_realtime_trip_updates_to_ngsi_ld() -> list[dict[str, Any]]:
     """
-    Converts a GTFS-Realtime Trip Update feed (from MessageToDict) to a list of NGSI-LD entities.
-    Args:
-        feed_dict (dict[str, Any]): Dictionary of feed data
+    Convert a GTFS-Realtime TripUpdate feed into NGSI-LD entities.
+
+    This function:
+    - fetches the GTFS-Realtime feed from a configured source
+    - parses and normalizes the feed structure
+    - converts each TripUpdate entity into a normalized internal model
+    - cleans empty or unused fields
+    - transforms the result into NGSI-LD format
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS Realtime Alert data.
+        list[dict[str, Any]]: A list of NGSI-LD entities representing
+        GTFS-Realtime TripUpdate data.
     """
     ngsi_ld_entities = []
     
+    # Fetch raw GTFS-Realtime feed from the configured source
     api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    
+    # Parse the feed into a GTFS-Realtime FeedMessage
     feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    
+    # Convert the FeedMessage into a Python dictionary
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    
+    # Normalize all keys to snake_case for consistent downstream processing
     normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
 
-    # Extract entities from the feed_dict
+    # Extract GTFS entities from the normalized dict
     entities = normal_feed_dict.get("entity", [])
 
-    # Iterate through each entity and convert to NGSI-LD format
+    # Process each TripUpdate entity independently
     for entity in entities:
         
+        # Normalize the GTFS TripUpdate entity into an internal model
         normalized_entity = parse_gtfs_realtime_trip_updates(entity)
+        
+        # Remove empty or unused fields from the normalized structure
         cleaned_entity = gtfs_realtime_clean_empty_values(normalized_entity)
+        
+        # Convert the cleaned model into NGSI-LD format
         ngsi_ld_entity = convert_gtfs_realtime_trip_updates_to_ngsi_ld(cleaned_entity)
+        
+        # Final cleanup to remove None values before publishing
         cleaned_ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
         
         # Append the NGSI-LD entity to the list
@@ -955,30 +996,49 @@ def gtfs_realtime_trip_updates_to_ngsi_ld() -> list[dict[str, Any]]:
 
 def gtfs_realtime_alerts_to_ngsi_ld() -> list[dict[str, Any]]:
     """
-    Converts a GTFS-Realtime alerts feed (from MessageToDict) to a list of NGSI-LD entities.
-    Args:
-        feed_dict (dict[str, Any]): Dictionary of feed data
+    Convert a GTFS-Realtime Alert feed into NGSI-LD entities.
+
+    This function:
+    - fetches the GTFS-Realtime feed from a configured source
+    - parses and normalizes the feed structure
+    - converts each Alert entity into a normalized internal model
+    - cleans empty or unused fields
+    - transforms the result into NGSI-LD format
+
     Returns:
-        list[dict[str, Any]]: List of dictionaries in NGSI-LD format representing GTFS Realtime Alert data.
-    
+        list[dict[str, Any]]: A list of NGSI-LD entities representing
+        GTFS-Realtime Alert data.
     """
     ngsi_ld_entities = []
 
+    # Fetch raw GTFS-Realtime feed from the configured source
     api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
+    
+    # Parse the feed into a GTFS-Realtime FeedMessage
     feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
+    
+    # Convert the FeedMessage into a Python dictionary
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    
+    # Normalize all keys to snake_case for consistent downstream processing
     normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
 
-    
-    # Extract entities from the feed_dict
+    # Extract GTFS entities from the normalized dict
     entities = normal_feed_dict.get("entity")
 
-    # Iterate through each entity and convert to NGSI-LD format
+    # Process each Alert entity independently
     for entity in entities:
         
+        # Normalize the GTFS Alert entity into an internal model
         normalized_entity = parse_gtfs_realtime_alerts(entity)
+
+        # Remove empty or unused fields from the normalized structure
         cleaned_entity =gtfs_realtime_clean_empty_values(normalized_entity)
+        
+        # Convert the cleaned model into NGSI-LD format
         ngsi_ld_entity = convert_gtfs_realtime_alerts_to_ngsi_ld(cleaned_entity)
+        
+        # Final cleanup to remove None values before publishing
         cleaned_ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
         
         # Append the NGSI-LD entity to the list
@@ -992,12 +1052,37 @@ def gtfs_realtime_alerts_to_ngsi_ld() -> list[dict[str, Any]]:
 # ----------------------------------------------------- 
 
 def gtfs_realtime_get_ngsi_ld_data(type: str) -> list[dict[str, Any]]:
+    """
+    Route GTFS-Realtime feed processing based on entity type and return NGSI-LD data.
+
+    Supported GTFS-Realtime types:
+        - "VehiclePosition"
+        - "TripUpdate"
+        - "Alert"
+
+    Args:
+        type (str): GTFS-Realtime entity type to process.
+
+    Returns:
+        list[dict[str, Any]]: A list of NGSI-LD entities corresponding to the
+        requested GTFS-Realtime feed type.
+
+    Raises:
+        ValueError: If the provided type is unknown or unsupported.
+    """
     
+    # Route VehiclePosition feed to its NGSI-LD transformation pipeline
     if type == "VehiclePosition":
         return gtfs_realtime_vehicle_position_to_ngsi_ld()
+    
+    # Route TripUpdate feed to its NGSI-LD transformation pipeline
     elif type == "TripUpdate":
         return gtfs_realtime_trip_updates_to_ngsi_ld()
+    
+    # Route Alert feed to its NGSI-LD transformation pipeline
     elif type == "Alert":
         return gtfs_realtime_alerts_to_ngsi_ld()
+    
+    # Reject unsupported or unknown GTFS-Realtime types
     else:
         raise ValueError("Unknown / Unsupported GTFS Realtime type")
