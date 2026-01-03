@@ -333,7 +333,7 @@ def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] |
     """
     # If no vehicle descriptor is provided, return an empty structure
     if vehicle is None:
-        return {}
+        vehicle = {}
     
     # Normalize and extract supported fields
     return {
@@ -395,11 +395,39 @@ def gtfs_realtime_clean_empty_values(value: Any) -> Any:
 # -----------------------------------------------------
 
 def parse_gtfs_realtime_vehicle_position(entity: dict[str, Any]) -> dict[str, Any]:
+    """
+    Normalize a GTFS Realtime VehiclePosition feed entity into a consistent Python dictionary
+    suitable for further processing and transformation into NGSI-LD.
+
+    This function handles optional and missing fields according to the GTFS Realtime specification.
+    Nested structures present in other feed entities such as trip descriptors, vehicle descriptors
+    are normalized with helper functions.
+
+    Args:
+        entity (dict[str, Any]): A dictionary representing a GTFS Realtime VehiclePosition feed entity.
+
+    Returns:
+        dict[str, Any]: A normalized dictionary containing:
+            - id: NGSI-LD URN of the vehicle position
+            - trip: dict | None
+            - vehicle: dict | None
+            - position: dict | None
+            - current_stop_sequence: int| None
+            - stop_id: NGSI-LD URN of the stop | None
+            - current_status: str | None
+            - timestamp: ISO 8601 UTC str | None
+            - congestion_level: str | None
+            - occupancy_status: str | None
+            - occupancy_percentage: int or None
+            - multi_carriage_details: list | None
+    """
+    # Extract all feed fields which have collection-type data (lists, dictionaries)
     vehicle_info = entity.get("vehicle")
     vehicle_info_trip = vehicle_info.get("trip") if vehicle_info else None
     vehicle_info_vehicle = vehicle_info.get("vehicle") if vehicle_info else None
     multi_carriage_details = vehicle_info.get("multi_carriage_details", []) if vehicle_info else []
     
+     # Normalize multi-carriage details
     carriage_details = [
         {
             "id": to_ngsi_ld_urn(carriage.get("id"), "GtfsRealtimeCarriage"),
@@ -411,6 +439,7 @@ def parse_gtfs_realtime_vehicle_position(entity: dict[str, Any]) -> dict[str, An
         for carriage in multi_carriage_details
     ]
     
+    # Return the full normalized VehiclePosition dictionary
     return {
         "id": to_ngsi_ld_urn(entity.get("id"), "GtfsRealtimeVehiclePosition"),
         "trip": gtfs_realtime_normalize_trip_descriptor_message(vehicle_info_trip),
@@ -433,6 +462,27 @@ def parse_gtfs_realtime_vehicle_position(entity: dict[str, Any]) -> dict[str, An
     }
 
 def parse_gtfs_realtime_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
+    """
+    Normalize a GTFS Realtime TripUpdate feed entity into a consistent Python dictionary
+    suitable for further processing and transformation into NGSI-LD.
+
+    This function handles optional and missing fields according to the GTFS Realtime specification.
+    Nested structures present in other feed entities such as trip descriptors, vehicle descriptors
+    are normalized with helper functions.
+
+    Args:
+        entity (dict[str, Any]): A dictionary representing a GTFS Realtime TripUpdate feed entity.
+
+    Returns:
+        dict[str, Any]: A normalized dictionary containing:
+            - id: NGSI-LD URN of the trip update
+            - trip: dict | None
+            - vehicle: dict | None
+            - stop_time_update: dict | None
+            - timestamp: ISO 8601 UTC str | None
+            - delay: int | None
+            - trip_properties: dict | None
+    """
     trip_update_info = entity.get("trip_update")
     trip_udate_info_trip = trip_update_info.get("trip") if trip_update_info else None
     trip_update_info_vehicle = trip_update_info.get("vehicle") if trip_update_info else None
