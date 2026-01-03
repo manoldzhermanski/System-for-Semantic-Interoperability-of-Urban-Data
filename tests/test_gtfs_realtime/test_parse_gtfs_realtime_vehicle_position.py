@@ -64,7 +64,7 @@ def test_parse_gtfs_realtime_vehicle_position_full_payload():
    
     assert result == expected
 
-def test_parse_gtfs_realtime_vehicle_position_empty_vehicle():
+def test_parse_gtfs_realtime_vehicle_position_empty_entity():
     """
     Check that if the VehiclePosition entity is empty, all fields have None values
     """

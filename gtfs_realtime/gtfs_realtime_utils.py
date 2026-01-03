@@ -219,6 +219,7 @@ def to_ngsi_ld_urn(value: str | None, entity_type: str) -> str | None:
 # -----------------------------------------------------
 # Normalization Functions
 # -----------------------------------------------------
+
 def gtfs_realtime_normalize_trip_descriptor_message(trip: dict | None) -> dict[str, Any]:
     """
     Normalize a GTFS-realtime TripDescriptor message.
@@ -483,13 +484,14 @@ def parse_gtfs_realtime_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
             - delay: int | None
             - trip_properties: dict | None
     """
+    # Extract all feed fields which have collection-type data (lists, dictionaries)
     trip_update_info = entity.get("trip_update")
     trip_udate_info_trip = trip_update_info.get("trip") if trip_update_info else None
     trip_update_info_vehicle = trip_update_info.get("vehicle") if trip_update_info else None
     stop_time_update = trip_update_info.get("stop_time_update", []) if trip_update_info else []
     trip_update_info_trip_properties = trip_update_info.get("trip_properties") if trip_update_info else None
     
-    
+    # Normalize 'stop_time_update'
     stop_time_updates = [
         {
             "stop_sequence": update.get("stop_sequence") if stop_time_update else None,
@@ -518,6 +520,7 @@ def parse_gtfs_realtime_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
         for update in stop_time_update
     ]
     
+    # Return the full normalized TripUpdate dictionary
     return {
         "id": to_ngsi_ld_urn(entity.get("id"), "GtfsRealtimeTripUpdate"),
         "trip":  gtfs_realtime_normalize_trip_descriptor_message(trip_udate_info_trip),
@@ -536,18 +539,48 @@ def parse_gtfs_realtime_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
         }
 
 def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
-    
+    """
+    Normalize a GTFS Realtime Alert feed entity into a consistent Python dictionary
+    suitable for further processing and transformation into NGSI-LD.
+
+    This function handles optional and missing fields according to the GTFS Realtime specification.
+    Nested structures present in other feed entities such as TranslatedString are normalized with helper functions.
+
+    Args:
+        entity (dict[str, Any]): A dictionary representing a GTFS Realtime Alert feed entity.
+
+    Returns:
+        dict[str, Any]: A normalized dictionary containing:
+            - id: NGSI-LD URN of the trip update
+            - active_period: list | None
+            - informed_entity: list | None
+            - cause: str | None
+            - cause_detail: list | None
+            - effect: str | None
+            - effect_detail: list | None
+            - url: list | None
+            - header_text: list | None
+            - description_text: list | None
+            - tts_header_text: list | None
+            - tts_description_text: list | None
+            - image: list | None
+            - image_alternative_text: list | None         
+    """
+    # Extract all feed fields which have collection-type data (lists, dictionaries)
     alert_info = entity.get("alert")
+    active_period = alert_info.get("active_period") if alert_info else []
+    alert_info_infromed_entity = alert_info.get("informed_entity") if alert_info else []
+    
+    # Normalize 'active_period'
     alert_active_period = [
         {
             "start": unix_to_iso8601(int(period.get("start"))),
             "end": unix_to_iso8601(int(period.get("end")))
         }
-        for period in (alert_info.get("active_period") if alert_info else [])
+        for period in active_period
     ]
     
-    alert_info_infromed_entity = alert_info.get("informed_entity") if alert_info else []
-    
+    # Normalize 'informed_entity'
     alert_informed_entity = [
         {
             "agency_id": to_ngsi_ld_urn(infromed_entity.get("agency_id"), "GtfsAgency"),
@@ -560,10 +593,13 @@ def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
         for infromed_entity in alert_info_infromed_entity
     ]
     
+    # Get 'cause', 'effect', 'severity_level' and 'image'
     alert_cause = alert_info.get("cause") if alert_info else None
     alert_effect = alert_info.get("effect") if alert_info else None
     alert_severity_level = alert_info.get("severity_level") if alert_info else None
-        
+    alert_image = alert_info.get("image") if alert_info else None
+    
+    # Normalize TranslatedString fields    
     translated_fields = ["cause_detail", "effect_detail", "url", "header_text", "description_text",
                          "tts_header_text", "tts_description_text", "image_alternative_text"]
 
@@ -572,8 +608,7 @@ def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
         for field in translated_fields
     }
 
-    
-    alert_image = alert_info.get("image") if alert_info else None
+    # Normalize 'localized_image'
     alert_image_localized_image = alert_image.get("localized_image") if alert_image else []
     localized_images = [
         {
@@ -584,6 +619,7 @@ def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
         for image in alert_image_localized_image
     ]
     
+    # Return the full normalized Alert dictionary
     return {
         "id": to_ngsi_ld_urn(entity.get("id"), "GtfsRealtimeAlert"),
         "active_period": alert_active_period,
