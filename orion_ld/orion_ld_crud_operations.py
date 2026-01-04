@@ -97,23 +97,38 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header
     except requests.exceptions.RequestException as e:
         logger.exception("Batch POST request to Orion-LD failed: %s", e)
     
-
-def orion_ld_batch_load_to_context_broker(ngsi_ld_data: List[Dict[str, Any]], header: dict, batch_size: int = 1000, delay: float = 0.1) -> None:
-    """    Load entities in NGSI-LD format to the context broker in batches.
-    Args:
-        ngsi_ld_data (List[Dict[str, Any]]): List of entities in NGSI-LD format to be loaded.
-        batch_size (int): Number of entities to be sent in each batch. Default is 1000.
-        delay (float): Delay in seconds between each batch request. Default is 0.1 seconds.
-    Returns:
-        None: The function does not return anything, but prints the result of each batch request.
+def orion_ld_batch_load_to_context_broker(ngsi_ld_data: list[dict[str, Any]], header: dict, batch_size: int = 1000, delay: float = 0.1) -> None:
     """
-    # Create batches of the NGSI-LD data and send them to the context broker
+    Load NGSI-LD entities to Orion-LD context broker in batches.
+
+    Args:
+        ngsi_ld_data (list[dict[str, Any]]):
+            List of NGSI-LD entities
+        headers (dict):
+            HTTP headers for the request (Content-Type and Link)
+        batch_size (int, optional):
+            Number of entities per batch. Defaults to 1000 - max default number.
+        delay (float, optional):
+            Delay in seconds between sending each batch. Defaults to 0.1s - empirically found as sufficient.
+
+    Returns:
+        None
+
+    Side Effects:
+        - Sends multiple POST requests to the Orion-LD broker.
+        - Logs batch creation status through `orion_ld_post_batch_request`.
+        - Adds a delay between batches to prevent overloading the broker.
+    """
+    # Iterate over ngsi_ld_data in chunks of batch_size
     for i in range(0, len(ngsi_ld_data), batch_size):
-        
         batch = ngsi_ld_data[i: i + batch_size]
+        
+        logger.debug("Sending batch %d to Orion-LD (%d entities)", i // batch_size + 1, len(batch))
+        
+        # Delegate actual batch POST to helper function
         orion_ld_post_batch_request(batch, header)
         
-        # delay the POST Request, so to not break the Orion-LD architecture
+        # Delay between batches to prevent overwhelming the broker
         time.sleep(delay)
         
 # GET functions
