@@ -63,13 +63,14 @@ def orion_ld_define_header(keyword: str) -> dict[str, str]:
 # POST Requests
 # -----------------------------------------------------  
 
-def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header: dict) -> None:
+def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header: dict[str, str]) -> None:
     """
     Sends a batch POST request to the Orion-LD broker to create multiple NGSI-LD entities.
 
     Args:
         batch_ngsi_ld_data (list[dict[str, Any]]):
             List of NGSI-LD entities
+            
         headers (dict[str, str]):
             HTTP headers to be included in the request (Content-Type and Link)
 
@@ -112,10 +113,13 @@ def orion_ld_batch_load_to_context_broker(ngsi_ld_data: list[dict[str, Any]], he
     Args:
         ngsi_ld_data (list[dict[str, Any]]):
             List of NGSI-LD entities
-        headers (dict):
+            
+        headers (dict[str, str]):
             HTTP headers for the request (Content-Type and Link)
+            
         batch_size (int, optional):
             Number of entities per batch. Defaults to 1000 - max default number.
+            
         delay (float, optional):
             Delay in seconds between sending each batch. Defaults to 0.1s - empirically found as sufficient.
 
@@ -143,7 +147,7 @@ def orion_ld_batch_load_to_context_broker(ngsi_ld_data: list[dict[str, Any]], he
 # GET Requests
 # -----------------------------------------------------  
 
-def orion_ld_get_entity_by_id(entity_id: str, header: dict) -> dict[str, Any]:
+def orion_ld_get_entity_by_id(entity_id: str, header: dict[str, str]) -> dict[str, Any]:
     """
     Get a single NGSI-LD entity from Orion-LD by its entity ID.
 
@@ -195,59 +199,78 @@ def orion_ld_get_entity_by_id(entity_id: str, header: dict) -> dict[str, Any]:
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when sending GET Request: {e}")
 
-def orion_ld_get_entities_by_type(entity_type: str, header: dict) -> list[dict[str, Any]]:
+def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str]) -> list[dict[str, Any]]:
     """
-    Send GET Request for all entities of a specific entity type.
-    Orion-LD allows to GET 1000 entities at a time - configured though the limit parameter
-    Orion-LD  allows to choose from what index to start getting entities - configured through the offset parameter
-    IMPORTANT: Orion-LD allows to GET up to 34 000 entities total. Use this function more as a helper function.
+    Retrieve all entities of a specific NGSI-LD type from Orion-LD, handling pagination.
+
+    Orion-LD allows fetching a limited number of entities per request (default limit=1000)
+    and supports pagination via the `offset` parameter. This function retrieves all entities
+    of the specified type up to Orion-LD's maximum limit (34,000).
+
     Args:
-        entity_type (str): Entity Type.
+        entity_type (str): 
+            The NGSI-LD entity type to retrieve.
+        
+        header (dict[str, str]): 
+            HTTP headers to include in the request (Content-Type and Link)
+
     Returns:
-        List[Dict[str, Any]]: List of entities of the specified type
+        list[dict[str, Any]]: A list of NGSI-LD entities of the specified type.
+
+    Raises:
+        requests.exceptions.RequestException: If there is a network or HTTP error during the requests.
     """
     # List to store all entities
     all_entities = []
 
-    # Current index from which to start getting entitites
+    # Starting index for pagination
     offset = 0
+    
+    # Number of entities per request
     limit = 1000
+    
+    # Prevent infinite loops by setting a maximum number of iterations
+    max_iterations = 50
+    iteration = 0
 
     # While there are entities of the desired type, get 1000 at a time
     while True:
+        
         params = {
             "type": entity_type,
             "limit": limit,
             "offset": offset
             }
+        
+        iteration += 1
+        if iteration > max_iterations:
+            raise RuntimeError("Too many iterations in get_entities_by_type")
+        
         try:
             # Send a GET request to extract entities of type 'entity_type'
             response = requests.get(f'{ORION_LD_URL}', headers=header, params=params)
-            # Raise exception, if unsuccessful
+            
+            # Raise an exception for HTTP error responses
             response.raise_for_status()
+            
+            # Ensure correct response encoding
             response.encoding = "utf-8"
 
             # Parse the JSON response
             data = response.json()
 
-            # If data is empty, that means all entities are fetched thus break loop
+            # Break if no more entities
             if not data:
                 break
 
-            # For every dictionary in the data list, check its values for a "value" key that is a string.
-            # If so, decode it using unicode_escape to handle any escaped characters (like cyrilic).
-            #for entity in data:
-            #    for v in entity.values():
-            #        if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
-            #            v["value"] = codecs.decode(v["value"], 'unicode_escape')
-
-            # Append entities
+            # Extend entity list
             all_entities.extend(data)
 
-            # Update index for getting entities
+            # Move offset for next page
             offset += limit
+            
         except requests.exceptions.RequestException as e:
-            print(f"Error when sending GET request: {e}")
+            raise requests.exceptions.RequestException(f"Error when sending GET request: {e}")
         
     # Return all entities
     return all_entities
@@ -255,16 +278,30 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict) -> list[dict[s
 
 def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, query_expression: str) -> list[dict[str, Any]]:
     """
-    Send a GET request for specific Entity type and filter it with a query expression.
-    Automatically converts any non-ASCII characters in the query to Unicode escape format.
-    Orion-LD allows to GET 1000 entities at a time - configured though the limit parameter
-    Orion-LD  allows to choose from what index to start getting entities - configured through the offset parameter
+    Retrieve all entities of a specific NGSI-LD type that match a given query expression.
+
+    Orion-LD allows fetching a limited number of entities per request (default limit=1000)
+    and supports pagination via the `offset` parameter. This function retrieves all entities
+    of the specified type up to Orion-LD's maximum limit (34,000). The function automatically
+    converts non-ASCII characters in the query expression to Unicode escape sequences for
+    handling queries in Cyrillic.
+    
     Args:
-        entity_type (str): Entity Type.
-        query_expression (str): Expression to filter out the entities.
+        entity_type (str): 
+            The NGSI-LD entity type to retrieve
+        
+        header (dict[str, str]): 
+            HTTP headers to include in the request (Content-Type and Link)
+        
+        query_expression (str): 
+            Query expression to filter entities
 
     Returns:
-        List[Dict[str, Any]]: List of filtered entities.
+        list[dict[str, Any]]: List of entities matching the query.
+
+    Raises:
+        requests.exceptions.RequestException: If there is a network or HTTP error during the request.
+        RuntimeError: If the pagination loop exceeds the maximum allowed iterations (safety measure).
     """
     # Decode the URL-encoded strings, living is as the original variant
     decoded_query_expression = unquote(query_expression)
@@ -279,6 +316,13 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, que
 
     # Current index from which to start getting entitites
     offset = 0
+    
+    # Number of entities per request
+    limit = 1000
+    
+    # Prevent infinite loops by setting a maximum number of iterations
+    max_iterations = 50
+    iteration = 0
 
     # While there are entities that satisfy the query request, get 1000 at a time
     while True:
@@ -287,39 +331,38 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, que
             "type": entity_type,
             "q": escaped_query_expression,
             "offset": offset,
-            "limit": 1000
+            "limit": limit
         }
+
+        iteration += 1
+        if iteration > max_iterations:
+            raise RuntimeError("Too many iterations in get_entities_by_type")
 
         try:
             # Send a GET request with the query expression and starting index
             response = requests.get(ORION_LD_URL, headers=header, params=params)
 
-            # Raise exception, if unsuccessful
+            # Raise an exception for HTTP error responses
             response.raise_for_status()
+            
+            # Ensure correct response encoding
             response.encoding = "utf-8"
 
             # Parse the JSON response
             data = response.json()
             
-            # If data is empty, that means all entities are fetched thus break loop
+            # Break if no more entities
             if not data:
                 break
 
-            # For every dictionary value in the data, check if it has a "value" key and if its value is a string.
-            # If so, decode it using unicode_escape to handle any escaped characters (like cyrilic).
-            #for entity in data:
-            #    for v in entity.values():
-            #        if isinstance(v, dict) and "value" in v and isinstance(v["value"], str):
-            #            v["value"] = codecs.decode(v["value"], 'unicode_escape')
+            # Extend entity list
+            all_entities.extend(data)
 
-            # Append enitites
-            all_entities.append(data)
-
-            # Update index for getting entities
+            # Move offset for next page
             offset += 1000
 
         except requests.exceptions.RequestException as e:
-            print(f"Error when sending GET request: {e}")
+            raise requests.exceptions.RequestException(f"Error when sending GET request: {e}")
     
     # Return all entities
     return all_entities
@@ -493,7 +536,7 @@ if __name__ == "__main__":
 
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
     #orion_ld_batch_load_to_context_broker(ngsi_ld_data, HEADERS)
-    print(json.dumps(orion_ld_get_entity_by_id("urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:A3", HEADERS), indent=2, ensure_ascii=False))
+    print(json.dumps(orion_ld_get_entities_by_type("GtfsRoute", HEADERS), indent=2, ensure_ascii=False))
     
     #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
     

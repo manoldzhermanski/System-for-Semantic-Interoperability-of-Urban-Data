@@ -41,12 +41,9 @@ def test_get_entity_http_error():
     """
     headers = {"Content-Type": "application/ld+json"}
     
-    #mock_response = MagicMock()
-    #mock_response.raise_for_status.side_effect = requests.exceptions.RequestException("404 Not Found")
-    #mock_get.return_value = mock_response
-
-    with pytest.raises(requests.exceptions.RequestException) as err:
-        orion_ld_get_entity_by_id("urn:ngsi-ld:NonExisting:1",headers)
+    with patch("orion_ld.orion_ld_crud_operations.requests.get", side_effect=requests.exceptions.RequestException("404 Not Found")):
+        with pytest.raises(requests.exceptions.RequestException) as err:
+            orion_ld_get_entity_by_id("urn:ngsi-ld:NonExisting:1",headers)
 
     assert "Error when sending GET Request:" in str(err.value)
 
