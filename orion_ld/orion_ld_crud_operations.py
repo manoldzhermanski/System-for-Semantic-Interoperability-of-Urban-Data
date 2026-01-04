@@ -275,7 +275,6 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str]) -> l
     # Return all entities
     return all_entities
 
-
 def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, query_expression: str) -> list[dict[str, Any]]:
     """
     Retrieve all entities of a specific NGSI-LD type that match a given query expression.
@@ -389,27 +388,44 @@ def orion_ld_get_attribute_values_from_etities(entity_ids: list[str], attribute_
         # Raise exception, if unsuccessful
         response.raise_for_status()
         response.encoding = "utf-8"
+        
+        data = response.json()
 
         # Parse the JSON response
-        return response.json()
+        return data
     except requests.exceptions.RequestException as e:
-        print(f"Error when sending GET request: {e}")
-
-        # If exception is raised, return []
-        return []
+        raise requests.exceptions.RequestException(f"Error when sending GET request: {e}")
 
 
-def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict) -> int:
+def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, str]) -> int:
     """
-    Returns the number of NGSI-LD entities of a given entity type from Orion-LD.
+    Retrieve the total number of NGSI-LD entities of a given type from Orion-LD.
+
+    This function uses the NGSI-LD `options=count` query parameter together with
+    `limit=0` in order to retrieve only the total entity count without fetching
+    any actual entity payload.
+
+    The count is returned by Orion-LD in the `NGSILD-Results-Count` response header.
 
     Args:
-        entity_type (str): Short type name as defined in your JSON-LD context
+        entity_type (str):
+            type of NGSI-LD entities to count.
+        header (dict[str, str]):
+            HTTP headers to include in the request (Content-Type and Link)
+
     Returns:
-        int: Number of entities of the specified type.
+        int:
+            Number of entities of the specified type.
+            Returns 0 if the count header is missing or if a request error occurs.
+
+    Notes:
+        - Orion-LD returns the entity count via the `NGSILD-Results-Count` HTTP header.
+        - `limit=0` prevents returning any entity data, making the request lightweight.
+
     """
-    # Limit is 0, just so it doesn't return an entity
-    # We set the count option, to get the number of enitites of the desired type
+    # Request parameters:
+    # - limit=0 ensures no entities are returned in the response body
+    # - options=count instructs Orion-LD to return the total count in the headers
     params = {
         "type": entity_type,
         "limit": 0,
@@ -417,22 +433,23 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict) -> in
     }
 
     try:
-        # Send a GET request to get the number of elements of type 'entity_type'
+        # Send GET request to Orion-LD to get the count of entities of the specified type
         response = requests.get(ORION_LD_URL, headers=header, params=params)
         
-        # Raise exception, if unsuccessful
+        # Raise exception for HTTP error responses
         response.raise_for_status()
+        
+        # Ensure correct response encoding
         response.encoding = "utf-8"
         
-        # Get the value of the key 'NGSILD-Results-Count' and parse it as int.
-        # If the key is not found, return 0
+        # Extract entity count from response headers
+        # If the header is missing, default to 0
         count = int(response.headers.get("NGSILD-Results-Count", 0))
         return count
     
-    except requests.RequestException as e:
-        print(f"Error getting entity count: {e}")
+    except requests.exceptions.RequestException as e:
+        logger.error("Error getting entity count: %s", e)
         return 0
-    
 # -----------------------------------------------------
 # UPDATE Requests
 # -----------------------------------------------------  
