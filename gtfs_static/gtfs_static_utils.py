@@ -923,7 +923,7 @@ def validate_gtfs_routes_entity(entity: dict[str, Any]) -> None:
 
     # If present, write 'agency_id' as NGSI URN
     agency_id = entity.get("agency_id")
-    if not agency_id:
+    if agency_id:
         entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{agency_id}"
 
     # Validate that either 'route_short_name' or 'route_long_name' are defined
@@ -2755,4 +2755,7 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") 
     
     # Convert raw GTFS data to NGSI-LD entities
     return transformer(raw_data)
+
+if __name__ == "__main__":
+    print(json.dumps(gtfs_static_get_ngsi_ld_data("routes"), indent=2, ensure_ascii=False))
     

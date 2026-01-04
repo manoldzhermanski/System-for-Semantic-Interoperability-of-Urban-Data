@@ -2,8 +2,10 @@ from unittest.mock import patch
 from orion_ld.orion_ld_crud_operations import orion_ld_batch_load_to_context_broker
 
 def test_batch_load_sends_multiple_batches():
-    
-    # Create 5 entities with batch side of 2
+    """
+    Check that if the entities are greater than the batch size, multiple function calls will be made
+    """
+    # Create 5 entities with batch size of 2
     ngsi_ld_data = [
         {"id": f"urn:ngsi-ld:Test:{i}", "type": "Test"} for i in range(5)
     ]
