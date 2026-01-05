@@ -36,67 +36,129 @@ def json_ld_read_file(file_path: str) -> list[dict[str, Any]]:
     
     # Return the list of entities
     return entities
-        
+
+from typing import Any, Dict, List
+from pyproj import Transformer
 
 
-def json_ld_transform_coordinates_to_wgs84_coordinates(raw_data: list[dict[str, Any]]) -> None:
-    transformer = Transformer.from_crs("EPSG:7801", "EPSG:4326", always_xy=True)
-    for entity in raw_data:
-        if "location" in entity and entity["location"]["value"]["type"] == "Point":
-            entity["location"]["value"]["coordinates"] = list(transformer.transform(
-                entity["location"]["value"]["coordinates"][0],
-                entity["location"]["value"]["coordinates"][1]
-            ))
-        elif "location" in entity and entity["location"]["value"]["type"] == "MultiPoint":
-            entity["location"]["value"]["type"] = "Point"
-            entity["location"]["value"]["coordinates"] = list(transformer.transform(
-                entity["location"]["value"]["coordinates"][0][0],
-                entity["location"]["value"]["coordinates"][0][1]
-            ))
-            #transformed_coordinates = []
-            #for coord in entity["location"]["value"]["coordinates"]:
-            #    transformed_coord = list(transformer.transform(coord[0], coord[1]))
-            #    transformed_coordinates.append(transformed_coord)
-            #entity["location"]["value"]["coordinates"] = transformed_coordinates
-
-def json_ld_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
+def json_ld_transform_coordinates_to_wgs84_coordinates(raw_data: List[Dict[str, Any]]) -> None:
     """
-    Based on a given keyword, the function extracts PoI data from different files
+    Transform NGSI-LD entity coordinates from EPSG:7801 to WGS84 (EPSG:4326).
+
+    Supported geometry types:
+    - Point: directly transformed
+    - MultiPoint: the first point is selected and converted to Point
+
     Args:
-        keyword (str): String which specifies which .json file to be read
-    Allowed values:
-        culture, health, kids, parks_gardens, public_transport, schools, sport, other
+        raw_data (List[Dict[str, Any]]):
+            List of NGSI-LD entities whose coordinates will be transformed.
+
     Returns:
-        list[dict[str, Any]]: Function call from pois_read_file
+        None
+
+    Notes:
+        - Only entities containing a "location" attribute with a GeoProperty
+          of type "Point" or "MultiPoint" are affected.
+        - For "MultiPoint", only the first coordinate pair is preserved.
     """
-    # Mapping base
+
+    # Initialize CRS transformer: local CRS (EPSG:7801) -> WGS84 (EPSG:4326)
+    # always_xy=True ensures (x, y) = (lon, lat) ordering
+    transformer = Transformer.from_crs("EPSG:7801", "EPSG:4326", always_xy=True)
+
+    # Iterate over all entities
+    for entity in raw_data:
+
+        # Skip entities without a location attribute
+        if "location" not in entity:
+            continue
+
+        location_value = entity.get("location", {}).get("value", {})
+
+        geometry_type = location_value.get("type")
+        coordinates = location_value.get("coordinates")
+
+        # Handle Point geometry
+        if geometry_type == "Point" and isinstance(coordinates, list):
+            x, y = coordinates
+            location_value["coordinates"] = list(
+                transformer.transform(x, y)
+            )
+
+        # Handle MultiPoint geometry
+        elif geometry_type == "MultiPoint" and isinstance(coordinates, list):
+            # Convert MultiPoint to Point using the first coordinate
+            x, y = coordinates[0]
+            location_value["type"] = "Point"
+            location_value["coordinates"] = list(
+                transformer.transform(x, y)
+            )
+
+
+
+def json_ld_get_ngsi_ld_data(keyword: str) -> List[Dict[str, Any]]:
+    """
+    Load NGSI-LD Point of Interest (PoI) entities based on a category keyword.
+
+    The function:
+    1. Maps a given keyword to a corresponding JSON-LD file
+    2. Reads NGSI-LD entities from the file
+    3. Transforms entity coordinates to WGS84 (EPSG:4326)
+    4. Returns the transformed entities
+
+    Args:
+        keyword (str):
+            Category identifier for PoIs.
+
+            Allowed values:
+            - "culture"
+            - "health"
+            - "kids"
+            - "parks_gardens"
+            - "public_transport"
+            - "schools"
+            - "sport"
+            - "other"
+
+    Returns:
+        List[Dict[str, Any]]:
+            List of NGSI-LD entities for the selected category,
+            with coordinates transformed to WGS84.
+
+    Raises:
+        ValueError:
+            If the provided keyword is not a supported PoI category.
+        FileNotFoundError:
+            If the mapped JSON-LD file does not exist.
+        ValueError:
+            If the JSON-LD file structure is invalid.
+    """
+
+    # Mapping between category keywords and JSON-LD filenames
     mapping = {
-        "culture": ("pois_culture_ngsi.jsonld"),
-        "heath": ("pois_health_ngsi.jsonld"),
-        "kids": ("pois_kids_ngsi.jsonld"),
-        "parks_gardens": ("pois_parks_gardens_ngsi.jsonld"),
-        "public_transport": ("pois_public_transport_ngsi.jsonld"),
-        "schools": ("pois_schools_ngsi.jsonld"),
-        "sport": ("pois_sport_ngsi.jsonld"),
-        "other": ("pois_other_ngsi.jsonld"),
+        "culture": "pois_culture_ngsi.jsonld",
+        "health": "pois_health_ngsi.jsonld",
+        "kids": "pois_kids_ngsi.jsonld",
+        "parks_gardens": "pois_parks_gardens_ngsi.jsonld",
+        "public_transport": "pois_public_transport_ngsi.jsonld",
+        "schools": "pois_schools_ngsi.jsonld",
+        "sport": "pois_sport_ngsi.jsonld",
+        "other": "pois_other_ngsi.jsonld",
     }
-    
-    # If keyword not in mapping dictionary, raise error
+
+    # Validate keyword
     if keyword not in mapping:
         raise ValueError(f"Unsupported PoIs category: {keyword}")
-    
-    # Extract file name and create file path
+
+    # Build file path to the JSON-LD source
     file_name = mapping[keyword]
     file_path = os.path.join("json_ld", "data", file_name)
-    
-    # Function call to pois_read_file with the extracted file path
+
+    # Read NGSI-LD entities from file
     ngsi_ld_data = json_ld_read_file(file_path)
+
+    # Transform coordinates to WGS84 (in-place)
     json_ld_transform_coordinates_to_wgs84_coordinates(ngsi_ld_data)
-    
-    # Returned PoI entites from specified file
+
+    # Return processed entities
     return ngsi_ld_data
-
-
-if __name__ == "__main__":
-    ngsi_ld_data = json_ld_get_ngsi_ld_data("parks_gardens")
-    print(json.dumps(ngsi_ld_data, indent=2, ensure_ascii=False))
