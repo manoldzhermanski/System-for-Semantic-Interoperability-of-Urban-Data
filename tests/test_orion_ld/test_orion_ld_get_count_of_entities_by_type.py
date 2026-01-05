@@ -32,7 +32,7 @@ def test_get_count_of_entities_http_error():
     headers = {"Content-Type": "application/ld+json"}
 
     mock_response = MagicMock()
-    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("Server error")
+    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
 
     with patch("orion_ld.orion_ld_crud_operations.requests.get", return_value=mock_response):
         result = orion_ld_get_count_of_entities_by_type("Test", headers)

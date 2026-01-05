@@ -2756,6 +2756,4 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") 
     # Convert raw GTFS data to NGSI-LD entities
     return transformer(raw_data)
 
-if __name__ == "__main__":
-    print(json.dumps(gtfs_static_get_ngsi_ld_data("routes"), indent=2, ensure_ascii=False))
     

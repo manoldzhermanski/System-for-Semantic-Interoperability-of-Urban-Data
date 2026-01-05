@@ -26,8 +26,6 @@ def test_get_entity_success_with_unicode():
         }
     }
 
-    
-
     with patch("orion_ld.orion_ld_crud_operations.requests.get", return_value=mock_response):
         result = orion_ld_get_entity_by_id("urn:ngsi-ld:Test:1",headers)
 
@@ -41,11 +39,11 @@ def test_get_entity_http_error():
     """
     headers = {"Content-Type": "application/ld+json"}
     
-    with patch("orion_ld.orion_ld_crud_operations.requests.get", side_effect=requests.exceptions.RequestException("404 Not Found")):
+    with patch("orion_ld.orion_ld_crud_operations.requests.get", side_effect=requests.exceptions.HTTPError("404 Not Found")):
         with pytest.raises(requests.exceptions.RequestException) as err:
             orion_ld_get_entity_by_id("urn:ngsi-ld:NonExisting:1",headers)
 
-    assert "Error when sending GET Request:" in str(err.value)
+    assert "404 Not Found" in str(err.value)
 
 
 def test_get_entity_without_unicode():

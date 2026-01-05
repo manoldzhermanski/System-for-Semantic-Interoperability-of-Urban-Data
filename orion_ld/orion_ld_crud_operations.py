@@ -5,39 +5,36 @@ import os
 import json
 import time
 import codecs
+from pathlib import Path
 from urllib.parse import unquote
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(script_dir, '..'))
-
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+project_root = Path(__file__).resolve().parent.parent
+sys.path.append(str(project_root))
 
 from typing import  Any
-from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
-from json_ld.json_ld_utils import json_ld_get_ngsi_ld_data
-import gtfs_realtime.gtfs_realtime_utils as gtfs_realtime
 import config
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("Orion-LD")
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+)
 
-ORION_LD_URL = "http://localhost:1026/ngsi-ld/v1/entities"
-ORION_LD_BATCH_CREATE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/create"
-ORION_LD_BATCH_DELETE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/delete"
-ORION_LD_BATCH_UPDATE_URL = "http://localhost:1026/ngsi-ld/v1/entityOperations/upsert?options=update"
-HEADERS = {
-    "Content-Type": "application/json",
-    "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs_static/gtfs_static_context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
-}
+# -----------------------------------------------------
+# HEADER Definition Function
+# -----------------------------------------------------  
 
 def orion_ld_define_header(keyword: str) -> dict[str, str]:
     """
     Define headers for Orion-LD requests based on the provided keyword.
     Args:
-        keyword (str): Keyword to determine the type of headers to return.
+        keyword (str): 
+        Keyword to determine the type of headers to return.
     Returns:
-        dict[str, str]: Headers dictionary for the specified keyword.
+        dict[str, str]: 
+            Headers dictionary for the specified keyword.
     """
+    
     if keyword == "gtfs_static":
         return {
             "Content-Type": "application/json",
@@ -95,7 +92,7 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header
         logger.debug("Sending batch create request to Orion-LD (%d entities)", len(batch_ngsi_ld_data))
         
         # Send batch create request to Orion-LD
-        response = requests.post(ORION_LD_BATCH_CREATE_URL, json=batch_ngsi_ld_data, headers=header)
+        response = requests.post(f"{config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT}", json=batch_ngsi_ld_data, headers=header)
 
        # Report if failed to create entities
         if response.status_code != 201:
@@ -172,7 +169,7 @@ def orion_ld_get_entity_by_id(entity_id: str, header: dict[str, str]) -> dict[st
     """
     try:
         # Send GET request to Orion-LD for a specific entity
-        response = requests.get(f"{ORION_LD_URL}/{entity_id}", headers=header)
+        response = requests.get(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT}/{entity_id}", headers=header)
         
         # Raise an exception for HTTP error responses
         response.raise_for_status()
@@ -248,7 +245,7 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str]) -> l
         
         try:
             # Send a GET request to extract entities of type 'entity_type'
-            response = requests.get(f'{ORION_LD_URL}', headers=header, params=params)
+            response = requests.get(f'{config.OrionLDEndpoint.ENTITIES_ENDPOINT}', headers=header, params=params)
             
             # Raise an exception for HTTP error responses
             response.raise_for_status()
@@ -339,7 +336,7 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, que
 
         try:
             # Send a GET request with the query expression and starting index
-            response = requests.get(ORION_LD_URL, headers=header, params=params)
+            response = requests.get(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT}", headers=header, params=params)
 
             # Raise an exception for HTTP error responses
             response.raise_for_status()
@@ -366,36 +363,50 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, que
     # Return all entities
     return all_entities
 
-
 def orion_ld_get_attribute_values_from_etities(entity_ids: list[str], attribute_list: list[str], header: dict) -> list[dict[str, Any]]:
     """
-    Send a GET request to fetch specific entitis and filter their attributes
+    Retrieve specific attributes for a given list of NGSI-LD entities from Orion-LD.
+
+    This function fetches only selected attributes for explicitly specified entity IDs
+    using the `id` and `attrs` query parameters supported by Orion-LD.
+
     Args:
-        entity_ids List[str]:  List of specific entities to be fetched.
-        attribute_list: List[str]: Attributes that to be filtered from the fetched entities.
+        entity_ids (list[str]):
+            List of NGSI-LD entity IDs to be fetched
+        attribute_list (list[str]):
+            List of attribute names to retrieve from each entity
+        header (dict[str, str]):
+            HTTP headers to include in the request (Content-Type and Link)
 
     Returns:
-        List[Dict[str, Any]]: List of filtered entities.
+        list[dict[str, Any]]:
+            List of NGSI-LD entities containing only the requested attributes.
+
+    Raises:
+        requests.exceptions.RequestException:
+            If the HTTP request fails or Orion-LD returns an error status.
     """
-    # Concatenate the enitities' ids and attribute list which we want to extract
+    # Join entity IDs and attribute names into comma-separated strings
     entities = ",".join(entity_ids)
     attributes = ",".join(attribute_list)
 
     try:
-        # Send GET request to get the attributes for the enitites
-        response = requests.get(f'{ORION_LD_URL}/?id={entities}&attrs={attributes}', headers=header)
+        # Send GET request to Orion-LD with explicit entity IDs and attribute filtering
+        response = requests.get(f'{config.OrionLDEndpoint.ENTITIES_ENDPOINT}/?id={entities}&attrs={attributes}', headers=header)
 
-        # Raise exception, if unsuccessful
+        # Raise an exception for HTTP error responses
         response.raise_for_status()
+        
+        # Ensure correct response encoding
         response.encoding = "utf-8"
         
+        # Parse the JSON response
         data = response.json()
 
-        # Parse the JSON response
+        # Return the filtered entities
         return data
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when sending GET request: {e}")
-
 
 def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, str]) -> int:
     """
@@ -434,7 +445,7 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, s
 
     try:
         # Send GET request to Orion-LD to get the count of entities of the specified type
-        response = requests.get(ORION_LD_URL, headers=header, params=params)
+        response = requests.get(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT}", headers=header, params=params)
         
         # Raise exception for HTTP error responses
         response.raise_for_status()
@@ -450,176 +461,149 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, s
     except requests.exceptions.RequestException as e:
         logger.error("Error getting entity count: %s", e)
         return 0
+
 # -----------------------------------------------------
 # UPDATE Requests
 # -----------------------------------------------------  
 
-def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: list[dict[str, Any]], header: dict) -> None:
+def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: list[dict[str, Any]], header: dict[str, str]) -> None:
     """
-    Send a POST request to ORION-LD's endpoint for batch replace of entities.
+    Perform a batch replace operation for NGSI-LD entities in Orion-LD.
+
+    This function sends a POST request to the Orion-LD batch update endpoint
+    to fully replace the data of multiple entities.
+
+    Orion-LD returns:
+        - HTTP 201 if all entities are successfully replaced
+        - HTTP 207 (Multi-Status) if the batch is partially successful
+
     Args:
-        batch_ngsi_ld_data (List[Dict[str, Any]]): List of entities in NGSI-LD format to be updated.
+        batch_ngsi_ld_data (list[dict[str, Any]]):
+            List of NGSI-LD entities to be replaced. Each entity must include
+            a valid `id` and `type`.
+        header (dict[str, str]):
+            HTTP headers to include in the request (Content-Type and Link)
+
     Returns:
-        None: The function does not return anything, but prints the result of the POST request.
+        None
+
+    Raises:
+        requests.exceptions.HTTPError:
+            If the batch replace operation fails with an unexpected HTTP status code.
+        requests.exceptions.RequestException:
+            If a network or request-related error occurs.
     """
-    # Get ids of the entities from the batch
+    # Extract entity IDs for logging and debugging purposes
     entities_ids = [entity['id'] for entity in batch_ngsi_ld_data]
-
-    # Concatenate them with '\n'
     entities_ids = "\n".join(entities_ids)
+    
     try:
-        # Send a POST request to ORION-LD's endpoint for batch create where we the data is already in NGSI-LD format
-        response = requests.post(ORION_LD_BATCH_UPDATE_URL, json=batch_ngsi_ld_data, headers=header)
+        # Send POST request to Orion-LD batch update endpoint
+        response = requests.post(f"{config.OrionLDEndpoint.BATCH_UPDATE_ENDPOINT}", json=batch_ngsi_ld_data, headers=header)
 
-        # If successful, report which enteties were created
-        if response.status_code == 201 or response.status_code == 207:
-            print(f"Replaced entity data SUCCESSFULLY")
-        # If failed, explain why
-        else:
-            print(f"Failed to replace entity data {response.status_code} {response.text}")
+        # Orion-LD considers 201 (Created) and 207 (Multi-Status) as valid responses
+        if response.status_code not in (201, 207):
+            raise requests.exceptions.HTTPError(f"Batch replace failed (status={response.status_code}): {response.text}")
+        
+        # Log successful batch replace
+        logger.info("Replaced entity data successfully for entities:\n%s", entities_ids)
+
     except  requests.exceptions.RequestException as e:
-        print(f"POST Request Error: {e}")
+        raise requests.exceptions.RequestException(f"POST Request Error: {e}")
         
 # -----------------------------------------------------
 # DELETE Requests
 # -----------------------------------------------------  
 
-def orion_ld_delete_entity(entity_id: str, header: dict) -> None:
+def orion_ld_delete_entity(entity_id: str, header: dict[str, str]) -> None:
     """
-    Delete an entity by its id
+    Delete an NGSI-LD entity from Orion-LD by its entity ID.
+
+    This function sends a DELETE request to the Orion-LD entities endpoint
+    and removes the specified entity if it exists.
+
     Args:
-        entity_id (str): ID of an NGSI-LD enity
+        entity_id (str):
+            Full NGSI-LD entity ID
+        header (dict[str, str]):
+            HTTP headers to include in the request (Content-Type and Link)
+
+    Returns:
+        None
+
+    Raises:
+        requests.exceptions.HTTPError:
+            If Orion-LD returns an HTTP error status.
+        requests.exceptions.RequestException:
+            If a network or request-related error occurs.
     """
     
     try:
-        # Send a DELETE request to Orion-LD to delete the entity with the specified ID
-        response = requests.delete(f"{ORION_LD_URL}/{entity_id}", headers=header)
+        # Send DELETE request to Orion-LD for the specified entity
+        response = requests.delete(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT}/{entity_id}", headers=header)
         
-        # Raise exception, if unsuccessful
+        # Raise exception for HTTP error responses
         response.raise_for_status()
         
-        print(f"Deleted entity with id: {entity_id}")
+        # Log successful deletion
+        logger.info(f"Deleted entity with id: {entity_id}")
+        
     except requests.exceptions.RequestException as e:
-        print(f"Error when sending DELETE request for entity {entity_id}: {e}")
+        raise requests.exceptions.RequestException(f"Error when sending DELETE request for entity {entity_id}: {e}")
 
-def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict) -> None:
-    
-    # Get number of entities
+def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict[str, str]) -> None:
+    """
+    Delete all NGSI-LD entities of a given type from Orion-LD in batches.
+
+    The function:
+    - Retrieves entities by type
+    - Splits their IDs into batches of max 1000 (Orion-LD limitation)
+    - Sends batch delete requests until no entities of the given type remain
+
+    Args:
+        entity_type (str):
+            NGSI-LD entity type to be deleted.
+        header (dict[str, str]):
+            HTTP headers for the Orion-LD requests (Content-Type and Link)
+
+    Returns:
+        None
+
+    Raises:
+        requests.exceptions.RequestException:
+            If a batch delete request fails.
+    """
+    # Initial entity count
     entity_count = orion_ld_get_count_of_entities_by_type(entity_type, header)
-    print(f'Total entities: {entity_count}')
+    logger.info(f'Total entities: {entity_count}')
     
-    while entity_count != 0:
-        # Will return max 34 000 entities in 1 function call
-        # Experimentally found
+    # Continue deleting until no entities remain
+    while entity_count > 0:
+        
+        # Orion-LD returns up to ~34k entities per call
         entities = orion_ld_get_entities_by_type(entity_type, header)
         
-        # Get a list of the entities ID
+        # Extract entity IDs
         entity_ids = [entity['id'] for entity in entities]
         
-        # Split entity_ids into batches of max 1000
+        # Split IDs into batches of max 1000
         batch_size = 1000
         batches = [entity_ids[i:i + batch_size] for i in range(0, len(entity_ids), batch_size)]
         
         for batch in batches:
             try:
                 # Send a Batch Delete request to Orion-LD with the IDs in the current batch
-                response = requests.post(ORION_LD_BATCH_DELETE_URL, json=batch, headers=HEADERS)
+                response = requests.post(f"{config.OrionLDEndpoint.BATCH_DELETE_ENDPOINT}", json=batch, headers=header)
                 
-                # Raise exception, if unsuccessful
+                # Raise exception for HTTP error responses
                 response.raise_for_status()
-                print(f"Deleted batch of {len(batch)} entities of type {entity_type}")
+                
+                logger.info(f"Deleted batch of {len(batch)} entities of type {entity_type}")
                 
             except requests.exceptions.RequestException as e:
-                print(f"Batch DELETE Request Error: {e}")
+                raise requests.exceptions.RequestException(f"Batch DELETE Request Error: {e}")
         
-        # Update count        
+        # Update remaining entity count      
         entity_count = orion_ld_get_count_of_entities_by_type(entity_type, header)
-        print(f'Remaining entities: {entity_count}')
+        logger.debug(f'Remaining entities: {entity_count}')
 
-
-if __name__ == "__main__":
-    HEADERS = orion_ld_define_header("gtfs_static")
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("agency")
-    
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("calendar_dates")
-
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("fare_attributes")
-
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("levels")
-
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("pathways")
-
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("routes")
-
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("shapes")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data, HEADERS)
-    print(json.dumps(orion_ld_get_entities_by_type("GtfsRoute", HEADERS), indent=2, ensure_ascii=False))
-    
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stop_times")
-    
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("stops")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
-    
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("transfers")
-    
-    #ngsi_ld_data = gtfs_static_get_ngsi_ld_data("trips")
-    
-    #HEADERS = orion_ld_define_header("pois")
-    
-    #ngsi_ld_data = json_ld_get_ngsi_ld_data("culture")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
-    
-    #ngsi_ld_data = json_ld_get_ngsi_ld_data("heath")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
-    
-    #ngsi_ld_data = json_ld_get_ngsi_ld_data("kids")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
-    
-    #ngsi_ld_data = json_ld_get_ngsi_ld_data("parks_gardens")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
-    
-    #ngsi_ld_data = json_ld_get_ngsi_ld_data("public_transport")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
-    
-    #ngsi_ld_data = json_ld_get_ngsi_ld_data("schools")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
-    
-    #ngsi_ld_data = json_ld_get_ngsi_ld_data("sport")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
-    
-    #ngsi_ld_data = json_ld_get_ngsi_ld_data("other")
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_data)
-    
-    #get_request_response = orion_ld_get_entities_by_query_expression("GtfsStop", 'name=="МЕТРОСТАНЦИЯ ОПЪЛЧЕНСКА"')
-    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
-
-    #get_request_response = orion_ld_get_entity_by_id("urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:TB25")
-    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
-
-    #get_request_response = orion_ld_get_attribute_values_from_etities(["urn:ngsi-ld:GtfsStop:TB6408", "urn:ngsi-ld:GtfsStop:A1157"], ["location", "code"])
-    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
-
-    #get_request_response = orion_ld_get_entities_by_type("GtfsCalendarDateRule")
-    #print(len(get_request_response))
-    #print(json.dumps(get_request_response, indent=2, ensure_ascii=False))
-
-    #orion_ld_delete_entity("urn:ngsi-ld:GtfsAgency:A")
-
-    #orion_ld_batch_delete_entities_by_type("PointOfInterest")
-    
-    #print(orion_ld_get_count_of_entities_by_type("GtfsShape"))
-    
-    #entity = orion_ld_get_entities_by_type("PointOfInterest", HEADERS)
-    #print(json.dumps(entity, indent=2, ensure_ascii=False))
-
-    #HEADERS = orion_ld_define_header("gtfs_realtime")
-    #orion_ld_batch_delete_entities_by_type("GtfsRealtimeVehiclePosition", HEADERS)
-    
-    #api_response = gtfs_realtime.get_gtfs_realtime_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    #feed_data = gtfs_realtime.parse_gtfs_realtime_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    #feed_dict = gtfs_realtime.gtfs_realtime_feed_to_dict(feed_data)
-    #ngsi_ld_fеed = gtfs_realtime.gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
-    #orion_ld_batch_load_to_context_broker(ngsi_ld_fеed, HEADERS)
-    #print(orion_ld_get_count_of_entities_by_type("GtfsRealtimeVehiclePosition", HEADERS))
-    #orion_ld_batch_replace_entity_data(ngsi_ld_fеed, HEADERS)
-    pass

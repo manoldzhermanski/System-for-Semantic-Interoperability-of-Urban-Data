@@ -38,7 +38,6 @@ def test_batch_create_http_error_logs_error():
 
     mock_response = MagicMock()
     mock_response.status_code = 207
-    mock_response.text = "Partial failure"
 
     with patch("orion_ld.orion_ld_crud_operations.requests.post", return_value=mock_response):
         with pytest.raises(requests.exceptions.RequestException) as err:

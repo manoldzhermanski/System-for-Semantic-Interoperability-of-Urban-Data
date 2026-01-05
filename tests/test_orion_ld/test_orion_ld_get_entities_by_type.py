@@ -43,8 +43,8 @@ def test_get_entities_by_type_http_error():
     """
     headers = {"Content-Type": "application/ld+json"}
 
-    with patch("orion_ld.orion_ld_crud_operations.requests.get", side_effect=requests.exceptions.HTTPError):
+    with patch("orion_ld.orion_ld_crud_operations.requests.get", side_effect=requests.exceptions.HTTPError("404 Not Found")):
         with pytest.raises( requests.exceptions.RequestException) as err:
             orion_ld_get_entities_by_type("GtfsRoute", headers)
             
-    assert "Error when sending GET request:" in str(err.value)
+    assert "404 Not Found" in str(err.value)
