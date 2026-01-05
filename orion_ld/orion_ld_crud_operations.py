@@ -92,7 +92,7 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header
         logger.debug("Sending batch create request to Orion-LD (%d entities)", len(batch_ngsi_ld_data))
         
         # Send batch create request to Orion-LD
-        response = requests.post(f"{config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT}", json=batch_ngsi_ld_data, headers=header)
+        response = requests.post(config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT.value, json=batch_ngsi_ld_data, headers=header)
 
        # Report if failed to create entities
         if response.status_code != 201:
@@ -169,7 +169,7 @@ def orion_ld_get_entity_by_id(entity_id: str, header: dict[str, str]) -> dict[st
     """
     try:
         # Send GET request to Orion-LD for a specific entity
-        response = requests.get(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT}/{entity_id}", headers=header)
+        response = requests.get(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT.value}/{entity_id}", headers=header)
         
         # Raise an exception for HTTP error responses
         response.raise_for_status()
@@ -245,7 +245,7 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str]) -> l
         
         try:
             # Send a GET request to extract entities of type 'entity_type'
-            response = requests.get(f'{config.OrionLDEndpoint.ENTITIES_ENDPOINT}', headers=header, params=params)
+            response = requests.get(config.OrionLDEndpoint.ENTITIES_ENDPOINT.value, headers=header, params=params)
             
             # Raise an exception for HTTP error responses
             response.raise_for_status()
@@ -336,7 +336,7 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, que
 
         try:
             # Send a GET request with the query expression and starting index
-            response = requests.get(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT}", headers=header, params=params)
+            response = requests.get(config.OrionLDEndpoint.ENTITIES_ENDPOINT.value, headers=header, params=params)
 
             # Raise an exception for HTTP error responses
             response.raise_for_status()
@@ -392,7 +392,7 @@ def orion_ld_get_attribute_values_from_etities(entity_ids: list[str], attribute_
 
     try:
         # Send GET request to Orion-LD with explicit entity IDs and attribute filtering
-        response = requests.get(f'{config.OrionLDEndpoint.ENTITIES_ENDPOINT}/?id={entities}&attrs={attributes}', headers=header)
+        response = requests.get(f'{config.OrionLDEndpoint.ENTITIES_ENDPOINT.value}/?id={entities}&attrs={attributes}', headers=header)
 
         # Raise an exception for HTTP error responses
         response.raise_for_status()
@@ -445,7 +445,7 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, s
 
     try:
         # Send GET request to Orion-LD to get the count of entities of the specified type
-        response = requests.get(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT}", headers=header, params=params)
+        response = requests.get(config.OrionLDEndpoint.ENTITIES_ENDPOINT.value, headers=header, params=params)
         
         # Raise exception for HTTP error responses
         response.raise_for_status()
@@ -499,7 +499,7 @@ def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: list[dict[str, Any]],
     
     try:
         # Send POST request to Orion-LD batch update endpoint
-        response = requests.post(f"{config.OrionLDEndpoint.BATCH_UPDATE_ENDPOINT}", json=batch_ngsi_ld_data, headers=header)
+        response = requests.post(config.OrionLDEndpoint.BATCH_UPDATE_ENDPOINT.value, json=batch_ngsi_ld_data, headers=header)
 
         # Orion-LD considers 201 (Created) and 207 (Multi-Status) as valid responses
         if response.status_code not in (201, 207):
@@ -540,7 +540,7 @@ def orion_ld_delete_entity(entity_id: str, header: dict[str, str]) -> None:
     
     try:
         # Send DELETE request to Orion-LD for the specified entity
-        response = requests.delete(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT}/{entity_id}", headers=header)
+        response = requests.delete(f"{config.OrionLDEndpoint.ENTITIES_ENDPOINT.value}/{entity_id}", headers=header)
         
         # Raise exception for HTTP error responses
         response.raise_for_status()
@@ -593,7 +593,7 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict[str, s
         for batch in batches:
             try:
                 # Send a Batch Delete request to Orion-LD with the IDs in the current batch
-                response = requests.post(f"{config.OrionLDEndpoint.BATCH_DELETE_ENDPOINT}", json=batch, headers=header)
+                response = requests.post(config.OrionLDEndpoint.BATCH_DELETE_ENDPOINT.value, json=batch, headers=header)
                 
                 # Raise exception for HTTP error responses
                 response.raise_for_status()

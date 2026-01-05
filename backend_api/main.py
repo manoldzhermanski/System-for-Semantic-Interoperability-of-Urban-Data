@@ -14,10 +14,7 @@ from orion_ld.orion_ld_crud_operations import (
 )
 
 from gtfs_realtime.gtfs_realtime_utils import (
-    get_gtfs_realtime_feed,
-    parse_gtfs_realtime_feed,
-    gtfs_realtime_feed_to_dict,
-    gtfs_realtime_vehicle_position_to_ngsi_ld,
+    gtfs_realtime_get_ngsi_ld_data,
     iso8601_to_unix
 )
 
@@ -99,20 +96,8 @@ async def update_vehicle_positions_loop():
 
     while True:
         try:
-            # 1. fetch GTFS RT
-            api_response = get_gtfs_realtime_feed(
-                config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL
-            )
-
-            feed_data = parse_gtfs_realtime_feed(
-                api_response,
-                config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL
-            )
-
-            feed_dict = gtfs_realtime_feed_to_dict(feed_data)
-
             # 2. transform to NGSI-LD
-            ngsild_entities = gtfs_realtime_vehicle_position_to_ngsi_ld(feed_dict)
+            ngsild_entities = gtfs_realtime_get_ngsi_ld_data("VehiclePosition")
 
             # 3. update Orion-LD
             header = orion_ld_define_header("gtfs_realtime")
