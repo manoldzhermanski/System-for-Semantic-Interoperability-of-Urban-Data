@@ -5,32 +5,39 @@ from pyproj import Transformer
 
 def json_ld_read_file(file_path: str) -> list[dict[str, Any]]:
     """
-    Extract NGSI-LD Entities from PoI file
+    Load NGSI-LD entities from a JSON-LD file.
+
     Args:
-        file_path (str): Path to PoI file
+        file_path (str): Path to the JSON-LD file.
+
     Returns:
-        list[dict[str, Any]]: List of PoI entites in NGSI-LD format 
+        list[dict[str, Any]]: List of NGSI-LD entities.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the JSON is malformed or missing the "entities" key.
+        json.JSONDecodeError: If the file is not valid JSON.
     """
     try:
+        # Open the file and load JSON
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
     except FileNotFoundError:
         raise FileNotFoundError(f"File at path '{file_path}' is not found.")
 
-    # Initialize an empty list to hold entities
-    entities = []
-    # Check if the data is an instance of a dictionary 
-    if isinstance(data, dict):
-        # If data is a dictionary, the entities should be under the "entities" key and be a list
-        if "entities" in data and isinstance(data["entities"], list):
-            entities = data["entities"]
-        else:
-            raise ValueError("Invalid NGSI-LD file structure — expected 'entities' key with a list value.")
-    else:
+    # Validate that the root is a dictionary
+    if not isinstance(data, dict):
         raise ValueError("Invalid NGSI-LD file structure — expected a JSON object.")
-
-    # Returned entities or []
+        
+    # Validate that "entities" key exists and is a list
+    entities = data.get("entities")
+    if not isinstance(entities, list):
+        raise ValueError("Invalid NGSI-LD file structure — expected 'entities' key with a list value.")    
+    
+    # Return the list of entities
     return entities
+        
+
 
 def json_ld_transform_coordinates_to_wgs84_coordinates(raw_data: list[dict[str, Any]]) -> None:
     transformer = Transformer.from_crs("EPSG:7801", "EPSG:4326", always_xy=True)
