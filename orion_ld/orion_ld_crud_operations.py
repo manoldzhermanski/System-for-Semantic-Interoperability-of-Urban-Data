@@ -17,10 +17,8 @@ import config
 logger = logging.getLogger("Orion-LD")
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-)
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 
-from gtfs_realtime.gtfs_realtime_utils import gtfs_realtime_get_ngsi_ld_data
 
 # -----------------------------------------------------
 # HEADER Definition Function
@@ -608,7 +606,3 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict[str, s
         # Update remaining entity count      
         entity_count = orion_ld_get_count_of_entities_by_type(entity_type, header)
         logger.debug(f'Remaining entities: {entity_count}')
-
-if __name__ == "__main__":
-    header = orion_ld_define_header("gtfs_realtime")
-    orion_ld_batch_replace_entity_data(gtfs_realtime_get_ngsi_ld_data("VehiclePosition"), header)
