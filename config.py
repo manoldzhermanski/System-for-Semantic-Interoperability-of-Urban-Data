@@ -16,4 +16,4 @@ class OrionLDEndpoint(Enum):
     ENTITIES_ENDPOINT = f"{ORION_LD_BASE_URL}/entities"
     BATCH_CREATE_ENDPOINT = f"{ORION_LD_BASE_URL}/entityOperations/create"
     BATCH_DELETE_ENDPOINT = f"{ORION_LD_BASE_URL}/entityOperations/delete"
-    BATCH_UPDATE_ENDPOINT = f"{ORION_LD_BASE_URL}/entityOperations/upsert"
+    BATCH_UPDATE_ENDPOINT = f"{ORION_LD_BASE_URL}/entityOperations/upsert?options=update"

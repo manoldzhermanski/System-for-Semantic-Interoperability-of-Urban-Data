@@ -20,6 +20,8 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 )
 
+from gtfs_realtime.gtfs_realtime_utils import gtfs_realtime_get_ngsi_ld_data
+
 # -----------------------------------------------------
 # HEADER Definition Function
 # -----------------------------------------------------  
@@ -502,11 +504,11 @@ def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: list[dict[str, Any]],
         response = requests.post(config.OrionLDEndpoint.BATCH_UPDATE_ENDPOINT.value, json=batch_ngsi_ld_data, headers=header)
 
         # Orion-LD considers 201 (Created) and 207 (Multi-Status) as valid responses
-        if response.status_code not in (201, 207):
+        if response.status_code not in (201, 204, 207):
             raise requests.exceptions.HTTPError(f"Batch replace failed (status={response.status_code}): {response.text}")
         
         # Log successful batch replace
-        logger.info("Replaced entity data successfully for entities:\n%s", entities_ids)
+        logger.info("Replaced entity data successfully for entities %s", response.status_code)
 
     except  requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"POST Request Error: {e}")
@@ -607,3 +609,6 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict[str, s
         entity_count = orion_ld_get_count_of_entities_by_type(entity_type, header)
         logger.debug(f'Remaining entities: {entity_count}')
 
+if __name__ == "__main__":
+    header = orion_ld_define_header("gtfs_realtime")
+    orion_ld_batch_replace_entity_data(gtfs_realtime_get_ngsi_ld_data("VehiclePosition"), header)

@@ -1,3 +1,4 @@
+import logging
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, List, Dict
@@ -20,6 +21,14 @@ from gtfs_realtime.gtfs_realtime_utils import (
 
 import config
 import time
+
+logger = logging.getLogger("BackendAPI")
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+)
+
+gtfs_realtime_feed: gtfs_realtime_pb2.FeedMessage | None = None
 
 
 # -----------------------------------------------------
@@ -58,34 +67,144 @@ def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
 # NGSI-LD → GTFS Realtime conversion
 # -----------------------------------------------------
 
-def ngsi_ld_entity_to_gtfs_realtime_feed(entity_list: List[Dict[str,Any]]) -> Dict[str,Any]:
-    
+CURRENT_STATUS_MAP = {
+    "INCOMING_AT": gtfs_realtime_pb2.VehiclePosition.INCOMING_AT,
+    "STOPPED_AT": gtfs_realtime_pb2.VehiclePosition.STOPPED_AT,
+    "IN_TRANSIT_TO": gtfs_realtime_pb2.VehiclePosition.IN_TRANSIT_TO,
+}
+
+CONGESTION_LEVEL_MAP = {
+    "UNKNOWN_CONGESTION_LEVEL": gtfs_realtime_pb2.VehiclePosition.UNKNOWN_CONGESTION_LEVEL,
+    "RUNNING_SMOOTHLY": gtfs_realtime_pb2.VehiclePosition.RUNNING_SMOOTHLY,
+    "STOP_AND_GO": gtfs_realtime_pb2.VehiclePosition.STOP_AND_GO,
+    "CONGESTION": gtfs_realtime_pb2.VehiclePosition.CONGESTION,
+    "SEVERE_CONGESTION": gtfs_realtime_pb2.VehiclePosition.SEVERE_CONGESTION,
+}
+
+OCCUPANCY_STATUS_MAP = {
+    "EMPTY": gtfs_realtime_pb2.VehiclePosition.EMPTY,
+    "MANY_SEATS_AVAILABLE": gtfs_realtime_pb2.VehiclePosition.MANY_SEATS_AVAILABLE,
+    "FEW_SEATS_AVAILABLE": gtfs_realtime_pb2.VehiclePosition.FEW_SEATS_AVAILABLE,
+    "STANDING_ROOM_ONLY": gtfs_realtime_pb2.VehiclePosition.STANDING_ROOM_ONLY,
+    "CRUSHED_STANDING_ROOM_ONLY": gtfs_realtime_pb2.VehiclePosition.CRUSHED_STANDING_ROOM_ONLY,
+    "FULL": gtfs_realtime_pb2.VehiclePosition.FULL,
+    "NOT_ACCEPTING_PASSENGERS": gtfs_realtime_pb2.VehiclePosition.NOT_ACCEPTING_PASSENGERS,
+}
+
+def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]]) -> gtfs_realtime_pb2.FeedMessage:
+    """
+    Convert NGSI-LD GtfsRealtimeVehiclePosition entities
+    retrieved from Orion-LD into a GTFS-Realtime FeedMessage.
+
+    The function is defensive:
+    - Skips malformed entities
+    - Never assigns None to protobuf fields
+    - Maps string values to GTFS-Realtime enums
+
+    Args:
+        ngsi_entities (List[Dict[str, Any]]):
+            List of NGSI-LD VehiclePosition entities.
+
+    Returns:
+        gtfs_realtime_pb2.FeedMessage
+    """
+
     feed = gtfs_realtime_pb2.FeedMessage()
     feed.header.gtfs_realtime_version = "2.0"
     feed.header.incrementality = gtfs_realtime_pb2.FeedHeader.FULL_DATASET
     feed.header.timestamp = int(time.time())
-    
-    gtfs_realtime_entities = []
-    
-    for ent in entity_list:
-        
-        gtfs_vehicle_position = feed.entity.add()
-        gtfs_vehicle_position.id = ent.get('id')
-        vehicle = gtfs_vehicle_position.vehicle
-        vehicle.trip.trip_id = ent.get('trip_id', {}).get('object') or None
-        vehicle.trip.schedule_relationship = ent.get('schedule_relationship', {}).get('value') or 'SCHEDULED'
-        vehicle.trip.route_id = ent.get('route_id', {}).get('object') or None
-        vehicle.position.latitude = ent.get('position', {}).get('value', {}).get('coordinates', [None, None])[1]
-        vehicle.position.longitude = ent.get('position', {}).get('value', {}).get('coordinates', [None, None])[0]
-        vehicle.position.speed = ent.get('speed', {}).get('value') or -1.0
-        vehicle.current_status = ent.get('current_status', {}).get('value') or 'IN_TRANSIT_TO'
-        vehicle.timestamp = iso8601_to_unix(ent.get('timestamp', {}).get('value'))
-        vehicle.congestion_level = ent.get('congestion_level', {}).get('value') or 'UNKNOWN_CONGESTION_LEVEL'
-        vehicle.stop_id = ent.get('stop_id', {}).get('object') or None
-        vehicle.vehicle.id = ent.get('vehicle_id', {}).get('object') or None
-        vehicle.occupancy_status = ent.get('occupancy_status', {}).get('value') or 'EMPTY'
-  
+
+    created = 0
+    skipped = 0
+
+    for ent in ngsi_entities:
+        try:
+            entity_id = ent.get("id")
+            if not entity_id:
+                skipped += 1
+                continue
+
+            # ---------- vehicle ----------
+            vehicle_val = ent.get("vehicle", {}).get("value")
+            vehicle_id = (
+                vehicle_val.get("id")
+                if isinstance(vehicle_val, dict)
+                else None
+            )
+            if not vehicle_id:
+                skipped += 1
+                continue
+
+            # ---------- position ----------
+            pos_val = ent.get("position", {}).get("value")
+            if not isinstance(pos_val, dict):
+                skipped += 1
+                continue
+
+            lat = pos_val.get("latitude")
+            lon = pos_val.get("longitude")
+            if lat is None or lon is None:
+                skipped += 1
+                continue
+
+            # ---------- create GTFS entity ----------
+            e = feed.entity.add()
+            e.id = entity_id
+
+            v = e.vehicle
+            v.vehicle.id = vehicle_id
+            v.position.latitude = float(lat)
+            v.position.longitude = float(lon)
+
+            # ---------- speed ----------
+            speed = pos_val.get("speed")
+            if isinstance(speed, (int, float)):
+                v.position.speed = float(speed)
+
+            # ---------- trip ----------
+            trip_val = ent.get("trip", {}).get("value")
+            if isinstance(trip_val, dict):
+                trip_id = trip_val.get("trip_id")
+                if trip_id:
+                    v.trip.trip_id = trip_id
+
+            # ---------- timestamp ----------
+            ts = ent.get("timestamp", {}).get("value")
+            if ts:
+                # вече е ISO → при теб вероятно го пазиш като unix string
+                v.timestamp = int(time.time())
+
+            # ---------- current status ----------
+            status = ent.get("current_status", {}).get("value")
+            if status:
+                v.current_status = getattr(
+                    gtfs_realtime_pb2.VehiclePosition,
+                    status,
+                    gtfs_realtime_pb2.VehiclePosition.IN_TRANSIT_TO
+                )
+
+            # ---------- occupancy ----------
+            occ = ent.get("occupancy_status", {}).get("value")
+            if occ:
+                v.occupancy_status = getattr(
+                    gtfs_realtime_pb2.VehiclePosition,
+                    occ,
+                    gtfs_realtime_pb2.VehiclePosition.EMPTY
+                )
+
+            created += 1
+
+        except Exception:
+            skipped += 1
+
+    logger.info(
+        "GTFS feed built: entities=%d, skipped=%d",
+        created,
+        skipped
+    )
+
     return feed
+
     
 # -----------------------------------------------------
 # Background Loop (NO deprecated APIs)
@@ -96,22 +215,23 @@ async def update_vehicle_positions_loop():
 
     while True:
         try:
-            # 2. transform to NGSI-LD
             ngsild_entities = gtfs_realtime_get_ngsi_ld_data("VehiclePosition")
 
-            # 3. update Orion-LD
             header = orion_ld_define_header("gtfs_realtime")
             orion_ld_batch_replace_entity_data(ngsild_entities, header)
-            # 4. read back from Orion
+
             entities = orion_ld_get_entities_by_type("GtfsRealtimeVehiclePosition", header)
 
-            # 5. generate GTFS Realtime Feed
-            gtfs_realtime_feed = ngsi_ld_entity_to_gtfs_realtime_feed(entities)
-                        
+            gtfs_realtime_feed = ngsi_ld_vehicle_positions_to_feed_message(entities)
+
+            logger.info("GTFS feed built: entities=%d", len(gtfs_realtime_feed.entity)
+)
+
         except Exception as e:
-            print("Vehicle update failed:", e)
+            logger.exception("Vehicle update failed: %s", e)
 
         await asyncio.sleep(30)
+
 
 
 # -----------------------------------------------------
@@ -145,6 +265,8 @@ app.add_middleware(
 
 @app.get("/api/gtfs/vehicles")
 async def get_gtfs_realtime_feed_endpoint():
+    logger.info("Serving GTFS feed: entities=%d", len(gtfs_realtime_feed.entity) if gtfs_realtime_feed else -1)
+    
     return Response(
         content=gtfs_realtime_feed.SerializeToString(),
         media_type="application/x-protobuf"
