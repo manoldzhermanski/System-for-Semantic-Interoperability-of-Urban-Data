@@ -1,5 +1,6 @@
 import logging
 import asyncio
+from datetime import datetime
 from contextlib import asynccontextmanager
 from typing import Any, List, Dict
 
@@ -67,46 +68,12 @@ def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
 # NGSI-LD → GTFS Realtime conversion
 # -----------------------------------------------------
 
-CURRENT_STATUS_MAP = {
-    "INCOMING_AT": gtfs_realtime_pb2.VehiclePosition.INCOMING_AT,
-    "STOPPED_AT": gtfs_realtime_pb2.VehiclePosition.STOPPED_AT,
-    "IN_TRANSIT_TO": gtfs_realtime_pb2.VehiclePosition.IN_TRANSIT_TO,
-}
-
-CONGESTION_LEVEL_MAP = {
-    "UNKNOWN_CONGESTION_LEVEL": gtfs_realtime_pb2.VehiclePosition.UNKNOWN_CONGESTION_LEVEL,
-    "RUNNING_SMOOTHLY": gtfs_realtime_pb2.VehiclePosition.RUNNING_SMOOTHLY,
-    "STOP_AND_GO": gtfs_realtime_pb2.VehiclePosition.STOP_AND_GO,
-    "CONGESTION": gtfs_realtime_pb2.VehiclePosition.CONGESTION,
-    "SEVERE_CONGESTION": gtfs_realtime_pb2.VehiclePosition.SEVERE_CONGESTION,
-}
-
-OCCUPANCY_STATUS_MAP = {
-    "EMPTY": gtfs_realtime_pb2.VehiclePosition.EMPTY,
-    "MANY_SEATS_AVAILABLE": gtfs_realtime_pb2.VehiclePosition.MANY_SEATS_AVAILABLE,
-    "FEW_SEATS_AVAILABLE": gtfs_realtime_pb2.VehiclePosition.FEW_SEATS_AVAILABLE,
-    "STANDING_ROOM_ONLY": gtfs_realtime_pb2.VehiclePosition.STANDING_ROOM_ONLY,
-    "CRUSHED_STANDING_ROOM_ONLY": gtfs_realtime_pb2.VehiclePosition.CRUSHED_STANDING_ROOM_ONLY,
-    "FULL": gtfs_realtime_pb2.VehiclePosition.FULL,
-    "NOT_ACCEPTING_PASSENGERS": gtfs_realtime_pb2.VehiclePosition.NOT_ACCEPTING_PASSENGERS,
-}
-
-def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]]) -> gtfs_realtime_pb2.FeedMessage:
+def ngsi_ld_vehicle_positions_to_feed_message(
+    ngsi_entities: list[dict[str, Any]]
+) -> gtfs_realtime_pb2.FeedMessage:
     """
     Convert NGSI-LD GtfsRealtimeVehiclePosition entities
     retrieved from Orion-LD into a GTFS-Realtime FeedMessage.
-
-    The function is defensive:
-    - Skips malformed entities
-    - Never assigns None to protobuf fields
-    - Maps string values to GTFS-Realtime enums
-
-    Args:
-        ngsi_entities (List[Dict[str, Any]]):
-            List of NGSI-LD VehiclePosition entities.
-
-    Returns:
-        gtfs_realtime_pb2.FeedMessage
     """
 
     feed = gtfs_realtime_pb2.FeedMessage()
@@ -204,6 +171,7 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
     )
 
     return feed
+
 
     
 # -----------------------------------------------------

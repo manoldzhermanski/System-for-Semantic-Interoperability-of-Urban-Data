@@ -324,7 +324,7 @@ def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] |
 
     Returns:
         dict[str, Any]: Normalized vehicle representation with the following keys:
-            - id: NGSI-LD URN built from the vehicle id
+            - vehicle_id: NGSI-LD URN built from the vehicle id
             - label: Vehicle label
             - license_plate: Vehicle license plate
             - wheelchair_accessible: Wheelchair accessibility enum
@@ -335,7 +335,7 @@ def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] |
     
     # Normalize and extract supported fields
     return {
-        "id": to_ngsi_ld_urn(vehicle.get("id"), "GtfsVehicle"),
+        "vehicle_id": to_ngsi_ld_urn(vehicle.get("id"), "GtfsVehicle"),
         "label": vehicle.get("label"),
         "license_plate": vehicle.get("license_plate"),
         "wheelchair_accessible": vehicle.get("wheelchair_accessible")
@@ -428,7 +428,7 @@ def parse_gtfs_realtime_vehicle_position(entity: dict[str, Any]) -> dict[str, An
      # Normalize multi-carriage details
     carriage_details = [
         {
-            "id": to_ngsi_ld_urn(carriage.get("id"), "GtfsRealtimeCarriage"),
+            "carriage_id": to_ngsi_ld_urn(carriage.get("id"), "GtfsRealtimeCarriage"),
             "label": carriage.get("label"),
             "occupancy_status": carriage.get("occupancy_status"),
             "occupancy_percentage": carriage.get("occupancy_percentage"),
@@ -566,7 +566,7 @@ def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
     # Extract all feed fields which have collection-type data (lists, dictionaries)
     alert_info = entity.get("alert")
     active_period = alert_info.get("active_period") if alert_info else []
-    alert_info_infromed_entity = alert_info.get("informed_entity") if alert_info else []
+    alert_info_informed_entity = alert_info.get("informed_entity") if alert_info else []
     
     # Normalize 'active_period'
     alert_active_period = [
@@ -587,7 +587,7 @@ def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
             "trip": gtfs_realtime_normalize_trip_descriptor_message(infromed_entity.get("trip")),
             "stop_id": to_ngsi_ld_urn(infromed_entity.get("stop_id"), "GtfsStop")
         }
-        for infromed_entity in alert_info_infromed_entity
+        for infromed_entity in alert_info_informed_entity
     ]
     
     # Get 'cause', 'effect', 'severity_level' and 'image'
