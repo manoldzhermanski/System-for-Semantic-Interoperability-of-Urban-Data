@@ -2,7 +2,7 @@ import logging
 import asyncio
 from datetime import datetime
 from contextlib import asynccontextmanager
-from typing import Any, List, Dict
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,7 +29,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 )
 
-gtfs_realtime_feed: gtfs_realtime_pb2.FeedMessage | None = None
+gtfs_realtime_feed: gtfs_realtime_pb2.FeedMessage | None = None # type: ignore
 
 
 # -----------------------------------------------------
@@ -70,93 +70,149 @@ def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
 
 def ngsi_ld_vehicle_positions_to_feed_message(
     ngsi_entities: list[dict[str, Any]]
-) -> gtfs_realtime_pb2.FeedMessage:
+) -> gtfs_realtime_pb2.FeedMessage: # type: ignore
     """
     Convert NGSI-LD GtfsRealtimeVehiclePosition entities
     retrieved from Orion-LD into a GTFS-Realtime FeedMessage.
     """
 
-    feed = gtfs_realtime_pb2.FeedMessage()
+    feed = gtfs_realtime_pb2.FeedMessage() # type: ignore
     feed.header.gtfs_realtime_version = "2.0"
-    feed.header.incrementality = gtfs_realtime_pb2.FeedHeader.FULL_DATASET
+    feed.header.incrementality = gtfs_realtime_pb2.FeedHeader.FULL_DATASET # type: ignore
     feed.header.timestamp = int(time.time())
 
     created = 0
     skipped = 0
 
-    for ent in ngsi_entities:
+    for ngsi_entity in ngsi_entities:
         try:
-            entity_id = ent.get("id")
+            entity_id = ngsi_entity.get("id")
+            
             if not entity_id:
                 skipped += 1
                 continue
 
-            # ---------- vehicle ----------
-            vehicle_val = ent.get("vehicle", {}).get("value")
-            vehicle_id = (
-                vehicle_val.get("id")
-                if isinstance(vehicle_val, dict)
-                else None
-            )
+            # vehicle
+            vehicle_val = ngsi_entity.get("vehicle", {}).get("value")
+            vehicle_id = vehicle_val.get("id")
+            label = vehicle_val.get("label")
+            license_plate = vehicle_val.get("license_plate")
+                
             if not vehicle_id:
                 skipped += 1
                 continue
 
-            # ---------- position ----------
-            pos_val = ent.get("position", {}).get("value")
+            # position
+            pos_val = ngsi_entity.get("position", {}).get("value")
             if not isinstance(pos_val, dict):
                 skipped += 1
                 continue
 
-            lat = pos_val.get("latitude")
-            lon = pos_val.get("longitude")
-            if lat is None or lon is None:
+            latitude = pos_val.get("latitude")
+            longitude = pos_val.get("longitude")
+            bearing = pos_val.get("bearing")
+            odometer = pos_val.get("odometer")
+            speed = pos_val.get("speed")
+            
+            if latitude is None or longitude is None:
                 skipped += 1
                 continue
 
             # ---------- create GTFS entity ----------
             e = feed.entity.add()
             e.id = entity_id
-
             v = e.vehicle
-            v.vehicle.id = vehicle_id
-            v.position.latitude = float(lat)
-            v.position.longitude = float(lon)
+            
+            # vehicle
+            if vehicle_id is not None:
+                v.vehicle.id = vehicle_id
+            if label is not None:
+                v.vehicle.label = label
+            if license_plate is not None:
+                v.vehicle.license_plate = license_plate
 
-            # ---------- speed ----------
-            speed = pos_val.get("speed")
-            if isinstance(speed, (int, float)):
-                v.position.speed = float(speed)
+            # position
+            if latitude is not None:
+                v.position.latitude = float(latitude)
+            if longitude is not None:
+                v.position.longitude = float(longitude)
+            if bearing is not None:
+                v.position.bearing = float(bearing)
+            if odometer is not None:
+                v.position.odometer = float(odometer)
+            if speed is not None:
+                v.position.speed = float(speed) / 3.6
 
-            # ---------- trip ----------
-            trip_val = ent.get("trip", {}).get("value")
-            if isinstance(trip_val, dict):
-                trip_id = trip_val.get("trip_id")
-                if trip_id:
-                    v.trip.trip_id = trip_id
-
-            # ---------- timestamp ----------
-            ts = ent.get("timestamp", {}).get("value")
-            if ts:
-                # вече е ISO → при теб вероятно го пазиш като unix string
-                v.timestamp = int(time.time())
-
-            # ---------- current status ----------
-            status = ent.get("current_status", {}).get("value")
+            # trip 
+            trip_val = ngsi_entity.get("trip", {}).get("value")
+            
+            trip_id = trip_val.get("trip_id")
+            if trip_id is not None:
+                v.trip.trip_id = trip_id
+                
+            route_id = trip_val.get("route_id")
+            if route_id is not None:
+                v.trip.route_id = route_id
+                
+            direction_id = trip_val.get("direction_id")
+            if direction_id is not None:
+                v.trip.direction_id = int(direction_id)
+                
+            start_time = trip_val.get("start_time")
+            if start_time is not None:
+                v.trip.start_time = start_time
+                
+            start_date = trip_val.get("start_date")
+            if start_date is not None:
+                v.trip.start_date = start_date
+                
+            schedule_relationship = trip_val.get("schedule_relationship")
+            if schedule_relationship is not None:
+                v.trip.schedule_relationship =  getattr(
+                    gtfs_realtime_pb2.TripDescriptor, # type: ignore
+                    schedule_relationship,
+                    gtfs_realtime_pb2.TripDescriptor.SCHEDULED # type: ignore
+                )
+            # current_stop_sequence    
+            current_stop_sequence = ngsi_entity.get("current_stop_sequence", {}).get("value")
+            if current_stop_sequence is not None:
+                v.current_stop_sequence = int(current_stop_sequence)
+                
+            # stop_id    
+            stop_id = ngsi_entity.get("stop_id", {}).get("object")
+            if stop_id is not None:
+                v.stop_id = stop_id
+                
+            # current status
+            status = ngsi_entity.get("current_status", {}).get("value")
             if status:
                 v.current_status = getattr(
-                    gtfs_realtime_pb2.VehiclePosition,
+                    gtfs_realtime_pb2.VehiclePosition, # type: ignore
                     status,
-                    gtfs_realtime_pb2.VehiclePosition.IN_TRANSIT_TO
+                    gtfs_realtime_pb2.VehiclePosition.IN_TRANSIT_TO # type: ignore
+                )
+                
+            # timestamp
+            timestamp = ngsi_entity.get("timestamp", {}).get("value")
+            if timestamp is not None:  
+                v.timestamp = iso8601_to_unix(timestamp)
+
+            # congestion_level
+            congestion_level = ngsi_entity.get("congestion_level", {}).get("value")
+            if congestion_level is not None:
+                v.congestion_level = getattr(
+                    gtfs_realtime_pb2.VehiclePosition, # type: ignore
+                    congestion_level,
+                    gtfs_realtime_pb2.VehiclePosition.UNKNOWN_CONGESTION_LEVEL # type: ignore
                 )
 
-            # ---------- occupancy ----------
-            occ = ent.get("occupancy_status", {}).get("value")
-            if occ:
+            # occupancy_status
+            occupancy_status = ngsi_entity.get("occupancy_status", {}).get("value")
+            if occupancy_status is not None:
                 v.occupancy_status = getattr(
-                    gtfs_realtime_pb2.VehiclePosition,
-                    occ,
-                    gtfs_realtime_pb2.VehiclePosition.EMPTY
+                    gtfs_realtime_pb2.VehiclePosition, # type: ignore
+                    occupancy_status,
+                    gtfs_realtime_pb2.VehiclePosition.EMPTY # type: ignore
                 )
 
             created += 1
@@ -192,7 +248,7 @@ async def update_vehicle_positions_loop():
 
             gtfs_realtime_feed = ngsi_ld_vehicle_positions_to_feed_message(entities)
 
-            logger.info("GTFS feed built: entities=%d", len(gtfs_realtime_feed.entity)
+            logger.info("GTFS feed built: entities=%d", len(gtfs_realtime_feed.entity) # type: ignore
 )
 
         except Exception as e:
@@ -236,7 +292,7 @@ async def get_gtfs_realtime_feed_endpoint():
     logger.info("Serving GTFS feed: entities=%d", len(gtfs_realtime_feed.entity) if gtfs_realtime_feed else -1)
     
     return Response(
-        content=gtfs_realtime_feed.SerializeToString(),
+        content=gtfs_realtime_feed.SerializeToString(), # type: ignore
         media_type="application/x-protobuf"
     )
 

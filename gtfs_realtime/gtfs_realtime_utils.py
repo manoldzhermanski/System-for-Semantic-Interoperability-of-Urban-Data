@@ -41,10 +41,16 @@ def unix_to_iso8601(timestamp: int | str | None) -> str | None:
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 # NOTE: SHOULD SEE IF IT IS USED AND WHAT FOR
-def iso8601_to_unix(timestamp: str) -> int:
-    dt = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
-    unix_timestamp = int(dt.timestamp())
-    return unix_timestamp
+def iso8601_to_unix(timestamp: str) -> int | None:
+    try:
+        return int(
+            datetime
+            .fromisoformat(timestamp.replace("Z", "+00:00"))
+            .astimezone(timezone.utc)
+            .timestamp()
+        )
+    except Exception:
+        return None
 
 # -----------------------------------------------------
 # GTFS Realtime Data Manipulations
@@ -324,7 +330,7 @@ def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] |
 
     Returns:
         dict[str, Any]: Normalized vehicle representation with the following keys:
-            - vehicle_id: NGSI-LD URN built from the vehicle id
+            - id: NGSI-LD URN built from the vehicle id
             - label: Vehicle label
             - license_plate: Vehicle license plate
             - wheelchair_accessible: Wheelchair accessibility enum
@@ -335,7 +341,7 @@ def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] |
     
     # Normalize and extract supported fields
     return {
-        "vehicle_id": to_ngsi_ld_urn(vehicle.get("id"), "GtfsVehicle"),
+        "id": to_ngsi_ld_urn(vehicle.get("id"), "GtfsVehicle"),
         "label": vehicle.get("label"),
         "license_plate": vehicle.get("license_plate"),
         "wheelchair_accessible": vehicle.get("wheelchair_accessible")
