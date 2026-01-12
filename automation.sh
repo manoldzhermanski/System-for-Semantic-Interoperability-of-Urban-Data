@@ -12,6 +12,7 @@ usage() {
   echo "Usage:"
   echo "  ./automation.sh start"
   echo "  ./automation.sh stop"
+  echo "  ./automation.sh test"
   echo "  ./automation.sh load [gtfs] [pois]"
   exit 1
 }
@@ -49,18 +50,24 @@ stop() {
   docker compose down
 }
 
+pytest() {
+  echo "Running Unit tests..."
+  activate_venv
+  python -m pytest -vv
+}
+
 load() {
-  shift  # махаме 'load'
+  shift
 
   if [[ $# -eq 0 ]]; then
-    echo "❌ Specify what to load: gtfs, pois"
+    echo "Specify what to load: gtfs, pois"
     exit 1
   fi
 
   activate_venv
   wait_for_orion
 
-  echo "📦 Loading data: $*"
+  echo "Loading data: $*"
   python load_initial_data.py "$@"
 }
 
@@ -70,6 +77,9 @@ case "$COMMAND" in
     ;;
   stop)
     stop
+    ;;
+  test)
+    pytest
     ;;
   load)
     load "$@"
