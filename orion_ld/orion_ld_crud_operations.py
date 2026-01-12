@@ -82,26 +82,45 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header
             For network-related errors.
     """
     
-    # Extract entity IDs for logging and debugging purposes
-    entities_ids = [entity['id'] for entity in batch_ngsi_ld_data]
 
-    # Concatenate them with '\n'
-    entities_ids = "\n".join(entities_ids)
-    try:
-        
-        logger.debug("Sending batch create request to Orion-LD (%d entities)", len(batch_ngsi_ld_data))
-        
-        # Send batch create request to Orion-LD
-        response = requests.post(config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT.value, json=batch_ngsi_ld_data, headers=header)
+    entity_ids = [e["id"] for e in batch_ngsi_ld_data]
 
-       # Report if failed to create entities
-        if response.status_code != 201:
-            raise requests.exceptions.HTTPError(f"Batch failed (status={response.status_code}): {response.text}")
-        
-        logger.info("Successfully created batch of %d entities:\n%s", len(batch_ngsi_ld_data), entities_ids)
+    response = requests.post(
+        config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT.value,
+        json=batch_ngsi_ld_data,
+        headers=header,
+    )
 
-    except requests.exceptions.RequestException as e:
-        raise requests.exceptions.RequestException(f"Batch POST request to Orion-LD failed: {e}")
+    if response.status_code == 201:
+        logger.info("Successfully created batch of %d entities", len(batch_ngsi_ld_data))
+        return
+
+    if response.status_code == 207:
+        payload = response.json()
+
+        successes = payload.get("success", [])
+        errors = payload.get("errors", [])
+
+        if successes:
+            logger.info("Successfully created %d entities", len(successes))
+
+        real_errors = []
+
+        for err in errors:
+            title = err.get("error", {}).get("title", "").lower()
+            entity_id = err.get("entityId")
+
+            if "already exists" in title:
+                logger.warning("Entity already exists, skipping: %s", entity_id)
+            else:
+                real_errors.append(err)
+
+        if real_errors:
+            raise requests.exceptions.HTTPError(f"Batch partially failed with real errors: {real_errors}")
+        return
+
+    raise requests.exceptions.HTTPError(
+        f"Batch failed (status={response.status_code}): {response.text}")
     
 def orion_ld_batch_load_to_context_broker(ngsi_ld_data: list[dict[str, Any]], header: dict, batch_size: int = 1000, delay: float = 0.1) -> None:
     """
