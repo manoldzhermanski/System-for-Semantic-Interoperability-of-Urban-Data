@@ -434,7 +434,7 @@ def parse_gtfs_realtime_vehicle_position(entity: dict[str, Any]) -> dict[str, An
      # Normalize multi-carriage details
     carriage_details = [
         {
-            "carriage_id": to_ngsi_ld_urn(carriage.get("id"), "GtfsRealtimeCarriage"),
+            "id": to_ngsi_ld_urn(carriage.get("id"), "GtfsRealtimeCarriage"),
             "label": carriage.get("label"),
             "occupancy_status": carriage.get("occupancy_status"),
             "occupancy_percentage": carriage.get("occupancy_percentage"),

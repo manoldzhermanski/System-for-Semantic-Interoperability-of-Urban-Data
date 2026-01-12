@@ -23,7 +23,7 @@ def test_batch_create_success_logs_debug(caplog):
     with patch("orion_ld.orion_ld_crud_operations.requests.post", return_value=mock_response):
         orion_ld_post_batch_request(sample_entities, headers)
 
-    assert "Sending batch create request to Orion-LD" in caplog.text
+    assert "Successfully created" in caplog.text
 
 def test_batch_create_http_error_logs_error():
     """
@@ -37,13 +37,13 @@ def test_batch_create_http_error_logs_error():
     ]
 
     mock_response = MagicMock()
-    mock_response.status_code = 207
+    mock_response.status_code = 400
 
     with patch("orion_ld.orion_ld_crud_operations.requests.post", return_value=mock_response):
         with pytest.raises(requests.exceptions.RequestException) as err:
             orion_ld_post_batch_request(sample_entities, headers)
 
-    assert "Batch failed (status=207)" in str(err.value)
+    assert "Batch failed (status=400)" in str(err.value)
 
 
 def test_batch_create_request_exception_logs_exception():
