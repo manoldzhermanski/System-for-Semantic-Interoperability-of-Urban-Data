@@ -23,25 +23,21 @@ def json_ld_read_file(file_path: str) -> list[dict[str, Any]]:
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
     except FileNotFoundError:
-        raise FileNotFoundError(f"File at path '{file_path}' is not found.")
+        raise FileNotFoundError(f"File at path '{file_path}' is not found")
 
     # Validate that the root is a dictionary
     if not isinstance(data, dict):
-        raise ValueError("Invalid NGSI-LD file structure — expected a JSON object.")
+        raise ValueError("Invalid NGSI-LD file structure — expected a JSON object")
         
     # Validate that "entities" key exists and is a list
     entities = data.get("entities")
     if not isinstance(entities, list):
-        raise ValueError("Invalid NGSI-LD file structure — expected 'entities' key with a list value.")    
+        raise ValueError("Invalid NGSI-LD file structure — expected 'entities' key with a list value")    
     
     # Return the list of entities
     return entities
 
-from typing import Any, Dict, List
-from pyproj import Transformer
-
-
-def json_ld_transform_coordinates_to_wgs84_coordinates(raw_data: List[Dict[str, Any]]) -> None:
+def json_ld_transform_coordinates_to_wgs84_coordinates(raw_data: list[dict[str, Any]]) -> None:
     """
     Transform NGSI-LD entity coordinates from EPSG:7801 to WGS84 (EPSG:4326).
 
@@ -95,8 +91,7 @@ def json_ld_transform_coordinates_to_wgs84_coordinates(raw_data: List[Dict[str, 
             )
 
 
-
-def json_ld_get_ngsi_ld_data(keyword: str) -> List[Dict[str, Any]]:
+def json_ld_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
     """
     Load NGSI-LD Point of Interest (PoI) entities based on a category keyword.
 
