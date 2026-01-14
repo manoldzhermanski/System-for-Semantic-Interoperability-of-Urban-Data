@@ -404,16 +404,28 @@ async def get_gtfs_realtime_feed_endpoint():
 
 @app.get("/api/gtfs/stops.geojson")
 def get_gtfs_stops():
-    """Return GTFS Stops as GeoJSON."""
+    """
+    Return GTFS Stop entities as a GeoJSON FeatureCollection.
+
+    The endpoint retrieves GTFS stop entities from Orion-LD, converts those
+    containing valid location data into GeoJSON Features, and returns them
+    as a GeoJSON FeatureCollection.
+    """
+
+    # Select proper header for Orion-LD operations
     header = orion_ld_define_header("gtfs_static")
+
+    # Fetch GTFS stop entities from Orion-LD
     entities = orion_ld_get_entities_by_type("GtfsStop", header)
 
+    # Convert entities with valid location data into GeoJSON features
     features = [
         ngsi_ld_entity_to_geojson_feature(entity)
         for entity in entities
         if "location" in entity and entity["location"].get("value")
     ]
 
+    # Return GeoJSON FeatureCollection
     return {
         "type": "FeatureCollection",
         "features": features
@@ -421,16 +433,27 @@ def get_gtfs_stops():
 
 @app.get("/api/gtfs/shapes.geojson")
 def get_gtfs_shape():
-    """Return GTFS Shapes as GeoJSON."""
+    """
+    Return GTFS Shape entities as a GeoJSON FeatureCollection.
+
+    The endpoint retrieves GTFS shape entities from Orion-LD, converts those
+    containing valid location data into GeoJSON Features, and returns them
+    as a GeoJSON FeatureCollection.
+    """
+    # Select proper header for Orion-LD operations
     header = orion_ld_define_header("gtfs_static")
+
+    # Fetch GTFS shape entities from Orion-LD
     entities = orion_ld_get_entities_by_type("GtfsShape", header)
 
+    # Convert entities with valid location data into GeoJSON features
     features = [
         ngsi_ld_entity_to_geojson_feature(entity)
         for entity in entities
         if "location" in entity and entity["location"].get("value")
     ]
 
+    # Return GeoJSON FeatureCollection
     return {
         "type": "FeatureCollection",
         "features": features
@@ -442,16 +465,27 @@ def get_gtfs_shape():
     
 @app.get("/api/pois/pois.geojson")
 def get_json_ld_pois():
-    """Return PoIs as GeoJSON."""
+    """
+    Return provided PoI entities as a GeoJSON FeatureCollection.
+
+    The endpoint retrieves PoI entities from Orion-LD, converts those
+    containing valid location data into GeoJSON Features, and returns them
+    as a GeoJSON FeatureCollection.
+    """
+    # Select proper header for Orion-LD operations
     header = orion_ld_define_header("pois")
+
+    # Fetch PoI entities from Orion-LD
     entities = orion_ld_get_entities_by_type("PointOfInterest", header)
 
+    # Convert entities with valid location data into GeoJSON features
     features = [
         ngsi_ld_entity_to_geojson_feature(entity)
         for entity in entities
         if "location" in entity and entity["location"].get("value")
     ]
 
+    # Return GeoJSON FeatureCollection
     return {
         "type": "FeatureCollection",
         "features": features
