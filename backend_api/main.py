@@ -111,18 +111,22 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
     Returns:
         gtfs_realtime_pb2.FeedMessage: GTFS-Realtime feed containing VehiclePosition entities.
     """
+    # Initialize GTFS-Realtime feed and header metadata
     feed = gtfs_realtime_pb2.FeedMessage() # type: ignore
     feed.header.gtfs_realtime_version = "2.0"
     feed.header.incrementality = gtfs_realtime_pb2.FeedHeader.FULL_DATASET # type: ignore
     feed.header.timestamp = int(time.time())
 
+    # Counters for logging and diagnostics
     created = 0
     skipped = 0
 
     for ngsi_entity in ngsi_entities:
         try:
+
             entity_id = ngsi_entity.get("id")
             
+            # Skip if entity id is not present
             if not entity_id:
                 skipped += 1
                 continue
@@ -133,11 +137,12 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
             label = vehicle_val.get("label")
             license_plate = vehicle_val.get("license_plate")
                 
+            # Skip entity creation if vehicle id is not present
             if not vehicle_id:
                 skipped += 1
                 continue
 
-            # position
+            # Get position data
             pos_val = ngsi_entity.get("position", {}).get("value")
             if not isinstance(pos_val, dict):
                 skipped += 1
@@ -149,16 +154,17 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
             odometer = pos_val.get("odometer")
             speed = pos_val.get("speed")
             
+            # If mandatory position data is not present, skip entity creation
             if latitude is None or longitude is None:
                 skipped += 1
                 continue
 
-            # ---------- create GTFS entity ----------
+            # create GTFS entity
             e = feed.entity.add()
             e.id = entity_id
             v = e.vehicle
             
-            # vehicle
+            # Populate vehicle descriptor
             if vehicle_id is not None:
                 v.vehicle.id = vehicle_id
             if label is not None:
@@ -166,7 +172,7 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
             if license_plate is not None:
                 v.vehicle.license_plate = license_plate
 
-            # position
+            # Populate vehicle position
             if latitude is not None:
                 v.position.latitude = float(latitude)
             if longitude is not None:
@@ -178,7 +184,7 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
             if speed is not None:
                 v.position.speed = float(speed) / 3.6
 
-            # trip 
+            # Populate trip descriptor
             trip_val = ngsi_entity.get("trip", {}).get("value")
             
             trip_id = trip_val.get("trip_id")
@@ -201,6 +207,7 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
             if start_date is not None:
                 v.trip.start_date = start_date
                 
+            # Populate schedule_relationship
             schedule_relationship = trip_val.get("schedule_relationship")
             if schedule_relationship is not None:
                 v.trip.schedule_relationship =  getattr(
@@ -208,17 +215,18 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
                     schedule_relationship,
                     gtfs_realtime_pb2.TripDescriptor.SCHEDULED # type: ignore
                 )
-            # current_stop_sequence    
+
+            # Populate current_stop_sequence    
             current_stop_sequence = ngsi_entity.get("current_stop_sequence", {}).get("value")
             if current_stop_sequence is not None:
                 v.current_stop_sequence = int(current_stop_sequence)
                 
-            # stop_id    
+            # Populate stop_id    
             stop_id = ngsi_entity.get("stop_id", {}).get("object")
             if stop_id is not None:
                 v.stop_id = stop_id
                 
-            # current status
+            # Populate current status
             status = ngsi_entity.get("current_status", {}).get("value")
             if status:
                 v.current_status = getattr(
@@ -227,12 +235,12 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
                     gtfs_realtime_pb2.VehiclePosition.IN_TRANSIT_TO # type: ignore
                 )
                 
-            # timestamp
+            # Populate timestamp
             timestamp = ngsi_entity.get("timestamp", {}).get("value")
             if timestamp is not None:  
                 v.timestamp = iso8601_to_unix(timestamp)
 
-            # congestion_level
+            # Populate congestion_level
             congestion_level = ngsi_entity.get("congestion_level", {}).get("value")
             if congestion_level is not None:
                 v.congestion_level = getattr(
@@ -241,7 +249,7 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
                     gtfs_realtime_pb2.VehiclePosition.UNKNOWN_CONGESTION_LEVEL # type: ignore
                 )
 
-            # occupancy_status
+            # Populate occupancy_status
             occupancy_status = ngsi_entity.get("occupancy_status", {}).get("value")
             if occupancy_status is not None:
                 v.occupancy_status = getattr(
@@ -250,6 +258,7 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
                     gtfs_realtime_pb2.VehiclePosition.EMPTY # type: ignore
                 )
 
+            # Increment populated counter
             created += 1
 
         except Exception:
