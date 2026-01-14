@@ -1,13 +1,18 @@
+import sys
 import logging
 import asyncio
-from datetime import datetime
-from contextlib import asynccontextmanager
 from typing import Any
-
+from pathlib import Path
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Response
+from contextlib import asynccontextmanager
 from google.transit import gtfs_realtime_pb2
+from fastapi.middleware.cors import CORSMiddleware
+
+
+
+project_root = Path(__file__).resolve().parent.parent
+sys.path.append(str(project_root))
 
 from orion_ld.orion_ld_crud_operations import (
     orion_ld_get_entities_by_type,
@@ -20,7 +25,6 @@ from gtfs_realtime.gtfs_realtime_utils import (
     iso8601_to_unix
 )
 
-import config
 import time
 
 logger = logging.getLogger("BackendAPI")
@@ -37,6 +41,20 @@ gtfs_realtime_feed: gtfs_realtime_pb2.FeedMessage | None = None # type: ignore
 # -----------------------------------------------------
 
 def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
+    """
+    Convert an NGSI-LD entity into a GeoJSON Feature.
+
+    GeoProperties are mapped to the GeoJSON geometry field.
+    Properties and Relationships are flattened into the feature properties.
+    The original NGSI-LD entity type is preserved as `entityType`.
+
+    Args:
+        entity (dict): NGSI-LD entity representation.
+
+    Returns:
+        dict: GeoJSON Feature derived from the given entity.
+    """
+    # Base GeoJSON Feature structure
     feature = {
         "type": "Feature",
         "id": entity.get("id"),
@@ -45,23 +63,32 @@ def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
     }
 
     for attr, value in entity.items():
+        # Skip "id" and "type" keys
         if attr in {"id", "type"}:
             continue
+
+        # If not the correct structure, skip
         if not isinstance(value, dict):
             continue
 
+        # Extract field
         attr_type = value.get("type")
 
+        # Geometry is extracted from GeoProperty
         if attr_type == "GeoProperty":
             feature["geometry"] = value.get("value")
 
+        # Regular attributes are flattened into properties
         elif attr_type == "Property":
             feature["properties"][attr] = value.get("value")
 
+        # Relationships expose their target as a property
         elif attr_type == "Relationship":
             feature["properties"][attr] = value.get("object")
 
+    # Preserve original NGSI-LD entity type
     feature["properties"]["entityType"] = entity.get("type")
+
     return feature
 
 # -----------------------------------------------------
