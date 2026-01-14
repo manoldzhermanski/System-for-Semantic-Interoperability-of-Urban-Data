@@ -91,7 +91,7 @@ def json_ld_transform_coordinates_to_wgs84_coordinates(raw_data: list[dict[str, 
             )
 
 
-def json_ld_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
+def json_ld_get_ngsi_ld_data(keyword: str, base_dir: str = "json_ld") -> list[dict[str, Any]]:
     """
     Load NGSI-LD Point of Interest (PoI) entities based on a category keyword.
 
@@ -147,12 +147,12 @@ def json_ld_get_ngsi_ld_data(keyword: str) -> list[dict[str, Any]]:
 
     # Build file path to the JSON-LD source
     file_name = mapping[keyword]
-    file_path = os.path.join("json_ld", "data", file_name)
+    file_path = os.path.join(base_dir, "data", file_name)
 
     # Read NGSI-LD entities from file
     ngsi_ld_data = json_ld_read_file(file_path)
 
-    # Transform coordinates to WGS84 (in-place)
+    # Transform coordinates to WGS84
     json_ld_transform_coordinates_to_wgs84_coordinates(ngsi_ld_data)
 
     # Return processed entities
