@@ -95,14 +95,22 @@ def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
 # NGSI-LD → GTFS Realtime conversion
 # -----------------------------------------------------
 
-def ngsi_ld_vehicle_positions_to_feed_message(
-    ngsi_entities: list[dict[str, Any]]
-) -> gtfs_realtime_pb2.FeedMessage: # type: ignore
+def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]]) -> gtfs_realtime_pb2.FeedMessage: # type: ignore
     """
-    Convert NGSI-LD GtfsRealtimeVehiclePosition entities
-    retrieved from Orion-LD into a GTFS-Realtime FeedMessage.
-    """
+    Convert NGSI-LD GtfsRealtimeVehiclePosition entities from Orion-LD
+    into a GTFS-Realtime FeedMessage.
 
+    Each entity is transformed into a VehiclePosition entry in the feed.
+    Entities missing required fields (vehicle ID, latitude, longitude) are skipped.
+    Additional fields (trip, status, occupancy, congestion, stop info) are mapped
+    if present.
+
+    Args:
+        ngsi_entities (List[Dict[str, Any]]): NGSI-LD entities representing vehicle positions.
+
+    Returns:
+        gtfs_realtime_pb2.FeedMessage: GTFS-Realtime feed containing VehiclePosition entities.
+    """
     feed = gtfs_realtime_pb2.FeedMessage() # type: ignore
     feed.header.gtfs_realtime_version = "2.0"
     feed.header.incrementality = gtfs_realtime_pb2.FeedHeader.FULL_DATASET # type: ignore
