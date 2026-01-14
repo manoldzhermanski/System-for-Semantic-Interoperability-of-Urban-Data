@@ -272,35 +272,53 @@ def ngsi_ld_vehicle_positions_to_feed_message(ngsi_entities: list[dict[str, Any]
 
     return feed
 
-
-    
 # -----------------------------------------------------
 # Background Loop (NO deprecated APIs)
 # -----------------------------------------------------
 
-async def update_vehicle_positions_loop():
+async def update_vehicle_positions_loop(interval: int = 30):
+    """
+    Periodically update the GTFS-Realtime vehicle positions feed.
+
+    The function runs in an infinite asynchronous loop and performs the following steps
+    on each iteration:
+    1. Retrieve NGSI-LD vehicle position entities.
+    2. Push the retrieved data to Orion-LD using a batch replace operation.
+    3. Fetch the updated GtfsRealtimeVehiclePosition entities from Orion-LD.
+    4. Convert the entities into a GTFS-Realtime FeedMessage and store it globally.
+
+    Any exception raised during a single iteration is logged and does not stop
+    the loop execution. The update cycle is repeated every 30 seconds.
+    """
     global gtfs_realtime_feed
 
+    # Run continuously as a background update loop
     while True:
         try:
+            # Retrieve raw NGSI-LD GtfsRealtimeVehiclePosition entities
             ngsild_entities = gtfs_realtime_get_ngsi_ld_data("VehiclePosition")
 
+            # Set correct header for Orion-LD operations
             header = orion_ld_define_header("gtfs_realtime")
+
+             # Replace existing entity data in Orion-LD with the new batch
             orion_ld_batch_replace_entity_data(ngsild_entities, header)
 
+            # Fetch the processed GtfsRealtimeVehiclePosition entities
             entities = orion_ld_get_entities_by_type("GtfsRealtimeVehiclePosition", header)
 
+            # Convert NGSI-LD entities into a GTFS-Realtime feed
             gtfs_realtime_feed = ngsi_ld_vehicle_positions_to_feed_message(entities)
 
+            # Log successful feed creation
             logger.info("GTFS feed built: entities=%d", len(gtfs_realtime_feed.entity) # type: ignore
 )
 
         except Exception as e:
             logger.exception("Vehicle update failed: %s", e)
 
-        await asyncio.sleep(30)
-
-
+        # Wait before the next update cycle
+        await asyncio.sleep(interval)
 
 # -----------------------------------------------------
 # Lifespan (this replaces @startup)
