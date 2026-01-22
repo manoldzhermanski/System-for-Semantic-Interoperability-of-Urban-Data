@@ -1215,7 +1215,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any]) -> None:
     # If present, write zone_id as NGSI URN 
     zone_id = entity.get("zone_id")
     if zone_id is not None:
-        zone_id = f"urn:ngsi-ld:GtfsZone:{zone_id}"
+        entity["zone_id"] = f"urn:ngsi-ld:GtfsZone:{zone_id}"
 
     # Validate that 'stop_url' is a valid URL
     stop_url = entity.get("stop_url")
