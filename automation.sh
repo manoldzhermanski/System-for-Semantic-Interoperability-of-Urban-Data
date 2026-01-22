@@ -19,14 +19,14 @@ usage() {
 
 activate_venv() {
   if [[ ! -f "$VENV_PATH/bin/activate" ]]; then
-    echo "❌ Virtualenv not found at $VENV_PATH"
+    echo "Virtualenv not found at $VENV_PATH"
     exit 1
   fi
   source "$VENV_PATH/bin/activate"
 }
 
 wait_for_orion() {
-  echo "⏳ Waiting for Orion-LD..."
+  echo "Waiting for Orion-LD..."
   until curl -s "$ORION_URL/version" > /dev/null; do
     sleep 2
   done
@@ -57,7 +57,7 @@ pytest() {
 }
 
 load() {
-  shift
+  shift  # махаме 'load'
 
   if [[ $# -eq 0 ]]; then
     echo "Specify what to load: gtfs, pois"
@@ -67,7 +67,7 @@ load() {
   activate_venv
   wait_for_orion
 
-  echo "Loading data: $*"
+  echo "📦 Loading data: $*"
   python load_initial_data.py "$@"
 }
 

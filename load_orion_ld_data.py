@@ -35,7 +35,7 @@ LOAD_POIS = "pois"
 
 
 def load_gtfs_static():
-    print("🚍 Loading GTFS static data...")
+    print("Loading GTFS static data...")
     header = olcd.orion_ld_define_header("gtfs_static")
 
     for entity_type in GTFS_STATIC_TYPES:
@@ -45,7 +45,7 @@ def load_gtfs_static():
 
 
 def load_pois():
-    print("📍 Loading Points of Interest...")
+    print("Loading Points of Interest...")
     header = olcd.orion_ld_define_header("pois")
 
     for entity_type in POIS_TYPES:
@@ -64,7 +64,7 @@ def main():
     if load_all or LOAD_POIS in args:
         load_pois()
 
-    print("✅ Initial data successfully loaded.")
+    print("Initial data successfully loaded.")
 
 
 if __name__ == "__main__":
