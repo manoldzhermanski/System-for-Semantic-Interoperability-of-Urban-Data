@@ -57,7 +57,7 @@ pytest() {
 }
 
 load() {
-  shift  # махаме 'load'
+  shift
 
   if [[ $# -eq 0 ]]; then
     echo "Specify what to load: gtfs, pois"
@@ -67,8 +67,8 @@ load() {
   activate_venv
   wait_for_orion
 
-  echo "📦 Loading data: $*"
-  python load_initial_data.py "$@"
+  echo "Loading data: $*"
+  python load_orion_ld_data.py "$@"
 }
 
 case "$COMMAND" in
