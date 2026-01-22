@@ -1204,7 +1204,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any]) -> None:
         
     # Check that 'parent_station' is required when 'location_type' is 2, 3 or 4 and forbidden when 'location_type' is 1
     parent_station = entity.get("parent_station")
-    if location_type in {2, 3, 4}:
+    if location_type in {0, 2, 3, 4}:
         if not parent_station:
             raise ValueError(f"'parent_station' is required when 'location_type' is 2, 3 or 4")
         entity["parent_station"] = f"urn:ngsi-ld:GtfsStop:{entity["parent_station"]}"
