@@ -65,6 +65,10 @@ load() {
   fi
 
   activate_venv
+
+  echo "Starting Docker containers..."
+  docker compose up -d
+  
   wait_for_orion
 
   echo "Loading data: $*"
