@@ -39,5 +39,35 @@ services:
       - ./terria/build/TerriaJS/images:/app/wwwroot/build/TerriaJS/images
     restart: unless-stopped
 
+  # =========================
+  # OpenTripPlanner – BUILD
+  # =========================
+  otp-build:
+    image: opentripplanner/opentripplanner:2.2.0
+    container_name: otp-build
+    volumes:
+      - ./otp/data:/var/opentripplanner
+    command: >
+      --build
+      --save
+    restart: "no"
+
+  # =========================
+  # OpenTripPlanner – SERVE
+  # =========================
+  otp:
+    image: opentripplanner/opentripplanner:2.2.0
+    container_name: opentripplanner
+    depends_on:
+      - otp-build
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./otp/data:/var/opentripplanner
+    command: >
+      --load
+      --serve
+    restart: unless-stopped
+
 volumes:
   mongo-db:
