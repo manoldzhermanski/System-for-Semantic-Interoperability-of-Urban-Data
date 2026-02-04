@@ -39,9 +39,6 @@ services:
       - ./terria/build/TerriaJS/images:/app/wwwroot/build/TerriaJS/images
     restart: unless-stopped
 
-  # =========================
-  # OpenTripPlanner – BUILD
-  # =========================
   otp-build:
     image: opentripplanner/opentripplanner:2.2.0
     container_name: otp-build
@@ -52,9 +49,6 @@ services:
       --save
     restart: "no"
 
-  # =========================
-  # OpenTripPlanner – SERVE
-  # =========================
   otp:
     image: opentripplanner/opentripplanner:2.2.0
     container_name: opentripplanner
