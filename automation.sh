@@ -14,6 +14,7 @@ usage() {
   echo "  ./automation.sh stop"
   echo "  ./automation.sh test"
   echo "  ./automation.sh load [gtfs] [pois]"
+  echo "  ./automation.sh otp_build"
   exit 1
 }
 
@@ -23,6 +24,30 @@ activate_venv() {
     exit 1
   fi
   source "$VENV_PATH/bin/activate"
+}
+
+otp_build() {
+  
+  activate_venv
+
+  docker compose up otp-build
+
+  echo "Waiting for otp-build to finish..."
+  while true; do
+    status=$(docker inspect -f '{{.State.Status}}' otp-build 2>/dev/null)
+    if [ "$status" == "exited" ]; then
+      echo "otp-build finished."
+      break
+    fi
+    sleep 2
+  done
+
+  exit_code=$(docker inspect -f '{{.State.ExitCode}}' otp-build)
+  if [ "$exit_code" -ne 0 ]; then
+      echo "otp-build failed with code $exit_code"
+      docker logs otp-build
+      exit 1
+  fi
 }
 
 wait_for_orion() {
@@ -37,7 +62,7 @@ start() {
     activate_venv
 
     echo "Starting Docker containers..."
-    docker compose up -d
+    docker compose up -d orion mongo-db terriamap otp
 
     wait_for_orion
 
@@ -88,7 +113,11 @@ case "$COMMAND" in
   load)
     load "$@"
     ;;
+  otp_build)
+    otp_build "$@"
+    ;;
   *)
     usage
     ;;
 esac
+
