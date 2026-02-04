@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
 
   otp-build:
-    image: opentripplanner/opentripplanner:2.2.0
+    image: opentripplanner/opentripplanner:2.8.1
     container_name: otp-build
     volumes:
       - ./otp/data:/var/opentripplanner
@@ -50,7 +50,7 @@ services:
     restart: "no"
 
   otp:
-    image: opentripplanner/opentripplanner:2.2.0
+    image: opentripplanner/opentripplanner:2.8.1
     container_name: opentripplanner
     depends_on:
       - otp-build
