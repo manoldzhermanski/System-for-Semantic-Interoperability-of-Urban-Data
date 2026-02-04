@@ -61,6 +61,58 @@ def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_d
     # Extract the ZIP file
     with zipfile.ZipFile(BytesIO(response.content)) as zip_file:
         zip_file.extractall(extract_to)
+
+def gtfs_static_download_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs_static") -> bytes:
+    """
+    Downloads a GTFS Static ZIP archive from the given API endpoint, saves it locally, 
+    and returns its content as bytes.
+
+    Args:
+        api_endpoint (config.GtfsSource): Enum value containing the GTFS Static ZIP API endpoint.
+        base_dir (str, optional): Base directory where the GTFS ZIP will be saved. Default is "gtfs_static".
+
+    Returns:
+        bytes: The content of the downloaded ZIP file.
+
+    Raises:
+        ValueError: If the API endpoint is not configured or contains an empty URL.
+        requests.exceptions.RequestException: If the ZIP file cannot be downloaded.
+    """
+    url = api_endpoint.value or ""
+    if url == "":
+        raise ValueError(f"API endpoint for {api_endpoint.name} is not set.")
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+    except requests.exceptions.RequestException:
+        raise requests.exceptions.RequestException(f"Error when fetching GTFS data from {api_endpoint.name}")
+
+    # Ensure base_dir exists
+    os.makedirs(base_dir, exist_ok=True)
+
+    # Save ZIP to disk
+    zip_path = os.path.join(base_dir, "sofia_gtfs.zip")
+    with open(zip_path, "wb") as f:
+        f.write(response.content)
+
+    # Return ZIP content as bytes
+    return response.content
+
+def gtfs_static_extract_zip(zip_bytes: bytes, base_dir: str = "gtfs_static") -> None:
+    """
+    Extracts a GTFS Static ZIP archive (given as bytes) into a local directory structure.
+    Always creates a "data" subdirectory in "base_dir" where files are extracted.
+
+    Args:
+        zip_bytes (bytes): ZIP file content
+        base_dir (str, optional): Base directory where the GTFS data will be stored. Default is "gtfs_static".
+    """
+    extract_to = os.path.join(base_dir, "data")
+    os.makedirs(extract_to, exist_ok=True)
+
+    with zipfile.ZipFile(BytesIO(zip_bytes)) as zip_file:
+        zip_file.extractall(extract_to)
     
 # -----------------------------------------------------
 # Read Data
@@ -2757,5 +2809,3 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") 
     
     # Convert raw GTFS data to NGSI-LD entities
     return transformer(raw_data)
-
-    
