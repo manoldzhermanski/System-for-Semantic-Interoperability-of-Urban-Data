@@ -1,4 +1,7 @@
+import io
+import csv
 import sys
+import zipfile
 import logging
 import asyncio
 from typing import Any
@@ -7,9 +10,8 @@ from fastapi import FastAPI
 from fastapi import Response
 from contextlib import asynccontextmanager
 from google.transit import gtfs_realtime_pb2
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-
-
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
@@ -490,3 +492,60 @@ def get_json_ld_pois():
         "type": "FeatureCollection",
         "features": features
     }
+
+# -----------------------------------------------------
+# NGSI-LD → GTFS Static conversion
+# -----------------------------------------------------
+
+def ngsi_ld_entity_to_gtfs_static(entity: dict[str, Any]) -> str:
+
+    row = {}
+    
+    for attr, value in entity.items():
+        if attr in ("id", "type", "@context"):
+            continue
+
+        if isinstance(value, dict) and "type" in value:
+            attr_type = value.get("type")
+
+            if attr_type == "Property":
+                row[attr] = value.get("value")
+
+            if attr_type == "Relationship":
+                row[attr] = value.get("object")
+        else:
+            row[attr] = value
+
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=sorted(row.keys()))
+    writer.writeheader()
+    writer.writerow(row)
+
+    return output.getvalue()
+
+def build_zip_from_entities(entities: list[dict[str, Any]]) -> io.BytesIO:
+    zip_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        for entity in entities:
+            csv_content = ngsi_ld_entity_to_gtfs_static(entity)
+
+            filename = entity.get("id", "entity").replace(":", "_") + ".csv"
+            z.writestr(filename, csv_content)
+
+    zip_buffer.seek(0)
+    return zip_buffer
+
+@app.get("/export")
+def export_zip():
+
+    
+    zip_buffer = build_zip_from_entities(entities)
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": "attachment; filename=gtfs.zip"
+        }
+    )
