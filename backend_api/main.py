@@ -573,16 +573,16 @@ def build_gtfs_zip() -> str:
 
     data = {
         "agency.txt": agencies,
-        #"stops.txt": stops,
-        #"routes.txt": routes,
-        #"trips.txt": trips,
-        #"stop_times.txt": stop_times,
-        #"calendar_dates.txt": calendar_dates,
-        #"fare_attributes.txt": fare_attributes,
-        #"shapes.txt": shapes,
-        #"transfers.txt": transfers,
-        #"pathways.txt": pathways,
-        #"levels.txt": levels,
+        "stops.txt": stops,
+        "routes.txt": routes,
+        "trips.txt": trips,
+        "stop_times.txt": stop_times,
+        "calendar_dates.txt": calendar_dates,
+        "fare_attributes.txt": fare_attributes,
+        "shapes.txt": shapes,
+        "transfers.txt": transfers,
+        "pathways.txt": pathways,
+        "levels.txt": levels,
     }
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
