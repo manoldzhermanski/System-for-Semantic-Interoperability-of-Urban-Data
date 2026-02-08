@@ -15,6 +15,7 @@ usage() {
   echo "  ./automation.sh test"
   echo "  ./automation.sh load [gtfs] [pois]"
   echo "  ./automation.sh otp_build"
+  echo "  ./automation.sh gtfs_static_rebuild"
   exit 1
 }
 
@@ -24,6 +25,15 @@ activate_venv() {
     exit 1
   fi
   source "$VENV_PATH/bin/activate"
+}
+
+gtfs_static_rebuild() {
+  activate_venv
+  docker compose up -d orion mongo-db
+  wait_for_orion
+
+  echo "Rebuilding GTFS static data..."
+  curl -X POST http://localhost:8000/api/gtfs_static/rebuild
 }
 
 otp_build() {
@@ -112,6 +122,9 @@ case "$COMMAND" in
     ;;
   load)
     load "$@"
+    ;;
+  gtfs_static_rebuild)
+    gtfs_static_rebuild
     ;;
   otp_build)
     otp_build "$@"
