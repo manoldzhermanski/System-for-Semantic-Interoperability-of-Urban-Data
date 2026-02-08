@@ -1,4 +1,5 @@
 import io
+import os
 import csv
 import sys
 import zipfile
@@ -6,15 +7,19 @@ import logging
 import asyncio
 from typing import Any
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi import Response
 from contextlib import asynccontextmanager
 from google.transit import gtfs_realtime_pb2
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
+
+STORAGE_DIR = os.path.join(project_root, "otp", "data")
+os.makedirs(STORAGE_DIR, exist_ok=True)
+
 
 from orion_ld.orion_ld_crud_operations import (
     orion_ld_get_entities_by_type,
@@ -497,7 +502,7 @@ def get_json_ld_pois():
 # NGSI-LD → GTFS Static conversion
 # -----------------------------------------------------
 
-def ngsi_ld_entity_to_gtfs_static(entity: dict[str, Any]) -> str:
+def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str, Any]:
 
     row = {}
     
@@ -512,40 +517,96 @@ def ngsi_ld_entity_to_gtfs_static(entity: dict[str, Any]) -> str:
                 row[attr] = value.get("value")
 
             if attr_type == "Relationship":
-                row[attr] = value.get("object")
+                obj = value.get("object")
+
+                if isinstance(obj, str) and obj.startswith("urn:ngsi-ld:"):
+                    obj = obj.rsplit(":", 1)[-1]
+
+                row[attr] = obj
         else:
             row[attr] = value
 
+    return row
+
+def entities_to_csv_bytes(entities: list[dict[str, Any]]) -> bytes:
+    if not entities:
+        return b""
+
+    rows = [ngsi_ld_extract_data_for_csv_conversion(entity) for entity in entities]
+
+    all_fields = set()
+    for r in rows:
+        all_fields.update(r.keys())
+
+    fieldnames = sorted(all_fields)
+
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=sorted(row.keys()))
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
-    writer.writerow(row)
+    writer.writerows(rows)
 
-    return output.getvalue()
+    return output.getvalue().encode("utf-8")
 
-def build_zip_from_entities(entities: list[dict[str, Any]]) -> io.BytesIO:
-    zip_buffer = io.BytesIO()
-
-    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as z:
-        for entity in entities:
-            csv_content = ngsi_ld_entity_to_gtfs_static(entity)
-
-            filename = entity.get("id", "entity").replace(":", "_") + ".csv"
-            z.writestr(filename, csv_content)
-
-    zip_buffer.seek(0)
-    return zip_buffer
-
-@app.get("/export")
-def export_zip():
-
+def build_gtfs_zip() -> str:
+    """
+    data_by_file:
+    {
+        "agency.txt": [entities...],
+        "routes.txt": [entities...],
+        "stops.txt": [...]
+    }
+    """
+    zip_path = os.path.join(STORAGE_DIR, f"gtfs.zip")
     
-    zip_buffer = build_zip_from_entities(entities)
+    header = orion_ld_define_header("gtfs_static")
+    agencies = orion_ld_get_entities_by_type("GtfsAgency", header)
+    stops = orion_ld_get_entities_by_type("GtfsStop", header)
+    routes = orion_ld_get_entities_by_type("GtfsRoute", header)
+    trips = orion_ld_get_entities_by_type("GtfsTrip", header)
+    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
+    calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
+    fare_attributes = orion_ld_get_entities_by_type("GtfsFareAttributes", header)
+    shapes = orion_ld_get_entities_by_type("GtfsShape", header)
+    transfers = orion_ld_get_entities_by_type("GtfsTransferRule", header)
+    pathways = orion_ld_get_entities_by_type("GtfsPathway", header)
+    levels = orion_ld_get_entities_by_type("GtfsLevel", header)
 
-    return StreamingResponse(
-        zip_buffer,
+    data = {
+        "agency.txt": agencies,
+        #"stops.txt": stops,
+        #"routes.txt": routes,
+        #"trips.txt": trips,
+        #"stop_times.txt": stop_times,
+        #"calendar_dates.txt": calendar_dates,
+        #"fare_attributes.txt": fare_attributes,
+        #"shapes.txt": shapes,
+        #"transfers.txt": transfers,
+        #"pathways.txt": pathways,
+        #"levels.txt": levels,
+    }
+
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
+
+        for filename, entities in data.items():
+            csv_bytes = entities_to_csv_bytes(entities)
+            z.writestr(filename, csv_bytes)
+
+    return zip_path
+
+@app.post("/api/gtfs_static/rebuild")
+def rebuild(bg: BackgroundTasks):
+    bg.add_task(build_gtfs_zip)
+    return {"status": "rebuild started"}
+
+@app.get("/api/gtfs_static/download")
+def download():
+    path = os.path.join(STORAGE_DIR, f"gtfs.zip")
+
+    if not os.path.exists(path):
+        raise HTTPException(404, "GTFS not built yet")
+
+    return FileResponse(
+        path,
         media_type="application/zip",
-        headers={
-            "Content-Disposition": "attachment; filename=gtfs.zip"
-        }
+        filename=f"gtfs.zip",
     )
