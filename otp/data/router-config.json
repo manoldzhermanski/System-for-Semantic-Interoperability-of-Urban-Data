@@ -1,0 +1,12 @@
+{
+  "updaters": [
+    {
+      "type": "vehicle-positions",
+      "feedId": "default",
+      "url": "https://gtfs.sofiatraffic.bg/api/v1/vehicle-positions",
+      "frequency": "30s",
+      "fuzzyTripMatching": false,
+      "features": ["position"]
+    }
+  ]
+}
