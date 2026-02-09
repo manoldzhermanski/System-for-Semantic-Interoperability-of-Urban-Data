@@ -7,7 +7,7 @@ from json_ld import json_ld_utils as jlu
 
 GTFS_STATIC_TYPES = (
     "agency",
-    #"calendar_dates",
+    "calendar_dates",
     #"fare_attributes",
     #"levels",
     #"pathways",

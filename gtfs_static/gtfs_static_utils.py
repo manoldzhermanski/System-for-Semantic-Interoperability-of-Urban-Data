@@ -1484,7 +1484,7 @@ def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any], city: str = "Sofia") 
         }
     }
 
-def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str = "Sofia") -> dict[str, Any]:
     """
     Maps a parsed GTFS calendar date entity to an NGSI-LD GtfsCalendarDateRule entity.
 
@@ -1498,7 +1498,7 @@ def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, 
         dict: An NGSI-LD entity of type GtfsCalendarDateRule.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:Sofia:{entity.get("service_id")}:{entity.get("date")}",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:{entity.get('service_id')}:{entity.get('date')}",
             "type": "GtfsCalendarDateRule",
             
             "hasService": {
@@ -2254,7 +2254,7 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str = "S
     # Return the list of NGSI-LD GtfsAgency entities
     return ngsi_ld_data
 
-def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str = "Sofia") -> list[dict[str, Any]]:
     """
     Converts GTFS static calendar date rules into NGSI-LD entities.
 
@@ -2290,7 +2290,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> lis
         validate_gtfs_calendar_dates_entity(parsed_entity)
 
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_calendar_dates_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_calendar_dates_to_ngsi_ld(parsed_entity, city)
 
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)

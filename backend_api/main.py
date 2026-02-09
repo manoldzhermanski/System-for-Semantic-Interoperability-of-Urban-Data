@@ -512,8 +512,22 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
         if entity_type == "GtfsAgency":
             row["agency_id"] = entity_id.rsplit(":", 1)[-1]
             
-        if entity_id.startswith("urn:ngsi-ld:"):
-            row["id"] = entity_id.rsplit(":", 1)[-1]
+    if entity_type == "GtfsCalendarDateRule":
+
+        has_service = entity.get("hasService")
+        if isinstance(has_service, dict):
+            obj = has_service.get("object")
+            if isinstance(obj, str) and obj.startswith("urn:ngsi-ld:"):
+                obj = obj.rsplit(":", 1)[-1]
+            row["service_id"] = obj
+
+        applies_on = entity.get("appliesOn")
+        if isinstance(applies_on, dict):
+            row["date"] = applies_on.get("value")
+
+        exc_type = entity.get("exceptionType")
+        if isinstance(exc_type, dict):
+            row["exception_type"] = exc_type.get("value")
     
     for attr, value in entity.items():
         if attr in ("id", "type", "@context"):
