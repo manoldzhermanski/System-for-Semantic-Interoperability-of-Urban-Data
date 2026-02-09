@@ -1424,7 +1424,7 @@ def validate_gtfs_trips_entity(entity: dict[str, Any]) -> None:
 # Convert GTFS-Static data to NGSI-LD
 # -----------------------------------------------------
 
-def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any], city: str = "Sofia") -> dict[str, Any]:
     """
     Maps a parsed GTFS agency entity to an NGSI-LD GtfsAgency entity.
 
@@ -1434,12 +1434,13 @@ def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
 
     Args:
         entity (dict[str, Any]): A parsed GTFS agency entity.
+        city (str): The city name.
 
     Returns:
         dict: An NGSI-LD entity of type GtfsAgency.
     """
     return {
-        "id": f"urn:ngsi-ld:GtfsAgency:{entity.get("agency_id")}",
+        "id": f"urn:ngsi-ld:GtfsAgency:{city}:{entity.get('agency_id')}",
         "type": "GtfsAgency",
             
         "agency_name":{
@@ -2205,7 +2206,7 @@ def remove_none_values(entity: dict[str, Any]) -> dict[str, Any]:
 # Main conversion functions
 # ----------------------------------------------------- 
 
-def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str = "Sofia") -> list[dict[str, Any]]:
     """
     Converts GTFS static agency data into NGSI-LD entities.
 
@@ -2218,6 +2219,8 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
     Args:
         raw_data (list[dict[str, Any]]):
             A list of dictionaries representing GTFS agency entities
+        city (str):
+            The city name to be included in the NGSI-LD entity ID for uniqueness
 
     Returns:
         list[dict[str, Any]]:
@@ -2240,7 +2243,7 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         validate_gtfs_agency_entity(parsed_entity)
 
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_agency_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_agency_to_ngsi_ld(parsed_entity, city)
 
         # Remove attributes with None values to ensure a clean NGSI-LD payload
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2731,7 +2734,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------  
   
-def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") -> list[dict[str, Any]]:
+def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static", city: str = "Sofia") -> list[dict[str, Any]]:
     """
     Reads GTFS static data from the local filesystem and converts it
     into NGSI-LD entities based on the specified GTFS file type.
@@ -2766,6 +2769,9 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") 
             "gtfs_static_download_and_extract_zip" always 
             creates a data subdirectory inside the base_dir
             Default directory is "gtfs_static".
+            
+        city (str):
+            The city name to be included in the NGSI-LD entity ID for uniqueness.
 
     Returns:
         list[dict[str, Any]]:
@@ -2808,4 +2814,4 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static") 
     raw_data = gtfs_static_read_file(filepath)
     
     # Convert raw GTFS data to NGSI-LD entities
-    return transformer(raw_data)
+    return transformer(raw_data, city)

@@ -15,11 +15,13 @@ def test_convert_gtfs_agency_to_ngsi_ld():
         "agency_email": "info@example.com",
         "cemv_support": 1,
     }
+    
+    city = "Berlin"
 
-    result = convert_gtfs_agency_to_ngsi_ld(entity)
+    result = convert_gtfs_agency_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsAgency:A1",
+        "id": "urn:ngsi-ld:GtfsAgency:Berlin:A1",
         "type": "GtfsAgency",
         "agency_name": {
             "type": "Property",
@@ -65,11 +67,13 @@ def test_convert_gtfs_agency_to_ngsi_ld_missing_optional_fields():
         "agency_url": "https://example.com",
         "agency_timezone": "Europe/Sofia",
     }
+    
+    city = "Berlin"
 
-    result = convert_gtfs_agency_to_ngsi_ld(entity)
+    result = convert_gtfs_agency_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsAgency:A1",
+        "id": "urn:ngsi-ld:GtfsAgency:Berlin:A1",
         "type": "GtfsAgency",
         "agency_name": {
             "type": "Property",

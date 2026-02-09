@@ -3,13 +3,14 @@ from unittest.mock import patch, MagicMock
 from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
 
 def test_gtfs_static_get_ngsi_ld_data_valid_file_type():
+    city = "Test"
     raw_data = [{"raw": "data"}]
-    ngsi_ld_data = [{"id": "urn:ngsi-ld:Test:1"}]
+    ngsi_ld_data = [{"id": f"urn:ngsi-ld:{city}:1"}]
 
     with patch("gtfs_static.gtfs_static_utils.gtfs_static_read_file", return_value=raw_data) as mock_read, \
     patch("gtfs_static.gtfs_static_utils.gtfs_static_agency_to_ngsi_ld", return_value=ngsi_ld_data) as mock_transformer:
 
-        result = gtfs_static_get_ngsi_ld_data(file_type="agency",base_dir="custom_base")
+        result = gtfs_static_get_ngsi_ld_data(file_type="agency",base_dir="custom_base", city=city)
 
         # Returned value
         assert result == ngsi_ld_data
@@ -18,12 +19,14 @@ def test_gtfs_static_get_ngsi_ld_data_valid_file_type():
         mock_read.assert_called_once_with("custom_base/data/agency.txt")
 
         # Transformer called with raw data
-        mock_transformer.assert_called_once_with(raw_data)
+        mock_transformer.assert_called_once_with(raw_data, city)
         
 def test_gtfs_static_get_ngsi_ld_data_valid_file_type_magicmock():
+    city = "Berlin"
     raw_data = [{"agency_id": "A1"}]
-    ngsi_ld_data = [{"id": "urn:ngsi-ld:Agency:A1"}]
-
+    ngsi_ld_data = [{f"id": f"urn:ngsi-ld:Agency:{city}:A1"}]
+    
+    
     mock_read = MagicMock()
     mock_read.return_value = raw_data
     
@@ -34,11 +37,11 @@ def test_gtfs_static_get_ngsi_ld_data_valid_file_type_magicmock():
     with patch("gtfs_static.gtfs_static_utils.gtfs_static_read_file", mock_read), \
          patch("gtfs_static.gtfs_static_utils.gtfs_static_agency_to_ngsi_ld", mock_transformer):
 
-        result = gtfs_static_get_ngsi_ld_data(file_type="agency", base_dir="custom_base")
+        result = gtfs_static_get_ngsi_ld_data(file_type="agency", base_dir="custom_base", city=city)
 
     assert result == ngsi_ld_data
     mock_read.assert_called_once_with("custom_base/data/agency.txt")
-    mock_transformer.assert_called_once_with(raw_data)
+    mock_transformer.assert_called_once_with(raw_data, city)
 
 
 def test_gtfs_static_get_ngsi_ld_data_invalid_file_type():
