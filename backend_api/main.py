@@ -506,10 +506,19 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
 
     row = {}
     
+    entity_type = entity.get("type")
+    entity_id = entity.get("id")
+    if isinstance(entity_type, str) and isinstance(entity_id, str) and entity_type in ("GtfsAgency"):
+        if entity_type == "GtfsAgency":
+            row["agency_id"] = entity_id.rsplit(":", 1)[-1]
+            
+        if entity_id.startswith("urn:ngsi-ld:"):
+            row["id"] = entity_id.rsplit(":", 1)[-1]
+    
     for attr, value in entity.items():
         if attr in ("id", "type", "@context"):
             continue
-
+        
         if isinstance(value, dict) and "type" in value:
             attr_type = value.get("type")
 
@@ -560,29 +569,29 @@ def build_gtfs_zip() -> str:
     
     header = orion_ld_define_header("gtfs_static")
     agencies = orion_ld_get_entities_by_type("GtfsAgency", header)
-    stops = orion_ld_get_entities_by_type("GtfsStop", header)
-    routes = orion_ld_get_entities_by_type("GtfsRoute", header)
-    trips = orion_ld_get_entities_by_type("GtfsTrip", header)
-    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
-    calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
-    fare_attributes = orion_ld_get_entities_by_type("GtfsFareAttributes", header)
-    shapes = orion_ld_get_entities_by_type("GtfsShape", header)
-    transfers = orion_ld_get_entities_by_type("GtfsTransferRule", header)
-    pathways = orion_ld_get_entities_by_type("GtfsPathway", header)
-    levels = orion_ld_get_entities_by_type("GtfsLevel", header)
+    #stops = orion_ld_get_entities_by_type("GtfsStop", header)
+    #routes = orion_ld_get_entities_by_type("GtfsRoute", header)
+    #trips = orion_ld_get_entities_by_type("GtfsTrip", header)
+    #stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
+    #calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
+    #fare_attributes = orion_ld_get_entities_by_type("GtfsFareAttributes", header)
+    #shapes = orion_ld_get_entities_by_type("GtfsShape", header)
+    #transfers = orion_ld_get_entities_by_type("GtfsTransferRule", header)
+    #pathways = orion_ld_get_entities_by_type("GtfsPathway", header)
+    #levels = orion_ld_get_entities_by_type("GtfsLevel", header)
 
     data = {
         "agency.txt": agencies,
-        "stops.txt": stops,
-        "routes.txt": routes,
-        "trips.txt": trips,
-        "stop_times.txt": stop_times,
-        "calendar_dates.txt": calendar_dates,
-        "fare_attributes.txt": fare_attributes,
-        "shapes.txt": shapes,
-        "transfers.txt": transfers,
-        "pathways.txt": pathways,
-        "levels.txt": levels,
+        #"stops.txt": stops,
+        #"routes.txt": routes,
+        #"trips.txt": trips,
+        #"stop_times.txt": stop_times,
+        #"calendar_dates.txt": calendar_dates,
+        #"fare_attributes.txt": fare_attributes,
+        #"shapes.txt": shapes,
+        #"transfers.txt": transfers,
+        #"pathways.txt": pathways,
+        #"levels.txt": levels,
     }
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:

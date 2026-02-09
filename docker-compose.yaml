@@ -63,11 +63,5 @@ services:
       --serve
     restart: unless-stopped
 
-  backend:
-    build: .
-    container_name: gtfs-backend
-    ports:
-      - "8000:8000"
-
 volumes:
   mongo-db:
