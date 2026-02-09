@@ -529,25 +529,26 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
         if isinstance(exc_type, dict):
             row["exception_type"] = exc_type.get("value")
     
-    for attr, value in entity.items():
-        if attr in ("id", "type", "@context"):
-            continue
-        
-        if isinstance(value, dict) and "type" in value:
-            attr_type = value.get("type")
+    else:
+        for attr, value in entity.items():
+            if attr in ("id", "type", "@context"):
+                continue
+            
+            if isinstance(value, dict) and "type" in value:
+                attr_type = value.get("type")
 
-            if attr_type == "Property":
-                row[attr] = value.get("value")
+                if attr_type == "Property":
+                    row[attr] = value.get("value")
 
-            if attr_type == "Relationship":
-                obj = value.get("object")
+                if attr_type == "Relationship":
+                    obj = value.get("object")
 
-                if isinstance(obj, str) and obj.startswith("urn:ngsi-ld:"):
-                    obj = obj.rsplit(":", 1)[-1]
+                    if isinstance(obj, str) and obj.startswith("urn:ngsi-ld:"):
+                        obj = obj.rsplit(":", 1)[-1]
 
-                row[attr] = obj
-        else:
-            row[attr] = value
+                    row[attr] = obj
+            else:
+                row[attr] = value
 
     return row
 
@@ -587,7 +588,7 @@ def build_gtfs_zip() -> str:
     #routes = orion_ld_get_entities_by_type("GtfsRoute", header)
     #trips = orion_ld_get_entities_by_type("GtfsTrip", header)
     #stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
-    #calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
+    calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
     #fare_attributes = orion_ld_get_entities_by_type("GtfsFareAttributes", header)
     #shapes = orion_ld_get_entities_by_type("GtfsShape", header)
     #transfers = orion_ld_get_entities_by_type("GtfsTransferRule", header)
@@ -600,7 +601,7 @@ def build_gtfs_zip() -> str:
         #"routes.txt": routes,
         #"trips.txt": trips,
         #"stop_times.txt": stop_times,
-        #"calendar_dates.txt": calendar_dates,
+        "calendar_dates.txt": calendar_dates,
         #"fare_attributes.txt": fare_attributes,
         #"shapes.txt": shapes,
         #"transfers.txt": transfers,
@@ -613,7 +614,8 @@ def build_gtfs_zip() -> str:
         for filename, entities in data.items():
             csv_bytes = entities_to_csv_bytes(entities)
             z.writestr(filename, csv_bytes)
-
+            z.writestr(filename, str(len(calendar_dates)))
+            
     return zip_path
 
 @app.post("/api/gtfs_static/rebuild")
