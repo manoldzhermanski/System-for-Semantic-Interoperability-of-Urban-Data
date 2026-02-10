@@ -508,9 +508,13 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
     
     entity_type = entity.get("type")
     entity_id = entity.get("id")
-    if isinstance(entity_type, str) and isinstance(entity_id, str) and entity_type in ("GtfsAgency"):
+    if isinstance(entity_type, str) and isinstance(entity_id, str) and entity_type in ("GtfsAgency", "GtfsFareAttributes", "GtfsLevel"):
         if entity_type == "GtfsAgency":
             row["agency_id"] = entity_id.rsplit(":", 1)[-1]
+        elif entity_type == "GtfsFareAttributes":
+            row["fare_id"] = entity_id.rsplit(":", 1)[-1]
+        elif entity_type == "GtfsLevel":
+            row["level_id"] = entity_id.rsplit(":", 1)[-1]
             
     if entity_type == "GtfsCalendarDateRule":
 
@@ -528,7 +532,21 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
         exc_type = entity.get("exceptionType")
         if isinstance(exc_type, dict):
             row["exception_type"] = exc_type.get("value")
+
+    elif entity_type == "GtfsFareAttributes":
+
+        agency = entity.get("agency")
+        if isinstance(agency, dict):
+            agency_id = agency.get("object")
+            if isinstance(agency_id, str) and agency_id.startswith("urn:ngsi-ld:"):
+                agency_id = agency_id.rsplit(":", 1)[-1]
+            row["agency_id"] = agency_id
     
+    elif entity_type == "GtfsLevel":
+        name = entity.get("name")
+        if isinstance(name, dict):
+            level_name = name.get("value")
+            row["level_name"] = level_name
     else:
         for attr, value in entity.items():
             if attr in ("id", "type", "@context"):

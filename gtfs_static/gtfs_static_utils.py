@@ -1424,7 +1424,7 @@ def validate_gtfs_trips_entity(entity: dict[str, Any]) -> None:
 # Convert GTFS-Static data to NGSI-LD
 # -----------------------------------------------------
 
-def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any], city: str = "Sofia") -> dict[str, Any]:
+def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
     """
     Maps a parsed GTFS agency entity to an NGSI-LD GtfsAgency entity.
 
@@ -1484,7 +1484,7 @@ def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any], city: str = "Sofia") 
         }
     }
 
-def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str = "Sofia") -> dict[str, Any]:
+def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
     """
     Maps a parsed GTFS calendar date entity to an NGSI-LD GtfsCalendarDateRule entity.
 
@@ -1517,7 +1517,7 @@ def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str = "
             }
         }
 
-def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
     """
     Maps a parsed GTFS fare attributes entity to an NGSI-LD GtfsFareAttributes entity.
 
@@ -1531,7 +1531,7 @@ def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str,
         dict: An NGSI-LD entity of type GtfsFareAttributes.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsFareAttributes:{entity.get("fare_id")}",
+            "id": f"urn:ngsi-ld:GtfsFareAttributes:{city}:{entity.get("fare_id")}",
             "type": "GtfsFareAttributes",
             
             "price": {
@@ -1565,7 +1565,7 @@ def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str,
             }
         }
 
-def convert_gtfs_levels_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
+def convert_gtfs_levels_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
     """
     Maps a parsed GTFS level entity to an NGSI-LD GtfsLevel entity.
 
@@ -1579,7 +1579,7 @@ def convert_gtfs_levels_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
         dict: An NGSI-LD entity of type GtfsLevel.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsLevel:{entity.get("level_id")}",
+            "id": f"urn:ngsi-ld:GtfsLevel:{city}:{entity.get("level_id")}",
             "type": "GtfsLevel",
             "name": {
                 "type": "Property",
@@ -2206,7 +2206,7 @@ def remove_none_values(entity: dict[str, Any]) -> dict[str, Any]:
 # Main conversion functions
 # ----------------------------------------------------- 
 
-def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str = "Sofia") -> list[dict[str, Any]]:
+def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
     """
     Converts GTFS static agency data into NGSI-LD entities.
 
@@ -2254,7 +2254,7 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str = "S
     # Return the list of NGSI-LD GtfsAgency entities
     return ngsi_ld_data
 
-def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str = "Sofia") -> list[dict[str, Any]]:
+def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
     """
     Converts GTFS static calendar date rules into NGSI-LD entities.
 
@@ -2301,7 +2301,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]], city: 
     # Return the list of NGSI-LD GtfsCalendarDateRule entities
     return ngsi_ld_data
     
-def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
     """
     Converts GTFS static fare attributes into NGSI-LD entities.
 
@@ -2337,7 +2337,7 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
         validate_gtfs_fare_attributes_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_fare_attributes_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_fare_attributes_to_ngsi_ld(parsed_entity, city)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2348,7 +2348,7 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> li
     # Return the list of NGSI-LD GtfsFareAttributes entities
     return ngsi_ld_data
 
-def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
     """
     Converts GTFS static levels into NGSI-LD entities.
 
@@ -2384,7 +2384,7 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[s
         validate_gtfs_levels_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_levels_to_ngsi_ld(parsed_entity)
+        ngsi_ld_entity = convert_gtfs_levels_to_ngsi_ld(parsed_entity, city)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2734,7 +2734,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[st
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------  
   
-def gtfs_static_get_ngsi_ld_data(file_type: str, base_dir: str = "gtfs_static", city: str = "Sofia") -> list[dict[str, Any]]:
+def gtfs_static_get_ngsi_ld_data(file_type: str, city: str, base_dir: str = "gtfs_static") -> list[dict[str, Any]]:
     """
     Reads GTFS static data from the local filesystem and converts it
     into NGSI-LD entities based on the specified GTFS file type.

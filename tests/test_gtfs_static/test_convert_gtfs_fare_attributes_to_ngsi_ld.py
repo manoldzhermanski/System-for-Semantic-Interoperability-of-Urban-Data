@@ -14,10 +14,12 @@ def test_convert_gtfs_fare_attributes_to_ngsi_ld():
         "transfer_duration": 3600,
     }
 
-    result = convert_gtfs_fare_attributes_to_ngsi_ld(entity)
+    city = "Berlin"
+
+    result = convert_gtfs_fare_attributes_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsFareAttributes:F1",
+        "id": "urn:ngsi-ld:GtfsFareAttributes:Berlin:F1",
         "type": "GtfsFareAttributes",
         "price": {
             "type": "Property",
@@ -58,10 +60,12 @@ def test_convert_gtfs_fare_attributes_to_ngsi_ld_missing_optional_fields():
         "agency_id": "urn:ngsi-ld:GtfsAgency:A1",
     }
 
-    result = convert_gtfs_fare_attributes_to_ngsi_ld(entity)
+    city = "Berlin"
+
+    result = convert_gtfs_fare_attributes_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsFareAttributes:F1",
+        "id": "urn:ngsi-ld:GtfsFareAttributes:Berlin:F1",
         "type": "GtfsFareAttributes",
         "price": {
             "type": "Property",

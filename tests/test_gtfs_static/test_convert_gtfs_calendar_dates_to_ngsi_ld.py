@@ -9,11 +9,13 @@ def test_convert_gtfs_calendar_dates_to_ngsi_ld():
         "date": "20240101",
         "exception_type": 1,
     }
+    
+    city = "Berlin"
 
-    result = convert_gtfs_calendar_dates_to_ngsi_ld(entity)
+    result = convert_gtfs_calendar_dates_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsCalendarDateRule:Sofia:S1:20240101",
+        "id": "urn:ngsi-ld:GtfsCalendarDateRule:Berlin:S1:20240101",
         "type": "GtfsCalendarDateRule",
         "hasService": {
             "type": "Relationship",

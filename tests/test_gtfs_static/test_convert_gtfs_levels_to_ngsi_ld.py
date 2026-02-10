@@ -10,10 +10,12 @@ def test_convert_gtfs_levels_to_ngsi_ld():
         "level_index": 1.0,
     }
 
-    result = convert_gtfs_levels_to_ngsi_ld(entity)
+    city = "Berlin"
+
+    result = convert_gtfs_levels_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsLevel:L1",
+        "id": "urn:ngsi-ld:GtfsLevel:Berlin:L1",
         "type": "GtfsLevel",
         "name": {
             "type": "Property",
@@ -35,10 +37,12 @@ def test_convert_gtfs_levels_to_ngsi_ld_missing_optional_fields():
         "level_index": 1.0,
     }
 
-    result = convert_gtfs_levels_to_ngsi_ld(entity)
+    city = "Berlin"
+
+    result = convert_gtfs_levels_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsLevel:L1",
+        "id": "urn:ngsi-ld:GtfsLevel:Berlin:L1",
         "type": "GtfsLevel",
         "name": {
             "type": "Property",
