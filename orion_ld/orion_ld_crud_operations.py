@@ -246,7 +246,7 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str]) -> l
     limit = 1000
     
     # Prevent infinite loops by setting a maximum number of iterations
-    max_iterations = 10000000
+    max_iterations = 1000000000
     iteration = 0
 
     # While there are entities of the desired type, get 1000 at a time
@@ -255,12 +255,12 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str]) -> l
         params = {
             "type": entity_type,
             "limit": limit,
-            "offset": offset
+            "offset": offset,
             }
         
-        iteration += 1
-        if iteration > max_iterations:
-            raise RuntimeError("Too many iterations in get_entities_by_type")
+        #iteration += 1
+        #if iteration > max_iterations:
+        #    raise RuntimeError("Too many iterations in get_entities_by_type")
         
         try:
             # Send a GET request to extract entities of type 'entity_type'
