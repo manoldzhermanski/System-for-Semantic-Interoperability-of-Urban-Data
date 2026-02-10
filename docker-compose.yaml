@@ -16,14 +16,14 @@ services:
 
   # MongoDB database
   mongo-db:
-    image: mongo:3.6
+    image: mongo:5
     hostname: mongo-db
     container_name: db-mongo
     expose:
       - "27017"
     ports:
       - "27017:27017"
-    command: --nojournal
+    command: --nojournal --wiredTigerCacheSizeGB 2
     volumes:
       - mongo-db:/data
 

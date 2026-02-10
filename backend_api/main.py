@@ -614,8 +614,7 @@ def build_gtfs_zip() -> str:
         for filename, entities in data.items():
             csv_bytes = entities_to_csv_bytes(entities)
             z.writestr(filename, csv_bytes)
-            z.writestr(filename, str(len(calendar_dates)))
-            
+                        
     return zip_path
 
 @app.post("/api/gtfs_static/rebuild")
