@@ -561,13 +561,18 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
             row["level_name"] = name.get("value")
 
     # -------------------------------------------------
-    # GENERIC LOOP (без overwrite!)
+    # GENERIC LOOP (без overwrite и без agency дублиране)
     # -------------------------------------------------
     for attr, value in entity.items():
         if attr in ("id", "type", "@context"):
             continue
 
+        # skip rows which were encountered before
         if attr in row:
+            continue
+
+        # Add use case for when to ignore 'agency' attribute in GtfsFareAttributes
+        if entity_type == "GtfsFareAttributes" and attr == "agency":
             continue
 
         if isinstance(value, dict) and "type" in value:
@@ -584,7 +589,6 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
             row[attr] = value
 
     return row
-
 
 def entities_to_csv_bytes(entities: list[dict[str, Any]]) -> bytes:
     if not entities:

@@ -10,6 +10,9 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
     - Check for proper function call order (parse, validate, convert, remove_none)
     - Checks if valid NGSI-LD entities are produced
     """
+
+    city = "Sofia"
+
     # Sample input for GTFS Calendar Date
     sample_raw_data = [
         {
@@ -41,14 +44,14 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
     # Mock result from convert_gtfs_calendar_dates_to_ngsi_ld
     converted_data = [
         {
-            "id": "urn:ngsi-ld:GtfsCalendarDateRule:Sofia:S1:20240101",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:S1:20240101",
             "type": "GtfsCalendarDateRule",
             "hasService": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsService:S1",},
             "appliesOn": {"type": "Property", "value": "20240101",},
             "exceptionType": {"type": "Property", "value": 1,},
             },
         {
-            "id": "urn:ngsi-ld:GtfsCalendarDateRule:Sofia:S2:20240102",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:S2:20240102",
             "type": "GtfsCalendarDateRule",
             "hasService": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsService:S2",},
             "appliesOn": {"type": "Property", "value": "20240102",},
@@ -59,14 +62,14 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
     # Mock result from remove_none_values
     cleaned_data = [
         {
-            "id": "urn:ngsi-ld:GtfsCalendarDateRule:Sofia:S1:20240101",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:S1:20240101",
             "type": "GtfsCalendarDateRule",
             "hasService": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsService:S1",},
             "appliesOn": {"type": "Property", "value": "20240101",},
             "exceptionType": {"type": "Property", "value": 1,},
             },
         {
-            "id": "urn:ngsi-ld:GtfsCalendarDateRule:Sofia:S2:20240102",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:S2:20240102",
             "type": "GtfsCalendarDateRule",
             "hasService": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsService:S2",},
             "appliesOn": {"type": "Property", "value": "20240102",},
@@ -86,7 +89,7 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
         patch("gtfs_static.gtfs_static_utils.remove_none_values", mock_remove_none):
              
             # Function call result from gtfs_static_calendar_dates_to_ngsi_ld
-            result = gtfs_static_calendar_dates_to_ngsi_ld(sample_raw_data)
+            result = gtfs_static_calendar_dates_to_ngsi_ld(sample_raw_data, city)
 
     # Check that result is as expected
     assert result == cleaned_data

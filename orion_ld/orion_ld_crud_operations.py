@@ -11,6 +11,8 @@ from urllib.parse import unquote
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
+from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
+
 from typing import  Any
 import config
 
@@ -628,7 +630,9 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict[str, s
 
 if __name__ == "__main__":
     header = orion_ld_define_header("gtfs_static")
-    #orion_ld_batch_delete_entities_by_type("GtfsCalendarDateRule", header)
+    #orion_ld_batch_delete_entities_by_type("GtfsFareAttributes", header)
     #print(orion_ld_get_count_of_entities_by_type("GtfsCalendarDateRule", header))
-    print(json.dumps(orion_ld_get_entities_by_type("GtfsFareAttributes", header), indent=2, ensure_ascii=False))
+    #print(json.dumps(orion_ld_get_entities_by_type("GtfsFareAttributes", header), indent=2, ensure_ascii=False))
+    #orion_ld_batch_load_to_context_broker(gtfs_static_get_ngsi_ld_data("fare_attributes", "Sofia"), header)    
+    #print(json.dumps(gtfs_static_get_ngsi_ld_data("fare_attributes", "Sofia"), indent=2, ensure_ascii=False))
     pass

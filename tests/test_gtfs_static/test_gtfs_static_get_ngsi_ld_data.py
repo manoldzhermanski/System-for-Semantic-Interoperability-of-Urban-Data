@@ -48,8 +48,10 @@ def test_gtfs_static_get_ngsi_ld_data_invalid_file_type():
     """
     Check that if file_type is invalid, a FileNotFoundError is raised.
     """
+    city = "Sofia"
+
     with pytest.raises(FileNotFoundError) as err:
-        gtfs_static_get_ngsi_ld_data("invalid_type")
+        gtfs_static_get_ngsi_ld_data("invalid_type", city)
 
     assert "Unsupported GTFS static file type" in str(err.value)
 
@@ -58,8 +60,10 @@ def test_gtfs_static_get_ngsi_ld_data_file_not_found():
     Check that if a file is missing when attepmpting to read it,
     a FileNotFoundError is raised.
     """
+    city = "Sofia"
+
     mock_read = MagicMock()
     mock_read.side_effect = FileNotFoundError("Missing file")
     with patch("gtfs_static.gtfs_static_utils.gtfs_static_read_file", side_effect=mock_read):
         with pytest.raises(FileNotFoundError):
-            gtfs_static_get_ngsi_ld_data("agency")
+            gtfs_static_get_ngsi_ld_data("agency", city)
