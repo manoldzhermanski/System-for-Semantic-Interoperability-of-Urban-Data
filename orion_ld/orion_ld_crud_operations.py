@@ -629,5 +629,6 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict[str, s
 if __name__ == "__main__":
     header = orion_ld_define_header("gtfs_static")
     #orion_ld_batch_delete_entities_by_type("GtfsCalendarDateRule", header)
-    print(orion_ld_get_count_of_entities_by_type("GtfsCalendarDateRule", header))
+    #print(orion_ld_get_count_of_entities_by_type("GtfsCalendarDateRule", header))
+    print(json.dumps(orion_ld_get_entities_by_type("GtfsFareAttributes", header), indent=2, ensure_ascii=False))
     pass

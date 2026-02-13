@@ -7,9 +7,9 @@ from json_ld import json_ld_utils as jlu
 
 GTFS_STATIC_TYPES = (
     "agency",
-    "calendar_dates",
-    #"fare_attributes",
-    #"levels",
+    #"calendar_dates",
+    "fare_attributes",
+    "levels",
     #"pathways",
     #"routes",
     #"shapes",
@@ -40,7 +40,8 @@ def load_gtfs_static():
 
     for entity_type in GTFS_STATIC_TYPES:
         print(f"  • {entity_type}")
-        data = gsu.gtfs_static_get_ngsi_ld_data(entity_type)
+        city = "Sofia"
+        data = gsu.gtfs_static_get_ngsi_ld_data(entity_type, city)
         olcd.orion_ld_batch_load_to_context_broker(data, header)
 
 

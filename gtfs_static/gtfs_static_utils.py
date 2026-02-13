@@ -813,7 +813,7 @@ def validate_gtfs_calendar_dates_entity(entity: dict[str, Any]) -> None:
     if not validation_utils.is_valid_exception_type(exception_type):
         raise ValueError(f"exception_type must be 1 or 2, got {exception_type}")
 
-def validate_gtfs_fare_attributes_entity(entity: dict[str, Any]) -> None:
+def validate_gtfs_fare_attributes_entity(entity: dict[str, Any], city: str) -> None:
     """
     Validates a parsed GTFS fare attributes entity.
 
@@ -858,7 +858,7 @@ def validate_gtfs_fare_attributes_entity(entity: dict[str, Any]) -> None:
     # If present, write 'agency_id' as NGSI URN
     agency_id = entity.get("agency_id")
     if agency_id:
-        entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{entity["agency_id"]}"
+        entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{city}:{entity["agency_id"]}"
 
     # Validate 'transfer_duration'
     transfer_duration = entity.get("transfer_duration")
@@ -2334,7 +2334,7 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]], city:
         parsed_entity = parse_gtfs_fare_attributes_data(fare)
         
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_fare_attributes_entity(parsed_entity)
+        validate_gtfs_fare_attributes_entity(parsed_entity, city)
         
         # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_fare_attributes_to_ngsi_ld(parsed_entity, city)
@@ -2815,3 +2815,6 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, city: str, base_dir: str = "gtf
     
     # Convert raw GTFS data to NGSI-LD entities
     return transformer(raw_data, city)
+
+if __name__ == "__main__":
+    print(json.dumps(gtfs_static_get_ngsi_ld_data("fare_attributes", "Sofia"), indent=2, ensure_ascii=False))

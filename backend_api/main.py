@@ -502,73 +502,89 @@ def get_json_ld_pois():
 # NGSI-LD → GTFS Static conversion
 # -----------------------------------------------------
 
-def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str, Any]:
+def _strip_urn(value: str | None):
+    if isinstance(value, str) and value.startswith("urn:ngsi-ld:"):
+        return value.rsplit(":", 1)[-1]
+    return value
 
-    row = {}
-    
+
+def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str, Any]:
+    row: dict[str, Any] = {}
+
     entity_type = entity.get("type")
     entity_id = entity.get("id")
-    if isinstance(entity_type, str) and isinstance(entity_id, str) and entity_type in ("GtfsAgency", "GtfsFareAttributes", "GtfsLevel"):
+
+    # -------------------------------------------------
+    # ID mapping
+    # -------------------------------------------------
+    if isinstance(entity_type, str) and isinstance(entity_id, str):
         if entity_type == "GtfsAgency":
-            row["agency_id"] = entity_id.rsplit(":", 1)[-1]
+            row["agency_id"] = _strip_urn(entity_id)
         elif entity_type == "GtfsFareAttributes":
-            row["fare_id"] = entity_id.rsplit(":", 1)[-1]
+            row["fare_id"] = _strip_urn(entity_id)
         elif entity_type == "GtfsLevel":
-            row["level_id"] = entity_id.rsplit(":", 1)[-1]
-            
+            row["level_id"] = _strip_urn(entity_id)
+
+    # -------------------------------------------------
+    # CalendarDateRule mapping
+    # -------------------------------------------------
     if entity_type == "GtfsCalendarDateRule":
 
-        has_service = entity.get("hasService")
-        if isinstance(has_service, dict):
-            obj = has_service.get("object")
-            if isinstance(obj, str) and obj.startswith("urn:ngsi-ld:"):
-                obj = obj.rsplit(":", 1)[-1]
-            row["service_id"] = obj
+        rel = entity.get("hasService")
+        if isinstance(rel, dict):
+            row["service_id"] = _strip_urn(rel.get("object"))
 
-        applies_on = entity.get("appliesOn")
-        if isinstance(applies_on, dict):
-            row["date"] = applies_on.get("value")
+        applies = entity.get("appliesOn")
+        if isinstance(applies, dict):
+            row["date"] = applies.get("value")
 
-        exc_type = entity.get("exceptionType")
-        if isinstance(exc_type, dict):
-            row["exception_type"] = exc_type.get("value")
+        exc = entity.get("exceptionType")
+        if isinstance(exc, dict):
+            row["exception_type"] = exc.get("value")
 
+    # -------------------------------------------------
+    # FareAttributes mapping
+    # -------------------------------------------------
     elif entity_type == "GtfsFareAttributes":
 
         agency = entity.get("agency")
         if isinstance(agency, dict):
-            agency_id = agency.get("object")
-            if isinstance(agency_id, str) and agency_id.startswith("urn:ngsi-ld:"):
-                agency_id = agency_id.rsplit(":", 1)[-1]
-            row["agency_id"] = agency_id
-    
+            row["agency_id"] = _strip_urn(agency.get("object"))
+
+    # -------------------------------------------------
+    # Level mapping
+    # -------------------------------------------------
     elif entity_type == "GtfsLevel":
+
         name = entity.get("name")
         if isinstance(name, dict):
-            level_name = name.get("value")
-            row["level_name"] = level_name
-    else:
-        for attr, value in entity.items():
-            if attr in ("id", "type", "@context"):
-                continue
-            
-            if isinstance(value, dict) and "type" in value:
-                attr_type = value.get("type")
+            row["level_name"] = name.get("value")
 
-                if attr_type == "Property":
-                    row[attr] = value.get("value")
+    # -------------------------------------------------
+    # GENERIC LOOP (без overwrite!)
+    # -------------------------------------------------
+    for attr, value in entity.items():
+        if attr in ("id", "type", "@context"):
+            continue
 
-                if attr_type == "Relationship":
-                    obj = value.get("object")
+        if attr in row:
+            continue
 
-                    if isinstance(obj, str) and obj.startswith("urn:ngsi-ld:"):
-                        obj = obj.rsplit(":", 1)[-1]
+        if isinstance(value, dict) and "type" in value:
+            attr_type = value.get("type")
 
-                    row[attr] = obj
-            else:
-                row[attr] = value
+            if attr_type == "Property":
+                row[attr] = value.get("value")
+
+            elif attr_type == "Relationship":
+                obj = _strip_urn(value.get("object"))
+                row[attr] = obj
+
+        else:
+            row[attr] = value
 
     return row
+
 
 def entities_to_csv_bytes(entities: list[dict[str, Any]]) -> bytes:
     if not entities:
@@ -606,12 +622,12 @@ def build_gtfs_zip() -> str:
     #routes = orion_ld_get_entities_by_type("GtfsRoute", header)
     #trips = orion_ld_get_entities_by_type("GtfsTrip", header)
     #stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
-    calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
-    #fare_attributes = orion_ld_get_entities_by_type("GtfsFareAttributes", header)
+    #calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
+    fare_attributes = orion_ld_get_entities_by_type("GtfsFareAttributes", header)
     #shapes = orion_ld_get_entities_by_type("GtfsShape", header)
     #transfers = orion_ld_get_entities_by_type("GtfsTransferRule", header)
     #pathways = orion_ld_get_entities_by_type("GtfsPathway", header)
-    #levels = orion_ld_get_entities_by_type("GtfsLevel", header)
+    levels = orion_ld_get_entities_by_type("GtfsLevel", header)
 
     data = {
         "agency.txt": agencies,
@@ -619,12 +635,12 @@ def build_gtfs_zip() -> str:
         #"routes.txt": routes,
         #"trips.txt": trips,
         #"stop_times.txt": stop_times,
-        "calendar_dates.txt": calendar_dates,
-        #"fare_attributes.txt": fare_attributes,
+        #"calendar_dates.txt": calendar_dates,
+        "fare_attributes.txt": fare_attributes,
         #"shapes.txt": shapes,
         #"transfers.txt": transfers,
         #"pathways.txt": pathways,
-        #"levels.txt": levels,
+        "levels.txt": levels,
     }
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
