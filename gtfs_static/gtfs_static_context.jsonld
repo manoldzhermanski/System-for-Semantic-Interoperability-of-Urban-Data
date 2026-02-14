@@ -3,7 +3,6 @@
         "type": "@type",
         "id": "@id",
         "vocab": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/",
-        "GtfsAgency": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsAgency",
         "GtfsCalendarDateRule": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsCalendarDateRule",
         "GtfsFareAttributes": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/GtfsFareAttributes",
         "GtfsLevel": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/GtfsLevel",
