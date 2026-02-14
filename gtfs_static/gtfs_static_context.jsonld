@@ -3,6 +3,7 @@
         "type": "@type",
         "id": "@id",
         "vocab": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/",
+        "GtfsAgency": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsAgency",
         "GtfsCalendarDateRule": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsCalendarDateRule",
         "GtfsFareAttributes": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/GtfsFareAttributes",
         "GtfsLevel": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/GtfsLevel",
@@ -14,10 +15,7 @@
         "GtfsStopTime": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsStopTime",
         "GtfsTransferRule": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsTransferRule",
         "GtfsTrip": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsTrip",
-        "agency": {
-            "@id": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/agency",
-            "@type": "@id"
-        },
+        "agency": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/agency",
         "agency_id": "https://smartdatamodels.org/dataModel.UrbanMobility/agency_id",
         "agency_email": "https://smartdatamodels.org/dataModel.UrbanMobility/agency_email",
         "agency_fare_url": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/agency_fare_url",
