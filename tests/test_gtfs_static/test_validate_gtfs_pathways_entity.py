@@ -18,8 +18,10 @@ def test_validate_gtfs_pathways_entity_all_valid_fields():
         "max_slope": 0.1,
         "min_width": 1.2
     }
+    
+    city = "Sofia"
 
-    validate_gtfs_pathways_entity(entity)
+    validate_gtfs_pathways_entity(entity, city)
 
 def test_validate_gtfs_pathways_entity_missing_required_field():
     """
@@ -36,9 +38,11 @@ def test_validate_gtfs_pathways_entity_missing_required_field():
         "max_slope": 0.1,
         "min_width": 1.2
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
+        validate_gtfs_pathways_entity(entity, city)
 
     assert "Missing required GTFS field:" in str(err.value)
 
@@ -58,8 +62,10 @@ def test_validate_gtfs_pathways_entity_optional_fields_none():
         "max_slope": None,
         "min_width": None
     }
+    
+    city = "Sofia"
 
-    validate_gtfs_pathways_entity(entity)
+    validate_gtfs_pathways_entity(entity, city)
 
 def test_validate_gtfs_pathways_entity_invalid_pathway_mode():
     """
@@ -77,9 +83,11 @@ def test_validate_gtfs_pathways_entity_invalid_pathway_mode():
         "max_slope": 0.1,
         "min_width": 1.2
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
+        validate_gtfs_pathways_entity(entity, city)
 
     assert "'pathway_mode' has to be" in str(err.value)
 
@@ -99,9 +107,11 @@ def test_validate_gtfs_pathways_entity_invalid_is_bidirectional():
         "max_slope": 0.1,
         "min_width": 1.2
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
+        validate_gtfs_pathways_entity(entity, city)
 
     assert "'is_bidirectional' has to be 0 or 1" in str(err.value)
 
@@ -121,9 +131,11 @@ def test_validate_gtfs_pathways_entity_pathway_mode_7_does_not_allow_is_bidirect
         "max_slope": 0.1,
         "min_width": 1.2
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
+        validate_gtfs_pathways_entity(entity, city)
 
     assert "cannot be 1 when 'pathway_mode' is 7" in str(err.value)
 
@@ -143,9 +155,11 @@ def test_validate_gtfs_pathways_entity_negative_length():
         "max_slope": 0.1,
         "min_width": 1.2
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
+        validate_gtfs_pathways_entity(entity, city)
 
     assert "'length' must be a non-negative float" in str(err.value)
 
@@ -165,9 +179,11 @@ def test_validate_gtfs_pathways_entity_zero_traversal_time():
         "max_slope": 0.1,
         "min_width": 1.2
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
+        validate_gtfs_pathways_entity(entity, city)
 
     assert "'traversal_time' must be a positive integer" in str(err.value)
 
@@ -187,9 +203,11 @@ def test_validate_gtfs_pathways_entity_zero_stair_count():
         "max_slope": 0.1,
         "min_width": 1.2
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
+        validate_gtfs_pathways_entity(entity, city)
 
     assert "'stair_count' must be a non-zero integer" in str(err.value)
 
@@ -209,9 +227,11 @@ def test_validate_gtfs_pathways_entity_max_slope_invalid_pathway_mode():
         "max_slope": 0.1,
         "min_width": 1.2
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
+        validate_gtfs_pathways_entity(entity, city)
 
     assert "'max_slope' can only be defined" in str(err.value)
 
@@ -231,9 +251,11 @@ def test_validate_gtfs_pathways_entity_zero_min_width():
         "max_slope": 0.1,
         "min_width": 0.0
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity)
+        validate_gtfs_pathways_entity(entity, city)
 
     assert "'min_width' must be a positive float" in str(err.value)
 

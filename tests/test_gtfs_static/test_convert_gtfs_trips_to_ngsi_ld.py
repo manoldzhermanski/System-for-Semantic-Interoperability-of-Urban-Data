@@ -4,34 +4,35 @@ def test_convert_gtfs_trips_to_ngsi_ld():
     """
     Check for proper conversion from GTFS to NGSI-LD for trips.txt
     """
+    city = "Sofia"
     entity = {
         "trip_id": "T1",
-        "route_id": "urn:ngsi-ld:GtfsRoute:R1",
-        "service_id": "urn:ngsi-ld:GtfsService:S1",
+        "route_id": f"urn:ngsi-ld:GtfsRoute:{city}:R1",
+        "service_id": f"urn:ngsi-ld:GtfsService:{city}:S1",
         "trip_headsign": "Downtown",
         "trip_short_name": "D1",
         "direction_id": 1,
-        "block_id": "urn:ngsi-ld:GtfsBlock:B1",
-        "shape_id": "urn:ngsi-ld:GtfsShape:SH1",
+        "block_id": f"urn:ngsi-ld:GtfsBlock:{city}:B1",
+        "shape_id": f"urn:ngsi-ld:GtfsShape:{city}:SH1",
         "wheelchair_accessible": 1,
         "bikes_allowed": 2,
         "cars_allowed": 0,
     }
 
-    result = convert_gtfs_trips_to_ngsi_ld(entity)
+    result = convert_gtfs_trips_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsTrip:T1",
+        "id": f"urn:ngsi-ld:GtfsTrip:{city}:T1",
         "type": "GtfsTrip",
 
         "route": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsRoute:R1",
+            "object": f"urn:ngsi-ld:GtfsRoute:{city}:R1",
         },
 
         "service": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsService:S1",
+            "object": f"urn:ngsi-ld:GtfsService:{city}:S1",
         },
 
         "headSign": {
@@ -51,12 +52,12 @@ def test_convert_gtfs_trips_to_ngsi_ld():
 
         "block": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsBlock:B1",
+            "object": f"urn:ngsi-ld:GtfsBlock:{city}:B1",
         },
 
         "hasShape": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsShape:SH1",
+            "object": f"urn:ngsi-ld:GtfsShape:{city}:SH1",
         },
 
         "wheelChairAccessible": {
@@ -79,27 +80,32 @@ def test_convert_gtfs_trips_to_ngsi_ld_missing_optional_fields():
     """
     Check for proper conversion from GTFS to NGSI-LD for trips.txt when optional fileds are missing
     """
+    
+    city = "Sofia"
+    
     entity = {
         "trip_id": "T1",
-        "route_id": "urn:ngsi-ld:GtfsRoute:R1",
-        "service_id": "urn:ngsi-ld:GtfsService:S1",
-        "shape_id": "urn:ngsi-ld:GtfsShape:SH1",
+        "route_id": f"urn:ngsi-ld:GtfsRoute:{city}:R1",
+        "service_id": f"urn:ngsi-ld:GtfsService:{city}:S1",
+        "shape_id": f"urn:ngsi-ld:GtfsShape:{city}:SH1",
     }
+    
+    city = "Sofia"
 
-    result = convert_gtfs_trips_to_ngsi_ld(entity)
+    result = convert_gtfs_trips_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsTrip:T1",
+        "id": f"urn:ngsi-ld:GtfsTrip:{city}:T1",
         "type": "GtfsTrip",
 
         "route": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsRoute:R1",
+            "object": f"urn:ngsi-ld:GtfsRoute:{city}:R1",
         },
 
         "service": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsService:S1",
+            "object": f"urn:ngsi-ld:GtfsService:{city}:S1",
         },
 
         "headSign": {
@@ -124,7 +130,7 @@ def test_convert_gtfs_trips_to_ngsi_ld_missing_optional_fields():
 
         "hasShape": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsShape:SH1",
+            "object": f"urn:ngsi-ld:GtfsShape:{city}:SH1",
         },
 
         "wheelChairAccessible": {

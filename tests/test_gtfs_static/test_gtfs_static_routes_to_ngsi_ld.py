@@ -36,16 +36,18 @@ def test_gtfs_routes_to_ngsi_ld():
             },
         ]
     
+    city = "Sofia"
+    
     # Mock result from convert_gtfs_routes_to_ngsi_ld
     converted_data = [
         {
-            "id": "urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:R1",
+            "id": f"urn:ngsi-ld:GtfsRoute:{city}:R1",
             "type": "GtfsRoute",
             "shortName": {"type": "Property", "value": "Bus Route 5",},
             "routeType": {"type": "Property", "value": 3}
             },
         {
-            "id": "urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:R2",
+            "id": f"urn:ngsi-ld:GtfsRoute:{city}:R2",
             "type": "GtfsRoute",
             "shortName": {"type": "Property", "value": "Bus Route 6",},
             "routeType": {"type": "Property", "value": 3}
@@ -55,13 +57,13 @@ def test_gtfs_routes_to_ngsi_ld():
     # Mock result from remove_none_values
     cleaned_data = [
         {
-            "id": "urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:R1",
+            "id": f"urn:ngsi-ld:GtfsRoute:{city}:R1",
             "type": "GtfsRoute",
             "shortName": {"type": "Property", "value": "Bus Route 5",},
             "routeType": {"type": "Property", "value": 3}
             },
         {
-            "id": "urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:R2",
+            "id": f"urn:ngsi-ld:GtfsRoute:{city}:R2",
             "type": "GtfsRoute",
             "shortName": {"type": "Property", "value": "Bus Route 6",},
             "routeType": {"type": "Property", "value": 3}
@@ -81,7 +83,7 @@ def test_gtfs_routes_to_ngsi_ld():
         patch("gtfs_static.gtfs_static_utils.remove_none_values", mock_remove_none):
             
             # Function call result from gtfs_static_routes_to_ngsi_ld
-            result = gtfs_static_routes_to_ngsi_ld(sample_raw_data)
+            result = gtfs_static_routes_to_ngsi_ld(sample_raw_data, city)
 
     # Check that result is as expected
     assert result == cleaned_data
@@ -93,8 +95,8 @@ def test_gtfs_routes_to_ngsi_ld():
 
     # Check that validate_gtfs_routes_entity is called for every entity
     assert mock_validate.call_count == 2
-    mock_validate.assert_any_call(parsed_data[0])
-    mock_validate.assert_any_call(parsed_data[1])
+    mock_validate.assert_any_call(parsed_data[0], city)
+    mock_validate.assert_any_call(parsed_data[1], city)
 
     # Check that convert_gtfs_routes_to_ngsi_ld is called for every entity
     assert mock_convert.call_count == 2

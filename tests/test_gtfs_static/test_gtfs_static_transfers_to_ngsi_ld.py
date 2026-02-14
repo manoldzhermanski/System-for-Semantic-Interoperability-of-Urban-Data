@@ -37,20 +37,22 @@ def test_gtfs_static_transfers_to_ngsi_ld():
          }
         ]
     
+    city = "Sofia"
+    
     # Mock result from convert_gtfs_transfers_to_ngsi_ld
     converted_data = [
         {
-            "id": "urn:ngsi-ld:GtfsTransferRule:fromStop:S1:toStop:S2",
+            "id": f"urn:ngsi-ld:GtfsTransferRule:{city}:fromStop:S1:toStop:S2",
             "type": "GtfsTransfer",
-            "from_stop_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:S1"},
-            "to_stop_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:S2"},
+            "from_stop_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:S1"},
+            "to_stop_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:S2"},
             "transfer_type": {"type": "Property", "value": 1}
             },
         {
-            "id": "urn:ngsi-ld:GtfsTransferRule:fromTrip:T1:toTrip:T2",
+            "id": f"urn:ngsi-ld:GtfsTransferRule:{city}:fromTrip:T1:toTrip:T2",
             "type": "GtfsTransfer",
-            "from_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:T1"},
-            "to_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsRoute:T1"},
+            "from_trip_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:T1"},
+            "to_trip_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsRoute:{city}:T1"},
             "transfer_type": {"type": "Property", "value": 4}
             }
         ]
@@ -58,17 +60,17 @@ def test_gtfs_static_transfers_to_ngsi_ld():
     # Mock result from remove_none_values
     cleaned_data = [
         {
-            "id": "urn:ngsi-ld:GtfsTransferRule:fromStop:S1:toStop:S2",
+            "id": f"urn:ngsi-ld:GtfsTransferRule:{city}:fromStop:S1:toStop:S2",
             "type": "GtfsTransfer",
-            "from_stop_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:S1"},
-            "to_stop_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:S2"},
+            "from_stop_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:S1"},
+            "to_stop_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:S2"},
             "transfer_type": {"type": "Property", "value": 1}
             },
         {
-            "id": "urn:ngsi-ld:GtfsTransferRule:fromTrip:T1:toTrip:T2",
+            "id": f"urn:ngsi-ld:GtfsTransferRule:{city}:fromTrip:T1:toTrip:T2",
             "type": "GtfsTransfer",
-            "from_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:T1"},
-            "to_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsRoute:T1"},
+            "from_trip_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:T1"},
+            "to_trip_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsRoute:{city}:T1"},
             "transfer_type": {"type": "Property", "value": 4}
             }
         ]
@@ -86,7 +88,7 @@ def test_gtfs_static_transfers_to_ngsi_ld():
         patch("gtfs_static.gtfs_static_utils.remove_none_values", mock_remove_none):
              
             # Function call result from gtfs_static_transfers_to_ngsi_ld
-            result = gtfs_static_transfers_to_ngsi_ld(sample_raw_data)
+            result = gtfs_static_transfers_to_ngsi_ld(sample_raw_data, city)
 
     # Check that result is as expected
     assert result == cleaned_data
@@ -98,8 +100,8 @@ def test_gtfs_static_transfers_to_ngsi_ld():
 
     # Check that validate_gtfs_transfers_entity is called for every entity
     assert mock_validate.call_count == 2
-    mock_validate.assert_any_call(parsed_data[0])
-    mock_validate.assert_any_call(parsed_data[1])
+    mock_validate.assert_any_call(parsed_data[0], city)
+    mock_validate.assert_any_call(parsed_data[1], city)
 
     # Check that convert_gtfs_transfers_to_ngsi_ld is called for every entity
     assert mock_convert.call_count == 2

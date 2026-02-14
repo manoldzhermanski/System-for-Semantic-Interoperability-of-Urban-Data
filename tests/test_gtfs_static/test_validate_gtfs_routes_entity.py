@@ -20,8 +20,10 @@ def test_validate_gtfs_routes_entity_all_fields_valid():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
-    validate_gtfs_routes_entity(entity)
+    validate_gtfs_routes_entity(entity, city)
 
 def test_validate_gtfs_routes_entity_missing_required_field():
     """
@@ -41,9 +43,11 @@ def test_validate_gtfs_routes_entity_missing_required_field():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "Missing required GTFS field:" in str(err.value)
 
@@ -66,8 +70,10 @@ def test_validate_gtfs_routes_entity_optional_fields_none():
         "network_id": None,
         "cemv_support": None
     }
+    
+    city = "Sofia"
 
-    validate_gtfs_routes_entity(entity)
+    validate_gtfs_routes_entity(entity, city)
 
 def test_validate_gtfs_routes_entity_missing_both_names():
     """
@@ -86,9 +92,11 @@ def test_validate_gtfs_routes_entity_missing_both_names():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "Either 'route_short_name' or 'route_long_name' has to be defined" in str(err.value)
 
@@ -111,9 +119,11 @@ def test_validate_gtfs_routes_entity_route_short_name_too_long():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "'route_short_name' has to be no longer than 12 characters" in str(err.value)
 
@@ -136,9 +146,11 @@ def test_validate_gtfs_routes_entity_invalid_route_type():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "'route_type' has to be" in str(err.value)
 
@@ -161,9 +173,11 @@ def test_validate_gtfs_routes_entity_invalid_route_url():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "Invalid URL for 'route_url'" in str(err.value)
 
@@ -186,9 +200,11 @@ def test_validate_gtfs_routes_entity_invalid_route_color():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "Invalid color code for" in str(err.value)
 
@@ -211,9 +227,11 @@ def test_validate_gtfs_routes_entity_invalid_route_text_color():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "Invalid color code for" in str(err.value)
 
@@ -236,9 +254,11 @@ def test_validate_gtfs_routes_entity_negative_sort_order():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "'route_sort_order' must be a non-negative integer" in str(err.value)
 
@@ -261,9 +281,11 @@ def test_validate_gtfs_routes_entity_invalid_continuous_pickup():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "'continuous_pickup' has to be" in str(err.value)
 
@@ -286,9 +308,11 @@ def test_validate_gtfs_routes_entity_invalid_continuous_drop_off():
         "network_id": "N1",
         "cemv_support": 1
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "'continuous_drop_off' has to be" in str(err.value)
 
@@ -311,8 +335,10 @@ def test_validate_gtfs_routes_entity_invalid_cemv_support():
         "network_id": "N1",
         "cemv_support": 3
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_routes_entity(entity)
+        validate_gtfs_routes_entity(entity, city)
 
     assert "'cemv_support' has to be" in str(err.value)

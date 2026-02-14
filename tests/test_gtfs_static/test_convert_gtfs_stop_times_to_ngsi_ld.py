@@ -5,13 +5,15 @@ def test_convert_gtfs_stop_times_to_ngsi_ld():
     """
     Check for proper conversion from GTFS to NGSI-LD for stop_times.txt
     """
+    city = "Sofia"
+    
     entity = {
         "trip_id": "T1",
         "arrival_time": "08:15:00",
         "departure_time": "08:17:00",
-        "stop_id": "urn:ngsi-ld:GtfsStop:S1",
-        "location_group_id": "urn:ngsi-ld:GtfsLocationGroup:LG1",
-        "location_id": "urn:ngsi-ld:GtfsLocation:L1",
+        "stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S1",
+        "location_group_id": f"urn:ngsi-ld:GtfsLocationGroup:{city}:LG1",
+        "location_id": f"urn:ngsi-ld:GtfsLocation:{city}:L1",
         "stop_sequence": 5,
         "stop_headsign": "City Center",
         "start_pickup_drop_off_window": "07:00:00",
@@ -22,18 +24,18 @@ def test_convert_gtfs_stop_times_to_ngsi_ld():
         "continuous_drop_off": 1,
         "shape_dist_traveled": 1234.5,
         "timepoint": 1,
-        "pickup_booking_rule_id": "urn:ngsi-ld:GtfsBookingRule:PBR1",
-        "drop_off_booking_rule_id": "urn:ngsi-ld:GtfsBookingRule:DBR1",
+        "pickup_booking_rule_id": f"urn:ngsi-ld:GtfsBookingRule:{city}:PBR1",
+        "drop_off_booking_rule_id": f"urn:ngsi-ld:GtfsBookingRule:{city}:DBR1",
     }
 
-    result = convert_gtfs_stop_times_to_ngsi_ld(entity)
+    result = convert_gtfs_stop_times_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsStopTime:T1:5",
+        "id": f"urn:ngsi-ld:GtfsStopTime:{city}:T1:5",
         "type": "GtfsStopTime",
         "hasTrip": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsTrip:T1",
+            "object": f"urn:ngsi-ld:GtfsTrip:{city}:T1",
         },
         "arrivalTime": {
             "type": "Property",
@@ -45,15 +47,15 @@ def test_convert_gtfs_stop_times_to_ngsi_ld():
         },
         "hasStop": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:S1",
+            "object": f"urn:ngsi-ld:GtfsStop:{city}:S1",
         },
         "location_group_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsLocationGroup:LG1",
+            "object": f"urn:ngsi-ld:GtfsLocationGroup:{city}:LG1",
         },
         "location_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsLocation:L1",
+            "object": f"urn:ngsi-ld:GtfsLocation:{city}:L1",
         },
         "stopSequence": {
             "type": "Property",
@@ -97,11 +99,11 @@ def test_convert_gtfs_stop_times_to_ngsi_ld():
         },
         "pickup_booking_rule_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsBookingRule:PBR1",
+            "object": f"urn:ngsi-ld:GtfsBookingRule:{city}:PBR1",
         },
         "drop_off_booking_rule_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsBookingRule:DBR1",
+            "object": f"urn:ngsi-ld:GtfsBookingRule:{city}:DBR1",
         },
     }
 
@@ -109,13 +111,15 @@ def test_convert_gtfs_stop_times_to_ngsi_ld_missing_optional_fields():
     """
     Check for proper conversion from GTFS to NGSI-LD for stop_times.txt when optional fileds are missing
     """
+    city = "Sofia"
+    
     entity = {
         "trip_id": "T1",
         "arrival_time": "08:15:00",
         "departure_time": "08:17:00",
-        "stop_id": "urn:ngsi-ld:GtfsStop:S1",
-        "location_group_id": "urn:ngsi-ld:GtfsLocationGroup:LG1",
-        "location_id": "urn:ngsi-ld:GtfsLocation:L1",
+        "stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S1",
+        "location_group_id": f"urn:ngsi-ld:GtfsLocationGroup:{city}:LG1",
+        "location_id": f"urn:ngsi-ld:GtfsLocation:{city}:L1",
         "stop_sequence": 5,
         "start_pickup_drop_off_window": "07:00:00",
         "end_pickup_drop_off_window": "22:00:00",
@@ -125,14 +129,14 @@ def test_convert_gtfs_stop_times_to_ngsi_ld_missing_optional_fields():
         "continuous_drop_off": 1
     }
 
-    result = convert_gtfs_stop_times_to_ngsi_ld(entity)
+    result = convert_gtfs_stop_times_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsStopTime:T1:5",
+        "id": f"urn:ngsi-ld:GtfsStopTime:{city}:T1:5",
         "type": "GtfsStopTime",
         "hasTrip": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsTrip:T1",
+            "object": f"urn:ngsi-ld:GtfsTrip:{city}:T1",
         },
         "arrivalTime": {
             "type": "Property",
@@ -144,15 +148,15 @@ def test_convert_gtfs_stop_times_to_ngsi_ld_missing_optional_fields():
         },
         "hasStop": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsStop:S1",
+            "object": f"urn:ngsi-ld:GtfsStop:{city}:S1",
         },
         "location_group_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsLocationGroup:LG1",
+            "object": f"urn:ngsi-ld:GtfsLocationGroup:{city}:LG1",
         },
         "location_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsLocation:L1",
+            "object": f"urn:ngsi-ld:GtfsLocation:{city}:L1",
         },
         "stopSequence": {
             "type": "Property",

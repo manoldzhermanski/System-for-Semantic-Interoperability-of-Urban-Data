@@ -4,9 +4,11 @@ def test_convert_gtfs_routes_to_ngsi_ld():
     """
     Check for proper conversion from GTFS to NGSI-LD for routes.txt
     """
+    city = "Sofia"
+    
     entity = {
         "route_id": "R1",
-        "agency_id": "urn:ngsi-ld:GtfsAgency:A1",
+        "agency_id": f"urn:ngsi-ld:GtfsAgency:{city}:A1",
         "route_short_name": "42",
         "route_long_name": "Central Station – Airport",
         "route_desc": "Express bus route",
@@ -17,18 +19,18 @@ def test_convert_gtfs_routes_to_ngsi_ld():
         "route_sort_order": 10,
         "continuous_pickup": 0,
         "continuous_drop_off": 1,
-        "network_id": "urn:ngsi-ld:GtfsNetwork:N1",
+        "network_id": f"urn:ngsi-ld:GtfsNetwork:{city}:N1",
         "cemv_support": 0,
     }
 
-    result = convert_gtfs_routes_to_ngsi_ld(entity)
+    result = convert_gtfs_routes_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:R1",
+        "id": f"urn:ngsi-ld:GtfsRoute:{city}:R1",
         "type": "GtfsRoute",
         "operatedBy": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsAgency:A1",
+            "object": f"urn:ngsi-ld:GtfsAgency:{city}:A1",
         },
         "shortName": {
             "type": "Property",
@@ -72,7 +74,7 @@ def test_convert_gtfs_routes_to_ngsi_ld():
         },
         "network_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsNetwork:N1",
+            "object": f"urn:ngsi-ld:GtfsNetwork:{city}:N1",
         },
         "cemv_support": {
             "type": "Property",
@@ -84,25 +86,27 @@ def test_convert_gtfs_routes_to_ngsi_ld_missing_optional_fields():
     """
     Check for proper conversion from GTFS to NGSI-LD for routes.txt when optional fileds are missing
     """
+    city = "Sofia"
+    
     entity = {
         "route_id": "R1",
-        "agency_id": "urn:ngsi-ld:GtfsAgency:A1",
+        "agency_id": f"urn:ngsi-ld:GtfsAgency:{city}:A1",
         "route_short_name": "42",
         "route_long_name": "Central Station – Airport",
         "route_type": 3,
         "continuous_pickup": 0,
         "continuous_drop_off": 1,
-        "network_id": "urn:ngsi-ld:GtfsNetwork:N1"
+        "network_id": f"urn:ngsi-ld:GtfsNetwork:{city}:N1"
     }
 
-    result = convert_gtfs_routes_to_ngsi_ld(entity)
+    result = convert_gtfs_routes_to_ngsi_ld(entity, city)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsRoute:Bulgaria:Sofia:R1",
+        "id": f"urn:ngsi-ld:GtfsRoute:{city}:R1",
         "type": "GtfsRoute",
         "operatedBy": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsAgency:A1",
+            "object": f"urn:ngsi-ld:GtfsAgency:{city}:A1",
         },
         "shortName": {
             "type": "Property",
@@ -146,7 +150,7 @@ def test_convert_gtfs_routes_to_ngsi_ld_missing_optional_fields():
         },
         "network_id": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsNetwork:N1",
+            "object": f"urn:ngsi-ld:GtfsNetwork:{city}:N1",
         },
         "cemv_support": {
             "type": "Property",

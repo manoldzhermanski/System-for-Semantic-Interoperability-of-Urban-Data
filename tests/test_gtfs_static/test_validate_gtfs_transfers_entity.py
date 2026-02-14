@@ -15,8 +15,10 @@ def test_validate_gtfs_transfers_entity_all_fields_valid():
         "to_route_id": "R2",
         "min_transfer_time": 120
     }
+    
+    city = "Sofia"
 
-    validate_gtfs_transfers_entity(entity)
+    validate_gtfs_transfers_entity(entity, city)
 
 def test_validate_gtfs_transfers_entity_missing_required_field():
     """
@@ -32,9 +34,11 @@ def test_validate_gtfs_transfers_entity_missing_required_field():
         "to_route_id": "R2",
         "min_transfer_time": 120
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
+        validate_gtfs_transfers_entity(entity, city)
         
     assert "Missing required GTFS field" in str(err.value)
 
@@ -52,8 +56,10 @@ def test_validate_gtfs_transfers_entity_optional_fields_none():
         "to_route_id": None,
         "min_transfer_time": None
     }
+    
+    city = "Sofia"
 
-    validate_gtfs_transfers_entity(entity)
+    validate_gtfs_transfers_entity(entity, city)
     
 def test_validate_gtfs_transfers_entity_type_1_missing_from_stop_id():
     """
@@ -69,9 +75,11 @@ def test_validate_gtfs_transfers_entity_type_1_missing_from_stop_id():
         "to_route_id": "R2",
         "min_transfer_time": 120
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
+        validate_gtfs_transfers_entity(entity, city)
         
     assert "is required when transfer_type is 1, 2 or 3" in str(err.value)
     
@@ -90,8 +98,10 @@ def test_validate_gtfs_transfers_entity_type_1_missing_to_stop_id():
         "min_transfer_time": 120
     }
     
+    city = "Sofia"
+    
     with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
+        validate_gtfs_transfers_entity(entity, city)
         
     assert "is required when transfer_type is 1, 2 or 3" in str(err.value)
 
@@ -109,9 +119,11 @@ def test_validate_gtfs_transfers_entity_type_4_missing_from_trip_id():
         "to_route_id": "R2",
         "min_transfer_time": 120
     }
+    
+    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
+        validate_gtfs_transfers_entity(entity, city)
         
     assert "is required when transfer_type is 4 or 5" in str(err.value)
 
@@ -130,8 +142,10 @@ def test_validate_gtfs_transfers_entity_type_4_missing_to_trip_id():
         "min_transfer_time": 120
     }
     
+    city = "Sofia"
+    
     with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
+        validate_gtfs_transfers_entity(entity, city)
         
     assert "is required when transfer_type is 4 or 5" in str(err.value)
 
@@ -150,7 +164,9 @@ def test_validate_gtfs_transfers_entity_negative_min_transfer_time():
         "min_transfer_time": -1
     }
     
+    city = "Sofia"
+    
     with pytest.raises(ValueError) as err:
-        validate_gtfs_transfers_entity(entity)
+        validate_gtfs_transfers_entity(entity, city)
 
     assert "must be a non-negative integer, got" in str(err.value)
