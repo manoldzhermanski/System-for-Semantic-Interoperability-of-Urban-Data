@@ -16,6 +16,7 @@
         "GtfsTransferRule": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsTransferRule",
         "GtfsTrip": "https://smartdatamodels.org/dataModel.UrbanMobility/GtfsTrip",
         "agency": "https://smartdatamodels.org/dataModel.UrbanMobility/agency_id",
+        "agency_id": "https://smartdatamodels.org/dataModel.UrbanMobility/agency_id",
         "agency_email": "https://smartdatamodels.org/dataModel.UrbanMobility/agency_email",
         "agency_fare_url": "https://manoldzhermanski.github.io/dataModel.GTFSStatic/terms/agency_fare_url",
         "agency_lang": "https://smartdatamodels.org/dataModel.UrbanMobility/agency_lang",
