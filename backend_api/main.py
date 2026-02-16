@@ -508,8 +508,9 @@ def _strip_urn(value: str | None):
     return value
 
 
-def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str, Any]:
+def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> list[dict[str, Any]]:
     row: dict[str, Any] = {}
+    rows: list[dict[str, Any]] = []
 
     entity_type = entity.get("type")
     entity_id = entity.get("id")
@@ -524,12 +525,21 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
             row["fare_id"] = _strip_urn(entity_id)
         elif entity_type == "GtfsLevel":
             row["level_id"] = _strip_urn(entity_id)
+        elif entity_type == "GtfsPathway":
+            row["pathway_id"] = _strip_urn(entity_id)
+        elif entity_type == "GtfsRoute":
+            row["route_id"] = _strip_urn(entity_id)
+        elif entity_type == "GtfsShape":
+            row["shape_id"] = _strip_urn(entity_id)
+        elif entity_type == "GtfsStop":
+            row["stop_id"] = _strip_urn(entity_id)
+        elif entity_type == "GtfsTrip":
+            row["trip_id"] = _strip_urn(entity_id)
 
     # -------------------------------------------------
-    # CalendarDateRule mapping
+    # CalendarDateRules mapping
     # -------------------------------------------------
     if entity_type == "GtfsCalendarDateRule":
-
         rel = entity.get("hasService")
         if isinstance(rel, dict):
             row["service_id"] = _strip_urn(rel.get("object"))
@@ -546,35 +556,276 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
     # FareAttributes mapping
     # -------------------------------------------------
     elif entity_type == "GtfsFareAttributes":
-
         agency = entity.get("agency")
         if isinstance(agency, dict):
             row["agency_id"] = _strip_urn(agency.get("object"))
 
     # -------------------------------------------------
-    # Level mapping
+    # Levels mapping
     # -------------------------------------------------
     elif entity_type == "GtfsLevel":
-
         name = entity.get("name")
         if isinstance(name, dict):
             row["level_name"] = name.get("value")
 
     # -------------------------------------------------
-    # GENERIC LOOP (без overwrite и без agency дублиране)
+    # Pathways mapping
+    # -------------------------------------------------
+    elif entity_type == "GtfsPathway":
+        from_stop_id = entity.get("hasOrigin")
+        if isinstance(from_stop_id, dict):
+            row["from_stop_id"] = _strip_urn(from_stop_id.get("object"))
+            
+        to_stop_id = entity.get("hasDestination")
+        if isinstance(to_stop_id, dict):
+            row["to_stop_id"] = _strip_urn(to_stop_id.get("object"))
+            
+        is_bidirectional = entity.get("isBidirectional")
+        if isinstance(is_bidirectional, dict):
+            row["is_bidirectional"] = is_bidirectional.get("value")
+
+    # -------------------------------------------------
+    # Routes mapping
+    # -------------------------------------------------
+    elif entity_type == "GtfsRoute":
+        agency_id = entity.get("operatedBy")
+        if isinstance(agency_id, dict):
+            row["agency_id"] = _strip_urn(agency_id.get("object"))
+            
+        route_short_name = entity.get("shortName")
+        if isinstance(route_short_name, dict):
+            row["route_short_name"] = route_short_name.get("value")
+            
+        route_long_name = entity.get("name")
+        if isinstance(route_long_name, dict):
+            row["route_long_name"] = route_long_name.get("value")
+            
+        route_type = entity.get("routeType")
+        if isinstance(route_type, dict):
+            row["route_type"] = route_type.get("value")
+            
+        route_color = entity.get("routeColor")
+        if isinstance(route_color, dict):
+            row["route_color"] = route_color.get("value")
+            
+        route_text_color = entity.get("routeTextColor")
+        if isinstance(route_text_color, dict):
+            row["route_text_color"] = route_text_color.get("value")
+            
+        route_sort_order = entity.get("routeSortOrder")
+        if isinstance(route_sort_order, dict):
+            row["route_sort_order"] = route_sort_order.get("value")
+            
+
+    # -------------------------------------------------
+    # Shapes mapping
+    # -------------------------------------------------
+    
+    if entity_type == "GtfsShape":
+
+        location = entity.get("location", {})
+        coords = location.get("value", {}).get("coordinates", [])
+
+        dist_prop = entity.get("distanceTravelled", {})
+        dist_list = dist_prop.get("value", [])
+
+        if not isinstance(coords, list):
+            return []
+
+        for idx, coord in enumerate(coords, start=1):
+            if not isinstance(coord, (list, tuple)) or len(coord) < 2:
+                continue
+
+            lon, lat = coord[0], coord[1]
+
+            r = {
+                "shape_pt_lat": lat,
+                "shape_pt_lon": lon,
+                "shape_pt_sequence": idx,
+            }
+
+            if isinstance(dist_list, list) and idx < len(dist_list):
+                r["shape_dist_traveled"] = dist_list[idx]
+
+            rows.append(r)
+
+        return rows
+    
+    # -------------------------------------------------
+    # Stop Times mapping
+    # -------------------------------------------------
+    
+    elif entity_type == "GtfsStopTime":
+        
+        trip_id = entity.get("hasTrip")
+        if isinstance(trip_id, dict):
+            row["trip_id"] = _strip_urn(trip_id.get("object"))
+            
+        arrival_time = entity.get("arrivalTime")
+        if isinstance(arrival_time, dict):
+            row["arrival_time"] = arrival_time.get("value")
+            
+        departure_time = entity.get("departureTime")
+        if isinstance(departure_time, dict):
+            row["departure_time"] = departure_time.get("value")
+            
+        stop_id = entity.get("hasStop")
+        if isinstance(stop_id, dict):
+            row["stop_id"] = _strip_urn(stop_id.get("object"))
+            
+        stop_sequence = entity.get("stopSequence")
+        if isinstance(stop_sequence, dict):
+            row["stop_sequence"] = stop_sequence.get("value")
+            
+        stop_headsign = entity.get("stopHeadsign")
+        if isinstance(stop_headsign, dict):
+            row["stop_headsign"] = stop_headsign.get("value")
+
+    # -------------------------------------------------
+    # Stops mapping
+    # -------------------------------------------------
+    elif entity_type == "GtfsStop":
+        
+        stop_code = entity.get("code")
+        if isinstance(stop_code, dict):
+            row["stop_code"] = stop_code.get("value")
+            
+        stop_name = entity.get("name")
+        if isinstance(stop_name, dict):
+            row["stop_name"] = stop_name.get("value")
+            
+        stop_desc = entity.get("description")
+        if isinstance(stop_desc, dict):
+            row["stop_desc"] = stop_desc.get("value")
+            
+        location_type = entity.get("locationType")
+        if isinstance(location_type, dict):
+            row["location_type"] = location_type.get("value")
+            
+        parent_station = entity.get("hasParentStation")
+        if isinstance(parent_station, dict):
+            row["parent_station"] = _strip_urn(parent_station.get("object"))
+            
+        stop_timezone = entity.get("timezone")
+        if isinstance(stop_timezone, dict):
+            row["stop_timezone"] = stop_timezone.get("value")
+            
+        level_id = entity.get("level")
+        if isinstance(level_id, dict):
+            row["level_id"] = _strip_urn(level_id.get("object"))
+            
+        location = entity.get("location")
+        if isinstance(location, dict) and location.get("type") == "GeoProperty":
+            value = location.get("value", {})
+            coords = value.get("coordinates")
+
+            if isinstance(coords, (list, tuple)) and len(coords) >= 2:
+                row["stop_lat"] = coords[1]
+                row["stop_lon"] = coords[0]
+
+    # -------------------------------------------------
+    # Transfers mapping
+    # -------------------------------------------------
+    elif entity_type == "GtfsTransferRule":
+        
+        from_stop_id = entity.get("hasOrigin")
+        if isinstance(from_stop_id, dict):
+            row["from_stop_id"] = _strip_urn(from_stop_id.get("object"))
+            
+        to_stop_id = entity.get("hasDestination")
+        if isinstance(to_stop_id, dict):
+            row["to_stop_id"] = _strip_urn(to_stop_id.get("object"))
+            
+        transfer_type = entity.get("transferType")
+        if isinstance(transfer_type, dict):
+            row["transfer_type"] = transfer_type.get("value")
+            
+        min_transfer_time = entity.get("minimumTransferTime")
+        if isinstance(min_transfer_time, dict):
+            row["min_transfer_time"] = min_transfer_time.get("value")
+            
+    # -------------------------------------------------
+    # Trips mapping
+    # -------------------------------------------------
+    elif entity_type == "GtfsTrip":
+        
+        route_id = entity.get("route")
+        if isinstance(route_id, dict):
+            row["route_id"] = _strip_urn(route_id.get("object"))
+            
+        service_id = entity.get("service")
+        if isinstance(service_id, dict):
+            row["service_id"] = _strip_urn(service_id.get("object"))
+            
+        trip_headsign = entity.get("headSign")
+        if isinstance(trip_headsign, dict):
+            row["trip_headsign"] = trip_headsign.get("value")
+            
+        trip_short_name = entity.get("shortName")
+        if isinstance(trip_short_name, dict):
+            row["trip_short_name"] = trip_short_name.get("value")
+            
+        direction_id = entity.get("direction")
+        if isinstance(direction_id, dict):
+            row["direction_id"] = direction_id.get("value")
+        
+        block_id = entity.get("block")
+        if isinstance(block_id, dict):
+            row["block_id"] = _strip_urn(block_id.get("object"))
+            
+        shape_id = entity.get("hasShape")
+        if isinstance(shape_id, dict):
+            row["shape_id"] = _strip_urn(shape_id.get("object"))
+            
+        wheelchair_accessible = entity.get("wheelChairAccessible")
+        if isinstance(wheelchair_accessible, dict):
+            row["wheelchair_accessible"] = wheelchair_accessible.get("value")
+            
+        bikes_allowed = entity.get("bikesAllowed")
+        if isinstance(bikes_allowed, dict):
+            row["bikes_allowed"] = bikes_allowed.get("value")
+            
+        cars_allowed = entity.get("carsAllowed")
+        if isinstance(cars_allowed, dict):
+            row["cars_allowed"] = cars_allowed.get("value")
+    # -------------------------------------------------
+    # GENERIC LOOP
     # -------------------------------------------------
     for attr, value in entity.items():
         if attr in ("id", "type", "@context"):
             continue
 
-        # skip rows which were encountered before
         if attr in row:
             continue
-
-        # Add use case for when to ignore 'agency' attribute in GtfsFareAttributes
-        if entity_type == "GtfsFareAttributes" and attr == "agency":
+        
+        if attr == "location":
+            continue
+        
+        if entity_type == "GtfsCalendarDateRule" and attr in ("hasService", "appliesOn", "exceptionType"):
             continue
 
+        if entity_type == "GtfsFareAttributes" and attr == "agency":
+            continue
+        
+        if entity_type == "GtfsPathway" and attr in ("hasOrigin", "hasDestination", "isBidirectional"):
+            continue
+        
+        if entity_type == "GtfsRoute" and attr in ("operatedBy", "shortName", "name", "routeType", "routeColor", "routeTextColor", "routeSortOrder"):
+            continue
+
+        if entity_type == "GtfsStopTime" and attr in ("hasTrip", "arrivalTime", "departureTime", "hasStop", "stopSequence", "stopHeadsign"):
+            continue
+        
+        if entity_type == "GtfsStop" and attr in ("code", "name", "description", "locationType", "hasParentStation", "timezone", "level"):
+            continue
+        
+        if entity_type == "GtfsTransferRule" and attr in ("hasOrigin", "hasDestination", "transferType", "minimumTransferTime"):
+            continue
+        
+        if entity_type == "GtfsTrip" and attr in ("route", "service", "headSign", "shortName", "direction", "block", "hasShape",
+                                                  "wheelChairAccessible", "bikesAllowed", "carsAllowed"):
+            continue
+        
         if isinstance(value, dict) and "type" in value:
             attr_type = value.get("type")
 
@@ -582,13 +833,14 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> dict[str,
                 row[attr] = value.get("value")
 
             elif attr_type == "Relationship":
-                obj = _strip_urn(value.get("object"))
-                row[attr] = obj
+                row[attr] = _strip_urn(value.get("object"))
 
         else:
             row[attr] = value
 
-    return row
+    rows.append(row)
+    return rows
+
 
 def entities_to_csv_bytes(entities: list[dict[str, Any]]) -> bytes:
     if not entities:
@@ -597,15 +849,19 @@ def entities_to_csv_bytes(entities: list[dict[str, Any]]) -> bytes:
     rows = [ngsi_ld_extract_data_for_csv_conversion(entity) for entity in entities]
 
     all_fields = set()
-    for r in rows:
-        all_fields.update(r.keys())
+    for row_list in rows:
+        for r in row_list:
+            all_fields.update(r.keys())
 
     fieldnames = sorted(all_fields)
 
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
-    writer.writerows(rows)
+    
+    # Flatten the nested list structure
+    flat_rows = [r for row_list in rows for r in row_list]
+    writer.writerows(flat_rows)
 
     return output.getvalue().encode("utf-8")
 
@@ -622,28 +878,28 @@ def build_gtfs_zip() -> str:
     
     header = orion_ld_define_header("gtfs_static")
     agencies = orion_ld_get_entities_by_type("GtfsAgency", header)
-    #stops = orion_ld_get_entities_by_type("GtfsStop", header)
-    #routes = orion_ld_get_entities_by_type("GtfsRoute", header)
-    #trips = orion_ld_get_entities_by_type("GtfsTrip", header)
-    #stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
-    #calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
+    stops = orion_ld_get_entities_by_type("GtfsStop", header)
+    routes = orion_ld_get_entities_by_type("GtfsRoute", header)
+    trips = orion_ld_get_entities_by_type("GtfsTrip", header)
+    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
+    calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
     fare_attributes = orion_ld_get_entities_by_type("GtfsFareAttributes", header)
-    #shapes = orion_ld_get_entities_by_type("GtfsShape", header)
-    #transfers = orion_ld_get_entities_by_type("GtfsTransferRule", header)
-    #pathways = orion_ld_get_entities_by_type("GtfsPathway", header)
+    shapes = orion_ld_get_entities_by_type("GtfsShape", header)
+    transfers = orion_ld_get_entities_by_type("GtfsTransferRule", header)
+    pathways = orion_ld_get_entities_by_type("GtfsPathway", header)
     levels = orion_ld_get_entities_by_type("GtfsLevel", header)
 
     data = {
         "agency.txt": agencies,
-        #"stops.txt": stops,
-        #"routes.txt": routes,
-        #"trips.txt": trips,
-        #"stop_times.txt": stop_times,
-        #"calendar_dates.txt": calendar_dates,
+        "stops.txt": stops,
+        "routes.txt": routes,
+        "trips.txt": trips,
+        "stop_times.txt": stop_times,
+        "calendar_dates.txt": calendar_dates,
         "fare_attributes.txt": fare_attributes,
-        #"shapes.txt": shapes,
-        #"transfers.txt": transfers,
-        #"pathways.txt": pathways,
+        "shapes.txt": shapes,
+        "transfers.txt": transfers,
+        "pathways.txt": pathways,
         "levels.txt": levels,
     }
 
