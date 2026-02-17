@@ -13,7 +13,10 @@ usage() {
   echo "  ./automation.sh start"
   echo "  ./automation.sh stop"
   echo "  ./automation.sh test"
-  echo "  ./automation.sh load [gtfs] [pois]"
+  echo "  ./automation.sh load gtfs sofia"
+  echo "  ./automation.sh load gtfs helsinki"
+  echo "  ./automation.sh load gtfs sofia helsinki"
+  echo "  ./automation.sh load pois"
   echo "  ./automation.sh otp_build"
   echo "  ./automation.sh gtfs_static_rebuild"
   exit 1
@@ -100,10 +103,7 @@ load() {
   fi
 
   activate_venv
-
-  echo "Starting Docker containers..."
   docker compose up -d
-  
   wait_for_orion
 
   echo "Loading data: $*"

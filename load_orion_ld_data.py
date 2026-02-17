@@ -30,20 +30,31 @@ POIS_TYPES = (
     "other",
 )
 
+GTFS_CITIES = (
+    "sofia", 
+    "helsinki"
+)
+
 LOAD_GTFS = "gtfs"
 LOAD_POIS = "pois"
 
 
-def load_gtfs_static():
+def load_gtfs_static(cities: list[str]):
     print("Loading GTFS static data...")
     header = olcd.orion_ld_define_header("gtfs_static")
 
-    for entity_type in GTFS_STATIC_TYPES:
-        print(f"  • {entity_type}")
-        city = "Sofia"
-        data = gsu.gtfs_static_get_ngsi_ld_data(entity_type, city)
-        olcd.orion_ld_batch_load_to_context_broker(data, header)
+    for city in cities:
+        print(f"\nCity: {city}")
 
+        for entity_type in GTFS_STATIC_TYPES:
+            print(f"  • {entity_type}")
+
+            data = gsu.gtfs_static_get_ngsi_ld_data(entity_type, city)
+
+            if not data:
+                continue
+
+            olcd.orion_ld_batch_load_to_context_broker(data, header)
 
 def load_pois():
     print("Loading Points of Interest...")
@@ -54,19 +65,30 @@ def load_pois():
         data = jlu.json_ld_get_ngsi_ld_data(entity_type)
         olcd.orion_ld_batch_load_to_context_broker(data, header)
 
-
 def main():
-    args = set(sys.argv[1:])
-    load_all = not args
+    args = sys.argv[1:]
 
-    if load_all or LOAD_GTFS in args:
-        load_gtfs_static()
+    if not args:
+        print("Usage:")
+        print("  python load_orion_ld_data.py gtfs <city> [city...]")
+        print("  python load_orion_ld_data.py pois")
+        sys.exit(1)
 
-    if load_all or LOAD_POIS in args:
+    if LOAD_GTFS in args:
+        idx = args.index(LOAD_GTFS)
+        cities = args[idx + 1:]
+
+        if not cities:
+            print("Error: specify at least one city")
+            print("Example: gtfs sofia helsinki")
+            sys.exit(1)
+
+        load_gtfs_static(cities)
+
+    if LOAD_POIS in args:
         load_pois()
 
     print("Initial data successfully loaded.")
-
 
 if __name__ == "__main__":
     main()
