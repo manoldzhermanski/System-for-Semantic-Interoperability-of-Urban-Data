@@ -909,10 +909,10 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld() -> list[dict[str, Any]]:
     ngsi_ld_entities = []
     
     # Fetch raw GTFS-Realtime feed from the configured source
-    api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    api_response = gtfs_realtime_get_feed(config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
     
     # Parse the feed into a GTFS-Realtime FeedMessage
-    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
     
     # Convert the FeedMessage into a Python dictionary
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
@@ -962,10 +962,10 @@ def gtfs_realtime_trip_updates_to_ngsi_ld() -> list[dict[str, Any]]:
     ngsi_ld_entities = []
     
     # Fetch raw GTFS-Realtime feed from the configured source
-    api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    api_response = gtfs_realtime_get_feed(config.GtfsSource.SOFIA_GTFS_REALTIME_TRIP_UPDATES_URL)
     
     # Parse the feed into a GTFS-Realtime FeedMessage
-    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_TRIP_UPDATES_URL)
+    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.SOFIA_GTFS_REALTIME_TRIP_UPDATES_URL)
     
     # Convert the FeedMessage into a Python dictionary
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
@@ -1015,10 +1015,10 @@ def gtfs_realtime_alerts_to_ngsi_ld() -> list[dict[str, Any]]:
     ngsi_ld_entities = []
 
     # Fetch raw GTFS-Realtime feed from the configured source
-    api_response = gtfs_realtime_get_feed(config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
+    api_response = gtfs_realtime_get_feed(config.GtfsSource.SOFIA_GTFS_REALTIME_ALERTS_URL)
     
     # Parse the feed into a GTFS-Realtime FeedMessage
-    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.GTFS_REALTIME_ALERTS_URL)
+    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.SOFIA_GTFS_REALTIME_ALERTS_URL)
     
     # Convert the FeedMessage into a Python dictionary
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
