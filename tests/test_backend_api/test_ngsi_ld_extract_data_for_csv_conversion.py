@@ -31,7 +31,8 @@ def test_ngsi_ld_extract_data_for_csv_conversion_fare_attributes():
     }
   }
     
-    expected = {
+    expected = [
+      {
         "fare_id": "A60",
         "price": 1.1,
         "currency_type": "EUR",
@@ -39,7 +40,8 @@ def test_ngsi_ld_extract_data_for_csv_conversion_fare_attributes():
         "transfers": -1,
         "agency_id": "A",
         "transfer_duration": 3600
-    }
+        }
+      ]
     
     result = ngsi_ld_extract_data_for_csv_conversion(raw_data)
 

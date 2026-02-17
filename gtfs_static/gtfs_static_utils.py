@@ -19,7 +19,7 @@ import validation_functions.validation_utils as validation_utils
 # Get Data
 # -----------------------------------------------------
 
-def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs_static") -> None:
+def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, city: str, base_dir: str = "gtfs_static") -> None:
     """
     Downloads a GTFS Static ZIP archive from the given API endpoint and extracts
     its contents into a local directory structure.
@@ -29,6 +29,7 @@ def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_d
 
     Args:
         api_endpoint (config.GtfsSource): Enum value containing the GTFS Static ZIP API endpoint.
+        city (str): The city name to be used in the ZIP file path.
         base_dir (str, optional): Base directory where the GTFS data will be stored. Default is "gtfs_static".
 
     Raises:
@@ -55,20 +56,21 @@ def gtfs_static_download_and_extract_zip(api_endpoint: config.GtfsSource, base_d
     os.makedirs(base_dir, exist_ok=True)
 
     # Ensure base_dir/data exists
-    extract_to = os.path.join(base_dir, "data")
+    extract_to = os.path.join(base_dir, city)
     os.makedirs(extract_to, exist_ok=True)
     
     # Extract the ZIP file
     with zipfile.ZipFile(BytesIO(response.content)) as zip_file:
         zip_file.extractall(extract_to)
 
-def gtfs_static_download_zip(api_endpoint: config.GtfsSource, base_dir: str = "gtfs_static") -> bytes:
+def gtfs_static_download_zip(api_endpoint: config.GtfsSource, city: str, base_dir: str = "gtfs_static") -> bytes:
     """
     Downloads a GTFS Static ZIP archive from the given API endpoint, saves it locally, 
     and returns its content as bytes.
 
     Args:
         api_endpoint (config.GtfsSource): Enum value containing the GTFS Static ZIP API endpoint.
+        city (str): The city name to be used in the ZIP file path.
         base_dir (str, optional): Base directory where the GTFS ZIP will be saved. Default is "gtfs_static".
 
     Returns:
@@ -92,23 +94,24 @@ def gtfs_static_download_zip(api_endpoint: config.GtfsSource, base_dir: str = "g
     os.makedirs(base_dir, exist_ok=True)
 
     # Save ZIP to disk
-    zip_path = os.path.join(base_dir, "sofia_gtfs.zip")
+    zip_path = os.path.join(base_dir, f"{city}_gtfs.zip")
     with open(zip_path, "wb") as f:
         f.write(response.content)
 
     # Return ZIP content as bytes
     return response.content
 
-def gtfs_static_extract_zip(zip_bytes: bytes, base_dir: str = "gtfs_static") -> None:
+def gtfs_static_extract_zip(zip_bytes: bytes, city: str, base_dir: str = "gtfs_static") -> None:
     """
     Extracts a GTFS Static ZIP archive (given as bytes) into a local directory structure.
     Always creates a "data" subdirectory in "base_dir" where files are extracted.
 
     Args:
         zip_bytes (bytes): ZIP file content
+        city (str): The city name to be used in the extraction path
         base_dir (str, optional): Base directory where the GTFS data will be stored. Default is "gtfs_static".
     """
-    extract_to = os.path.join(base_dir, "data")
+    extract_to = os.path.join(base_dir, city)
     os.makedirs(extract_to, exist_ok=True)
 
     with zipfile.ZipFile(BytesIO(zip_bytes)) as zip_file:

@@ -20,6 +20,7 @@ def test_download_and_extract_successfully(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
     # Create a mock ZIP file in memory
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, mode="w") as z:
@@ -38,10 +39,10 @@ def test_download_and_extract_successfully(tmp_path):
 
     # Simulate that the GET Request to the API endpoint is sent and status code 200 is received
     with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_response):
-        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=tmp_path)
+        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=tmp_path)
 
     # Create a mock of the file location and check if it exists
-    extracted_file = tmp_path / "data" / "routes.txt"
+    extracted_file = tmp_path / city / "routes.txt"
     assert extracted_file.exists(), "The file 'routes.txt' exists"
 
 def test_extract_creates_directory(tmp_path):
@@ -52,6 +53,8 @@ def test_extract_creates_directory(tmp_path):
     Args:
         tmp_path: Mock directory
     """
+    city = "test_city"
+    
     # Create a mock ZIP file in memory
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, mode="w") as z:
@@ -74,13 +77,13 @@ def test_extract_creates_directory(tmp_path):
 
     # Patch the HTTP request
     with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_response):
-        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=str(mock_base_dir))
+        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=str(mock_base_dir))
 
     # Directory must now be created
     assert mock_base_dir.exists(), "Mock directory EXISTS"
 
     # Check the extracted file location
-    extracted_file = mock_base_dir / "data" / "routes.txt"
+    extracted_file = mock_base_dir / city / "routes.txt"
     assert extracted_file.exists(), "'routes.txt' should exist in newly created directory"
    
 def test_extract_in_directory_without_data_folder(tmp_path):
@@ -91,6 +94,8 @@ def test_extract_in_directory_without_data_folder(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
+    
     # Create a mock ZIP file in memory
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, mode="w") as z:
@@ -115,10 +120,10 @@ def test_extract_in_directory_without_data_folder(tmp_path):
     
     # Patch the HTTP request
     with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_response):
-        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=str(tmp_path))
+        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=str(tmp_path))
 
     # Check the extracted file location
-    overwritten_file = tmp_path/ "data" / "routes.txt"
+    overwritten_file = tmp_path/ city / "routes.txt"
     assert overwritten_file.exists(), "'data' folder was created and files are extracted in it"
 
 def test_extract_in_directory_with_data_folder(tmp_path):
@@ -129,6 +134,8 @@ def test_extract_in_directory_with_data_folder(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
+    
     # Create a mock ZIP file in memory
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, mode="w") as z:
@@ -158,16 +165,18 @@ def test_extract_in_directory_with_data_folder(tmp_path):
     
     # Patch the HTTP request
     with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_response):
-        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=str(tmp_path))
+        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=str(tmp_path))
 
     # Check the extracted file location and that the old file is overwritten
-    overwritten_file = tmp_path/ "data" / "routes.txt"
+    overwritten_file = tmp_path/ city / "routes.txt"
     assert overwritten_file.exists() and overwritten_file.read_text() == "NEW FILE", "'data' folder was created and 'routes.txt' has been overwritten"
     
 def test_empty_api_endpoint_raises_value_error(tmp_path):
     """
     Check if api_endpoint.value is an empty string, the function raises a ValueError
     """
+    city = "test_city"
+    
     # Mock Enum value for API endpoints to be set to an empty string
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.value = ""
@@ -175,7 +184,7 @@ def test_empty_api_endpoint_raises_value_error(tmp_path):
 
     # Trigger ValueError
     with pytest.raises(ValueError) as err:
-        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=tmp_path)
+        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=tmp_path)
 
     # Check if ValueError has been raised
     assert "API endpoint for TEST_ENDPOINT is not set." in str(err.value)
@@ -184,6 +193,8 @@ def test_none_api_endpoint_raises_value_error(tmp_path):
     """
     Check if api_endpoint.value is None, the function raises a ValueError
     """
+    city = "test_city"
+    
     # Mock Enum value for API endpoints to be set to an empty string
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.value = None
@@ -191,7 +202,7 @@ def test_none_api_endpoint_raises_value_error(tmp_path):
 
     # Trigger ValueError
     with pytest.raises(ValueError) as err:
-        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=tmp_path)
+        gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=tmp_path)
 
     # Check if ValueError has been raised
     assert "API endpoint for TEST_ENDPOINT is not set." in str(err.value)
@@ -203,6 +214,7 @@ def test_requests_404_not_found(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.value = "http://fake-url.com"
     mock_api_endpoint.name = "GTFS_STATIC_ZIP_URL"
@@ -214,7 +226,7 @@ def test_requests_404_not_found(tmp_path):
     # Trigger HTTPError exception
     with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_response):
         with pytest.raises(requests.exceptions.RequestException) as err:
-            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=tmp_path)
+            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=tmp_path)
 
     # Check that HTTPError exception is raised
     assert f"Error when fetching GTFS data from {mock_api_endpoint.name}" in str(err.value)
@@ -226,6 +238,8 @@ def test_requests_500_internal_server_error(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
+    
     #  Mock API endpoint with GET Response with 500 status code
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.value = "http://fake-url.com"
@@ -236,7 +250,7 @@ def test_requests_500_internal_server_error(tmp_path):
     # Trigger HTTPError exception
     with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_api_endpoint):
         with pytest.raises(requests.exceptions.RequestException) as err:
-            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=tmp_path)
+            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=tmp_path)
 
     # Check that HTTPError exception is raised
     assert f"Error when fetching GTFS data from {mock_api_endpoint.name}" in str(err.value)
@@ -248,6 +262,7 @@ def test_requests_timeout(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.value = "http://fake-url.com"
     mock_api_endpoint.name = "GTFS_STATIC_ZIP_URL"
@@ -256,7 +271,7 @@ def test_requests_timeout(tmp_path):
     # Trigger Timeout exception
     with patch("gtfs_static.gtfs_static_utils.requests.get", mock_api_endpoint):
         with pytest.raises(requests.exceptions.RequestException) as err:
-            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=tmp_path)
+            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=tmp_path)
             
     # Check that Timeout exception is raised
     assert f"Error when fetching GTFS data from {mock_api_endpoint.name}" in str(err.value)
@@ -268,6 +283,7 @@ def test_empty_zip_response(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.value = "http://fake-url.com"
 
@@ -278,7 +294,7 @@ def test_empty_zip_response(tmp_path):
     # Trigger Bad Zip File exception
     with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_response):
         with pytest.raises(zipfile.BadZipFile) as err:
-            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=tmp_path)
+            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=tmp_path)
         
     # Check that Bad Zip File expection is raised
     assert "File is not a zip file" in str(err.value)
@@ -290,6 +306,7 @@ def test_corrupted_zip_file(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.value = "http://fake-url.com"
 
@@ -301,7 +318,7 @@ def test_corrupted_zip_file(tmp_path):
     # Trigger Bad Zip File exception
     with patch("gtfs_static.gtfs_static_utils.requests.get", return_value=mock_response):
         with pytest.raises(zipfile.BadZipFile) as err:
-            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=tmp_path)
+            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=tmp_path)
     
     # Check that Bad Zip File expection is raised
     assert "File is not a zip file" in str(err.value)
@@ -312,12 +329,13 @@ def test_api_endpoint_missing_value_raises_error(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
     invalid_endpoint = MagicMock()
     del invalid_endpoint.value  # Delete attribute .value
 
     # Check that AttributeError exception is raised
     with pytest.raises(AttributeError):
-        gtfs_static_download_and_extract_zip(api_endpoint=invalid_endpoint, base_dir=tmp_path)
+        gtfs_static_download_and_extract_zip(api_endpoint=invalid_endpoint, city=city, base_dir=tmp_path)
 
 def test_invalid_url_raises_request_exception(tmp_path):
     """
@@ -325,6 +343,7 @@ def test_invalid_url_raises_request_exception(tmp_path):
     Args:
         tmp_path: Base directory
     """
+    city = "test_city"
     # Prepare mock URL and expected exception
     mock_api_endpoint = MagicMock()
     mock_api_endpoint.value = "  http://b@d url .com  "
@@ -335,7 +354,7 @@ def test_invalid_url_raises_request_exception(tmp_path):
     # Trigger InvalidURL exception
     with patch("gtfs_static.gtfs_static_utils.requests.get", mock_api_endpoint):
         with pytest.raises(requests.exceptions.RequestException) as err:
-            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, base_dir=tmp_path)
+            gtfs_static_download_and_extract_zip(api_endpoint=mock_api_endpoint, city=city, base_dir=tmp_path)
             
     # Check that InvalidURL exception is raised
     assert f"Error when fetching GTFS data from {mock_api_endpoint.name}" in str(err.value)
