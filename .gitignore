@@ -1,6 +1,7 @@
 .env
 venv
 gtfs_realtime_pb2.py
-gtfs_static/data
+gtfs_static/helsinki
+gtfs_static/sofia
 json_ld/data
 __pycache__

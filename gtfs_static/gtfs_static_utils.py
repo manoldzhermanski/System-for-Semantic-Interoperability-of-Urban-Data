@@ -2826,6 +2826,3 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, city: str, base_dir: str = "gtf
         all_rows.extend(rows)
 
     return transformer(all_rows, city)
-
-if __name__ == "__main__":
-    gtfs_static_download_and_extract_zip(config.GtfsSource.HELSINKI_GTFS_STATIC_ZIP_URL, "helsinki")
