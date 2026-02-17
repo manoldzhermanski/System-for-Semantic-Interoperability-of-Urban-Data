@@ -1502,12 +1502,12 @@ def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str) ->
         dict: An NGSI-LD entity of type GtfsCalendarDateRule.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:{entity.get('service_id')}:{entity.get('date')}",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:{entity.get('service_id')}:{entity.get('date')}".replace(" ", "_"),
             "type": "GtfsCalendarDateRule",
             
             "hasService": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsService:{entity.get("service_id")}"
+                "object": f"urn:ngsi-ld:GtfsService:{entity.get("service_id")}".replace(" ", "_")
             },
             
             "appliesOn": {
@@ -1780,7 +1780,7 @@ def convert_gtfs_shapes_to_ngsi_ld(shape_id: str, points: list[dict], city: str)
         dist_traveled = None
         
     return {
-            "id": f"urn:ngsi-ld:GtfsShape:{city}:{shape_id}",
+            "id": f"urn:ngsi-ld:GtfsShape:{city}:{shape_id}".replace(" ", "_"),
             "type": "GtfsShape",
             
             "name": {
@@ -2817,7 +2817,7 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, city: str, base_dir: str = "gtf
     files = sorted(glob.glob(search_pattern))
     
     if not files:
-        raise FileNotFoundError(f"No GTFS files found for pattern: {search_pattern}")
+        print(f"Warning: No GTFS files found for pattern: {search_pattern}")
 
     all_rows = []
 
