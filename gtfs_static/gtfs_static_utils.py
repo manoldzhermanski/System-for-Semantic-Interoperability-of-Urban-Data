@@ -1,3 +1,4 @@
+import glob
 import os
 import csv
 import sys
@@ -2790,17 +2791,17 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, city: str, base_dir: str = "gtf
     
     # Mapping between GTFS file types, their filenames, and transformation functions
     mapping = {
-        "agency": ("agency.txt", gtfs_static_agency_to_ngsi_ld),
-        "calendar_dates": ("calendar_dates.txt", gtfs_static_calendar_dates_to_ngsi_ld),
-        "fare_attributes": ("fare_attributes.txt", gtfs_static_fare_attributes_to_ngsi_ld),
-        "levels": ("levels.txt", gtfs_static_levels_to_ngsi_ld),
-        "pathways": ("pathways.txt", gtfs_static_pathways_to_ngsi_ld),
-        "routes": ("routes.txt", gtfs_static_routes_to_ngsi_ld),
-        "shapes": ("shapes.txt", gtfs_static_shapes_to_ngsi_ld),
-        "stop_times": ("stop_times.txt", gtfs_static_stop_times_to_ngsi_ld),
-        "stops": ("stops.txt", gtfs_static_stops_to_ngsi_ld),
-        "transfers": ("transfers.txt", gtfs_static_transfers_to_ngsi_ld),
-        "trips": ("trips.txt", gtfs_static_trips_to_ngsi_ld)
+        "agency": ("agency*.txt", gtfs_static_agency_to_ngsi_ld),
+        "calendar_dates": ("calendar_dates*.txt", gtfs_static_calendar_dates_to_ngsi_ld),
+        "fare_attributes": ("fare_attributes*.txt", gtfs_static_fare_attributes_to_ngsi_ld),
+        "levels": ("levels*.txt", gtfs_static_levels_to_ngsi_ld),
+        "pathways": ("pathways*.txt", gtfs_static_pathways_to_ngsi_ld),
+        "routes": ("routes*.txt", gtfs_static_routes_to_ngsi_ld),
+        "shapes": ("shapes*.txt", gtfs_static_shapes_to_ngsi_ld),
+        "stop_times": ("stop_times*.txt", gtfs_static_stop_times_to_ngsi_ld),
+        "stops": ("stops*.txt", gtfs_static_stops_to_ngsi_ld),
+        "transfers": ("transfers*.txt", gtfs_static_transfers_to_ngsi_ld),
+        "trips": ("trips*.txt", gtfs_static_trips_to_ngsi_ld),
     }
 
     # Validate requested GTFS file type
@@ -2808,16 +2809,23 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, city: str, base_dir: str = "gtf
         raise FileNotFoundError(f"Unsupported GTFS static file type: {file_type}")
 
     # Resolve filename and corresponding transformation function
-    filename, transformer = mapping[file_type]
+    pattern, transformer = mapping[file_type]
+     
+    folder = os.path.join(base_dir, city)
+    search_pattern = os.path.join(folder, pattern)
+     
+    files = sorted(glob.glob(search_pattern))
     
-    # Build the absolute path to the GTFS static file
-    filepath = os.path.join(base_dir, "data", filename)
+    if not files:
+        raise FileNotFoundError(f"No GTFS files found for pattern: {search_pattern}")
 
-    # Read raw GTFS data from file
-    raw_data = gtfs_static_read_file(filepath)
-    
-    # Convert raw GTFS data to NGSI-LD entities
-    return transformer(raw_data, city)
+    all_rows = []
+
+    for file in files:
+        rows = gtfs_static_read_file(file)
+        all_rows.extend(rows)
+
+    return transformer(all_rows, city)
 
 if __name__ == "__main__":
-    print(json.dumps(gtfs_static_get_ngsi_ld_data("fare_attributes", "Sofia"), indent=2, ensure_ascii=False))
+    gtfs_static_download_and_extract_zip(config.GtfsSource.HELSINKI_GTFS_STATIC_ZIP_URL, "helsinki")
