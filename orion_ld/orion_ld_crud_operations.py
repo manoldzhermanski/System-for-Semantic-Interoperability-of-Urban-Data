@@ -11,7 +11,7 @@ from urllib.parse import unquote
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
-from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_data
+from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_batches
 
 from typing import  Any
 import config
@@ -62,103 +62,92 @@ def orion_ld_define_header(keyword: str) -> dict[str, str]:
 # POST Requests
 # -----------------------------------------------------  
 
-def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header: dict[str, str]) -> None:
+def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header: dict[str, str],) -> None:
+
+    max_retries = 3
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT.value, json=batch_ngsi_ld_data,
+                                     headers=header, timeout=60)
+
+            # --------------------
+            # SUCCESS FULL
+            # --------------------
+            if response.status_code == 201:
+                logger.info(
+                    "Batch OK (%d entities)",
+                    len(batch_ngsi_ld_data),
+                )
+                return
+
+            # --------------------
+            # PARTIAL SUCCESS
+            # --------------------
+            if response.status_code == 207:
+                payload = response.json()
+
+                successes = payload.get("success", [])
+                errors = payload.get("errors", [])
+
+                if successes:
+                    logger.info("Created %d entities", len(successes))
+
+                real_errors = []
+
+                for err in errors:
+                    title = err.get("error", {}).get("title", "").lower()
+                    entity_id = err.get("entityId")
+
+                    if "already exists" in title:
+                        logger.debug("Exists: %s", entity_id)
+                    else:
+                        real_errors.append(err)
+
+                if real_errors:
+                    raise requests.exceptions.HTTPError(real_errors)
+
+                return
+
+            # server error → retry
+            if response.status_code >= 500:
+                raise requests.exceptions.HTTPError(
+                    f"Server error {response.status_code}"
+                )
+
+            # other errors → fail immediately
+            raise requests.exceptions.HTTPError(
+                f"Batch failed ({response.status_code}): {response.text}"
+            )
+
+        except requests.exceptions.RequestException as e:
+            logger.warning(
+                "Batch attempt %d/%d failed: %s",
+                attempt,
+                max_retries,
+                str(e),
+            )
+
+            if attempt == max_retries:
+                raise
+
+            time.sleep(2 * attempt)
+
+
+def orion_ld_batch_load_to_context_broker(batches_iterator, header: dict, delay: float = 0.1,) -> None:
     """
-    Sends a batch POST request to the Orion-LD broker to create multiple NGSI-LD entities.
-
-    Args:
-        batch_ngsi_ld_data (list[dict[str, Any]]):
-            List of NGSI-LD entities
-            
-        headers (dict[str, str]):
-            HTTP headers to be included in the request (Content-Type and Link)
-
-    Returns:
-        None
-        
-    Raises:
-        requests.exceptions.HTTPError:
-            If the batch request fails (status code != 201).
-
-        requests.exceptions.RequestException:
-            For network-related errors.
+    Accepts iterator of batches instead of giant list.
+    Works with streaming pipeline.
     """
-    
 
-    entity_ids = [e["id"] for e in batch_ngsi_ld_data]
+    for batch_index, batch in enumerate(batches_iterator, start=1):
+        logger.debug(
+            "Sending batch %d (%d entities)",
+            batch_index,
+            len(batch),
+        )
 
-    response = requests.post(
-        config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT.value,
-        json=batch_ngsi_ld_data,
-        headers=header,
-    )
-
-    if response.status_code == 201:
-        logger.info("Successfully created batch of %d entities", len(batch_ngsi_ld_data))
-        return
-
-    if response.status_code == 207:
-        payload = response.json()
-
-        successes = payload.get("success", [])
-        errors = payload.get("errors", [])
-
-        if successes:
-            logger.info("Successfully created %d entities", len(successes))
-
-        real_errors = []
-
-        for err in errors:
-            title = err.get("error", {}).get("title", "").lower()
-            entity_id = err.get("entityId")
-
-            if "already exists" in title:
-                logger.warning("Entity already exists, skipping: %s", entity_id)
-            else:
-                real_errors.append(err)
-
-        if real_errors:
-            raise requests.exceptions.HTTPError(f"Batch partially failed with real errors: {real_errors}")
-        return
-
-    raise requests.exceptions.HTTPError(
-        f"Batch failed (status={response.status_code}): {response.text}")
-    
-def orion_ld_batch_load_to_context_broker(ngsi_ld_data: list[dict[str, Any]], header: dict, batch_size: int = 1000, delay: float = 0.1) -> None:
-    """
-    Load NGSI-LD entities to Orion-LD context broker in batches.
-
-    Args:
-        ngsi_ld_data (list[dict[str, Any]]):
-            List of NGSI-LD entities
-            
-        headers (dict[str, str]):
-            HTTP headers for the request (Content-Type and Link)
-            
-        batch_size (int, optional):
-            Number of entities per batch. Defaults to 1000 - max default number.
-            
-        delay (float, optional):
-            Delay in seconds between sending each batch. Defaults to 0.1s - empirically found as sufficient.
-
-    Returns:
-        None
-
-    Side Effects:
-        - Sends multiple POST requests to the Orion-LD broker.
-        - Logs batch creation status through `orion_ld_post_batch_request`.
-        - Adds a delay between batches to prevent overloading the broker.
-    """
-    # Iterate over ngsi_ld_data in chunks of batch_size
-    for i in range(0, len(ngsi_ld_data), batch_size):
-        batch = ngsi_ld_data[i: i + batch_size]
-        
-        logger.debug("Sending batch %d to Orion-LD (%d entities)", i // batch_size + 1, len(batch))
-        
-        # Delegate actual batch POST to helper function
         orion_ld_post_batch_request(batch, header)
-        
-        # Delay between batches to prevent overwhelming the broker
         time.sleep(delay)
         
 # -----------------------------------------------------

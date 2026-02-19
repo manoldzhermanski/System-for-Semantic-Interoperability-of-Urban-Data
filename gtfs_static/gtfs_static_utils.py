@@ -5,7 +5,7 @@ import sys
 import json
 import zipfile
 import requests
-from typing import Any
+from typing import Any, Iterator
 from io import BytesIO
 from pathlib import Path
 from datetime import datetime
@@ -1137,13 +1137,13 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any], city: str) -> None:
 
     # Write NGSI-LD URNs based on which location identifier is defined
     if has_stop_id:
-        entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['stop_id']}"
+        entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['stop_id']}".replace(" ", "_")
 
     if has_location_group_id:
-        entity["location_group_id"] = (f"urn:ngsi-ld:LocationGroup:{city}:{entity['location_group_id']}")
+        entity["location_group_id"] = f"urn:ngsi-ld:LocationGroup:{city}:{entity['location_group_id']}".replace(" ", "_")
 
     if has_location_id:
-        entity["location_id"] = f"urn:ngsi-ld:Location:{city}:{entity['location_id']}"
+        entity["location_id"] = f"urn:ngsi-ld:Location:{city}:{entity['location_id']}".replace(" ", "_")
         
     # Validate that if 'location_id' or 'location_group_id' are defined, 
     # start_pickup_drop_off_window and end_pickup_drop_off_window must also be defined
@@ -1207,12 +1207,12 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'pickup_booking_rule_id' as a NGSI URN
     pickup_booking_rule_id = entity.get("pickup_booking_rule_id")
     if pickup_booking_rule_id is not None:
-        entity["pickup_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{pickup_booking_rule_id}"
+        entity["pickup_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{pickup_booking_rule_id}".replace(" ", "_")
 
     # If present, write 'drop_off_booking_rule_id' as a NGSI URN
     drop_off_booking_rule_id = entity.get("drop_off_booking_rule_id")
     if drop_off_booking_rule_id is not None:
-        entity["drop_off_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{drop_off_booking_rule_id}"
+        entity["drop_off_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{drop_off_booking_rule_id}".replace
 
 def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
     """
@@ -1785,7 +1785,7 @@ def convert_gtfs_shapes_to_ngsi_ld(shape_id: str, points: list[dict], city: str)
             
             "name": {
                 "type": "Property",
-                "value": shape_id
+                "value": shape_id.replace(" ", "_")
                 },
             
             "location": {
@@ -1817,12 +1817,12 @@ def convert_gtfs_stop_times_to_ngsi_ld(entity: dict[str, Any], city: str) -> dic
         dict: An NGSI-LD entity of type GtfsStopTime.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsStopTime:{city}:{entity.get("trip_id")}:{entity.get("stop_sequence")}",
+            "id": f"urn:ngsi-ld:GtfsStopTime:{city}:{entity.get("trip_id")}:{entity.get("stop_sequence")}".replace(" ", "_"),
             "type": "GtfsStopTime",
             
             "hasTrip": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}"
+                "object": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}".replace(" ", "_")
             },
             
             "arrivalTime": {
@@ -2184,6 +2184,60 @@ def collect_shape_points(shapes_dict: dict[str, Any], entity: dict[str, Any]) ->
     
     # Append the point and distance to the corresponding shape_id in shapes_dict
     shapes_dict.setdefault(shape_id, []).append(point)
+
+def gtfs_static_shapes_to_ngsi_ld_stream(
+    reader: Iterator[dict[str, Any]],
+    city: str,
+    batch_size: int = 200
+) -> Iterator[list[dict[str, Any]]]:
+    """
+    Stream parser for shapes.txt
+
+    Aggregates points per shape_id and yields NGSI-LD entities in batches.
+    """
+
+    shapes_dict: dict[str, list[dict]] = {}
+    batch: list[dict] = []
+
+    current_shape_id = None
+
+    for row in reader:
+
+        parsed = parse_gtfs_shapes_data(row)
+        validate_gtfs_shapes_entity(parsed)
+
+        shape_id = parsed["shape_id"]
+
+        # ако сменим shape_id → значи shape приключи
+        if current_shape_id and shape_id != current_shape_id:
+
+            points = shapes_dict.pop(current_shape_id)
+
+            if len(points) >= 2:
+                entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points, city)
+                entity = remove_none_values(entity)
+
+                batch.append(entity)
+
+                if len(batch) >= batch_size:
+                    yield batch
+                    batch = []
+
+        collect_shape_points(shapes_dict, parsed)
+
+        current_shape_id = shape_id
+
+    # последния shape
+    if current_shape_id in shapes_dict:
+        points = shapes_dict[current_shape_id]
+
+        if len(points) >= 2:
+            entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points, city)
+            entity = remove_none_values(entity)
+            batch.append(entity)
+
+    if batch:
+        yield batch
 
 # -----------------------------------------------------
 # Remove None values
@@ -2738,58 +2792,13 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------  
   
-def gtfs_static_get_ngsi_ld_data(file_type: str, city: str, base_dir: str = "gtfs_static") -> list[dict[str, Any]]:
-    """
-    Reads GTFS static data from the local filesystem and converts it
-    into NGSI-LD entities based on the specified GTFS file type.
+def gtfs_static_get_ngsi_ld_batches(
+    file_type: str,
+    city: str,
+    base_dir: str = "gtfs_static",
+    batch_size: int = 200
+) -> Iterator[list[dict[str, Any]]]:
 
-    This function assumes that GTFS static data has already been downloaded
-    and extracted using gtfs_static_download_and_extract_zip
-
-    Based on the provided file_type, the function:
-    1. Selects the corresponding GTFS .txt file.
-    2. Reads its contents into a list of dictionaries.
-    3. Applies the appropriate GTFS → NGSI-LD transformation function.
-
-    Args:
-        file_type (str):
-            Identifier of the GTFS static file to process.
-
-            Allowed values:
-            - "agency"
-            - "calendar_dates"
-            - "fare_attributes"
-            - "levels"
-            - "pathways"
-            - "routes"
-            - "shapes"
-            - "stop_times"
-            - "stops"
-            - "transfers"
-            - "trips"
-
-        base_dir (str, optional):
-            Base directory where the GTFS static data is stored.
-            "gtfs_static_download_and_extract_zip" always 
-            creates a data subdirectory inside the base_dir
-            Default directory is "gtfs_static".
-            
-        city (str):
-            The city name to be included in the NGSI-LD entity ID for uniqueness.
-
-    Returns:
-        list[dict[str, Any]]:
-            A list of NGSI-LD compliant entities corresponding to the selected
-            GTFS static file type.
-
-    Raises:
-        ValueError:
-            If the provided "file_type" is not supported.
-        FileNotFoundError:
-            If the expected GTFS file does not exist in `<base_dir>/data`.
-    """
-    
-    # Mapping between GTFS file types, their filenames, and transformation functions
     mapping = {
         "agency": ("agency*.txt", gtfs_static_agency_to_ngsi_ld),
         "calendar_dates": ("calendar_dates*.txt", gtfs_static_calendar_dates_to_ngsi_ld),
@@ -2797,32 +2806,52 @@ def gtfs_static_get_ngsi_ld_data(file_type: str, city: str, base_dir: str = "gtf
         "levels": ("levels*.txt", gtfs_static_levels_to_ngsi_ld),
         "pathways": ("pathways*.txt", gtfs_static_pathways_to_ngsi_ld),
         "routes": ("routes*.txt", gtfs_static_routes_to_ngsi_ld),
-        "shapes": ("shapes*.txt", gtfs_static_shapes_to_ngsi_ld),
+        "shapes": ("shapes*.txt", None),  # special case
         "stop_times": ("stop_times*.txt", gtfs_static_stop_times_to_ngsi_ld),
         "stops": ("stops*.txt", gtfs_static_stops_to_ngsi_ld),
         "transfers": ("transfers*.txt", gtfs_static_transfers_to_ngsi_ld),
         "trips": ("trips*.txt", gtfs_static_trips_to_ngsi_ld),
     }
 
-    # Validate requested GTFS file type
     if file_type not in mapping:
-        raise FileNotFoundError(f"Unsupported GTFS static file type: {file_type}")
+        raise ValueError(f"Unsupported GTFS type: {file_type}")
 
-    # Resolve filename and corresponding transformation function
     pattern, transformer = mapping[file_type]
-     
+
     folder = os.path.join(base_dir, city)
-    search_pattern = os.path.join(folder, pattern)
-     
-    files = sorted(glob.glob(search_pattern))
-    
-    if not files:
-        print(f"Warning: No GTFS files found for pattern: {search_pattern}")
+    files = sorted(glob.glob(os.path.join(folder, pattern)))
 
-    all_rows = []
+    for file_path in files:
 
-    for file in files:
-        rows = gtfs_static_read_file(file)
-        all_rows.extend(rows)
+        with open(file_path, "r", encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f, delimiter=",")
 
-    return transformer(all_rows, city)
+            # 🟣 SHAPES STREAM MODE
+            if file_type == "shapes":
+                yield from gtfs_static_shapes_to_ngsi_ld_stream(
+                    reader,
+                    city,
+                    batch_size
+                )
+                continue
+
+            # 🟢 NORMAL MODE
+            batch = []
+
+            for row in reader:
+                entities = transformer([row], city)
+
+                for entity in entities:
+                    batch.append(entity)
+
+                    if len(batch) >= batch_size:
+                        yield batch
+                        batch = []
+
+            if batch:
+                yield batch
+
+
+if __name__ == "__main__":
+    gtfs_static_get_ngsi_ld_batches("shapes", "helsinki")
+        

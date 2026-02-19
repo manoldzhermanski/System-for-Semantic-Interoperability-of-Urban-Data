@@ -49,7 +49,7 @@ def load_gtfs_static(cities: list[str]):
         for entity_type in GTFS_STATIC_TYPES:
             print(f"  • {entity_type}")
 
-            data = gsu.gtfs_static_get_ngsi_ld_data(entity_type, city)
+            data = gsu.gtfs_static_get_ngsi_ld_batches(entity_type, city)
 
             if not data:
                 continue
