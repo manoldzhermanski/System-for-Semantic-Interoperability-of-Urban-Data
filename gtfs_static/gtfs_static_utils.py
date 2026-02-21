@@ -1237,7 +1237,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
     required_fields = ["stop_id"]
     validate_required_fields(entity, required_fields)
 
-    entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity["stop_id"]}"
+    entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity["stop_id"]}".replace(" ", "_")
     
     # Validate 'location_type' values
     location_type = entity.get("location_type")
@@ -1268,12 +1268,12 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
             raise ValueError(f"'parent_station' is forbidden when 'location_type' is 1")
         
     if parent_station:
-        entity["parent_station"] = f"urn:ngsi-ld:GtfsStop:{city}:{parent_station}"
+        entity["parent_station"] = f"urn:ngsi-ld:GtfsStop:{city}:{parent_station}".replace(" ", "_")
     
     # If present, write zone_id as NGSI URN 
     zone_id = entity.get("zone_id")
     if zone_id is not None:
-        entity["zone_id"] = f"urn:ngsi-ld:GtfsZone:{city}:{zone_id}"
+        entity["zone_id"] = f"urn:ngsi-ld:GtfsZone:{city}:{zone_id}".replace(" ", "_")
 
     # Validate that 'stop_url' is a valid URL
     stop_url = entity.get("stop_url")
@@ -1293,7 +1293,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
     # Validate that 'level_id' is a valid URL
     level_id = entity.get("level_id")
     if level_id is not None:
-        entity["level_id"] = f"urn:ngsi-ld:GtfsLevel:{city}:{level_id}"
+        entity["level_id"] = f"urn:ngsi-ld:GtfsLevel:{city}:{level_id}".replace(" ", "_")
 
     # Validate 'stop_access' values
     stop_access = entity.get("stop_access")
@@ -1357,12 +1357,12 @@ def validate_gtfs_transfers_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'from_route_id' as NGSI URN
     from_route_id = entity.get("from_route_id")
     if from_route_id is not None:
-        entity["from_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{from_route_id}"
+        entity["from_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{from_route_id}".replace(" ", "_")
 
     # If present, write 'to_route_id' as NGSI URN
     to_route_id = entity.get("to_route_id")
     if to_route_id is not None:
-        entity["to_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{to_route_id}"
+        entity["to_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{to_route_id}".replace(" ", "_")
     
     # Check that 'min_transfer_time' is a non-negative integer
     min_transfer_time = entity.get("min_transfer_time")
@@ -1389,10 +1389,10 @@ def validate_gtfs_trips_entity(entity: dict[str, Any], city: str) -> None:
     validate_required_fields(entity, required_fields)
 
     # Write 'route_id' as NGSI URN
-    entity["route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{entity["route_id"]}"
+    entity["route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{entity["route_id"]}".replace(" ", "_")
 
     # Write 'service_id' as NGSI URN
-    entity["service_id"] = f"urn:ngsi-ld:GtfsService:{city}:{entity["service_id"]}"
+    entity["service_id"] = f"urn:ngsi-ld:GtfsService:{city}:{entity["service_id"]}".replace(" ", "_")
 
     # Validate 'direction_id' value
     direction_id = entity.get("direction_id")
@@ -1402,12 +1402,12 @@ def validate_gtfs_trips_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'block_id' as NGSI URN 
     block_id = entity.get("block_id")
     if block_id is not None:
-        entity["block_id"] = f"urn:ngsi-ld:GtfsBlock:{city}:{entity["block_id"]}"
+        entity["block_id"] = f"urn:ngsi-ld:GtfsBlock:{city}:{entity["block_id"]}".replace(" ", "_")
 
     # If present, write 'shape_id' as NGSI URN 
     shape_id = entity.get("shape_id")
     if shape_id is not None:
-        entity["shape_id"] = f"urn:ngsi-ld:GtfsShape:{city}:{entity["shape_id"]}"
+        entity["shape_id"] = f"urn:ngsi-ld:GtfsShape:{city}:{entity["shape_id"]}".replace(" ", "_")
 
     # Validate 'wheelchair_accessible' value
     wheelchair_accessible = entity.get("wheelchair_accessible")
@@ -2026,19 +2026,19 @@ def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict
         
     if entity.get("from_stop_id") is not None:
         id_parts.append(f"fromStop:{entity.get("from_stop_id")}")
-        entity['from_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['from_stop_id']}"
+        entity['from_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['from_stop_id']}".replace(" ", "_")
             
     if entity.get("to_stop_id") is not None:
         id_parts.append(f"toStop:{entity.get("to_stop_id")}")
-        entity['to_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['to_stop_id']}"
+        entity['to_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['to_stop_id']}".replace(" ", "_")
         
     if entity.get("from_trip_id") is not None:
         id_parts.append(f"fromTrip:{entity.get("from_trip_id")}")
-        entity["from_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["from_trip_id"]}"
+        entity["from_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["from_trip_id"]}".replace(" ", "_")
 
     if entity.get("to_trip_id") is not None:
         id_parts.append(f"toTrip:{entity.get("to_trip_id")}")
-        entity["to_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["to_trip_id"]}"
+        entity["to_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["to_trip_id"]}".replace(" ", "_")
             
     entity_id = f"urn:ngsi-ld:GtfsTransferRule:{city}:" + ":".join(id_parts)
     
@@ -2100,7 +2100,7 @@ def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str
         dict: An NGSI-LD entity of type GtfsTrip.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}",
+            "id": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}".replace(" ", "_"),
             "type": "GtfsTrip",
             
             "route": {
@@ -2188,7 +2188,7 @@ def collect_shape_points(shapes_dict: dict[str, Any], entity: dict[str, Any]) ->
 def gtfs_static_shapes_to_ngsi_ld_stream(
     reader: Iterator[dict[str, Any]],
     city: str,
-    batch_size: int = 200
+    batch_size: int = 1000
 ) -> Iterator[list[dict[str, Any]]]:
     """
     Stream parser for shapes.txt
@@ -2796,7 +2796,7 @@ def gtfs_static_get_ngsi_ld_batches(
     file_type: str,
     city: str,
     base_dir: str = "gtfs_static",
-    batch_size: int = 200
+    batch_size: int = 1000
 ) -> Iterator[list[dict[str, Any]]]:
 
     mapping = {
@@ -2853,5 +2853,6 @@ def gtfs_static_get_ngsi_ld_batches(
 
 
 if __name__ == "__main__":
-    gtfs_static_get_ngsi_ld_batches("shapes", "helsinki")
+    for batch in gtfs_static_get_ngsi_ld_batches("shapes", "helsinki"):
+        print(json.dumps(batch, indent=2))
         
