@@ -2792,12 +2792,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------  
   
-def gtfs_static_get_ngsi_ld_batches(
-    file_type: str,
-    city: str,
-    base_dir: str = "gtfs_static",
-    batch_size: int = 1000
-) -> Iterator[list[dict[str, Any]]]:
+def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "gtfs_static", batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
 
     mapping = {
         "agency": ("agency*.txt", gtfs_static_agency_to_ngsi_ld),
@@ -2818,7 +2813,7 @@ def gtfs_static_get_ngsi_ld_batches(
 
     pattern, transformer = mapping[file_type]
 
-    folder = os.path.join(base_dir, city)
+    folder = os.path.join(base_dir, city.lower())
     files = sorted(glob.glob(os.path.join(folder, pattern)))
 
     for file_path in files:
@@ -2828,11 +2823,7 @@ def gtfs_static_get_ngsi_ld_batches(
 
             # 🟣 SHAPES STREAM MODE
             if file_type == "shapes":
-                yield from gtfs_static_shapes_to_ngsi_ld_stream(
-                    reader,
-                    city,
-                    batch_size
-                )
+                yield from gtfs_static_shapes_to_ngsi_ld_stream(reader, city, batch_size)
                 continue
 
             # 🟢 NORMAL MODE
