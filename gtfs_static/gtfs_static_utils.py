@@ -2167,11 +2167,11 @@ def collect_shape_points(shapes_dict: dict[str, Any], entity: dict[str, Any]) ->
         shapes_dict (dict): Dictionary grouping points by shape_id. 
                             Keys are shape_id strings, values are lists of points and distances.
         entity (dict): Dictionary with data for a single shape point, including:
-                       - shape_id: the identifier of the shape
-                       - shape_pt_sequence: sequence number of the point
-                       - shape_pt_lon: longitude
-                       - shape_pt_lat: latitude
-                       - shape_dist_traveled (optional): distance traveled along the shape
+        - shape_id: the identifier of the shape
+        - shape_pt_sequence: sequence number of the point
+        - shape_pt_lon: longitude
+        - shape_pt_lat: latitude
+        - shape_dist_traveled (optional): distance traveled along the shape
     """
     
     # Get shape_id and point and distance data from the entity
@@ -2184,60 +2184,6 @@ def collect_shape_points(shapes_dict: dict[str, Any], entity: dict[str, Any]) ->
     
     # Append the point and distance to the corresponding shape_id in shapes_dict
     shapes_dict.setdefault(shape_id, []).append(point)
-
-def gtfs_static_shapes_to_ngsi_ld_stream(
-    reader: Iterator[dict[str, Any]],
-    city: str,
-    batch_size: int = 1000
-) -> Iterator[list[dict[str, Any]]]:
-    """
-    Stream parser for shapes.txt
-
-    Aggregates points per shape_id and yields NGSI-LD entities in batches.
-    """
-
-    shapes_dict: dict[str, list[dict]] = {}
-    batch: list[dict] = []
-
-    current_shape_id = None
-
-    for row in reader:
-
-        parsed = parse_gtfs_shapes_data(row)
-        validate_gtfs_shapes_entity(parsed)
-
-        shape_id = parsed["shape_id"]
-
-        # ако сменим shape_id → значи shape приключи
-        if current_shape_id and shape_id != current_shape_id:
-
-            points = shapes_dict.pop(current_shape_id)
-
-            if len(points) >= 2:
-                entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points, city)
-                entity = remove_none_values(entity)
-
-                batch.append(entity)
-
-                if len(batch) >= batch_size:
-                    yield batch
-                    batch = []
-
-        collect_shape_points(shapes_dict, parsed)
-
-        current_shape_id = shape_id
-
-    # последния shape
-    if current_shape_id in shapes_dict:
-        points = shapes_dict[current_shape_id]
-
-        if len(points) >= 2:
-            entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points, city)
-            entity = remove_none_values(entity)
-            batch.append(entity)
-
-    if batch:
-        yield batch
 
 # -----------------------------------------------------
 # Remove None values
@@ -2545,61 +2491,107 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
     # Return the list of NGSI-LD GtfsRoute
     return ngsi_ld_data
 
-def gtfs_static_shapes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city: str, batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
     """
-    Converts GTFS static shapes into NGSI-LD entities.
+    Stream and convert GTFS shapes.txt rows into NGSI-LD entities.
+
+    The function processes the shapes file sequentially and groups rows by
+    shape_id. When a shape is fully read, it is converted into a
+    NGSI-LD entity and added to the current batch.
+
+    Entities are yielded in batches instead of being accumulated entirely
+    in memory so large files can be processed.
 
     The function processes each GTFS shape entity by:
-    1. Parsing raw GTFS data transforming it to the according data types
-    2. Validating the parsed shapes entity against GTFS rules.
-    3. Aggregating all points and 'shape_dist_traveled' into lists based on the 'shape_id'
-    4. Converting the aggregated entity into an NGSI-LD GtfsShape entity.
-    5. Removing attributes with None values from the resulting NGSI-LD entity.
+    1. Read rows one by one from the CSV reader.
+    2. Parse and validate each GTFS shape record.
+    3. Group points by shape_id.
+    4. When the shape_id changes, finalize the previous shape.
+    5. Convert the collected points into an NGSI-LD entity.
+    6. Yield entities in batches of batch_size.
 
     Args:
-        raw_data (list[dict[str, Any]]):
-            A list of dictionaries representing GTFS shape entities
+        reader:
+            Iterator of dictionaries produced by `csv.DictReader` for the GTFS `shapes.txt` file.
 
-    Returns:
+        city:
+            City name used in NGSI-LD entity identifiers to display data origin
+
+        batch_size:
+            Maximum number of NGSI-LD entities yielded at once.
+
+    Yields:
         list[dict[str, Any]]:
-            A list of NGSI-LD compliant entities, each representing GtfsShape
-
-    Raises:
-        ValueError:
-            If any parsed shape entity does not satisfy the GTFS validation rules.
+            A batch of NGSI-LD Shape entities ready to be sent to Orion-LD Context Broker.
     """
-    # Container for the resulting NGSI-LD shape entities
-    ngsi_ld_data = []
-    
-    # Container for the aggregated points and travelled distance
-    shapes_dict = {}
 
-    # Process each GTFS shape entity
-    for shape in raw_data:
-        
+    # Temporary storage for collected shape points grouped by shape_id
+    shapes_dict: dict[str, list[dict]] = {}
+
+    # Current batch of NGSI-LD entities to be yielded
+    batch: list[dict] = []
+
+    # Tracks the currently processed shape
+    current_shape_id = None
+
+    for row in reader:
+
         # Parse raw GTFS shape data to the according data types
-        parsed_entity = parse_gtfs_shapes_data(shape)
-        
+        parsed = parse_gtfs_shapes_data(row)
+
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_shapes_entity(parsed_entity)
-        
-        # Aggregate the shape points and distance travelled and store it in the shape_dict container
-        collect_shape_points(shapes_dict, parsed_entity)
+        validate_gtfs_shapes_entity(parsed)
 
-    # Process each record in the shape_dict container                
-    for shape_id, points in shapes_dict.items():
-        
-        # Convert the aggregated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_shapes_to_ngsi_ld(shape_id, points, city)
-        
-        # Remove attributes with None values for NGSI-LD compliance
-        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
-        
-        # Append the final NGSI-LD entity to the result list
-        ngsi_ld_data.append(ngsi_ld_entity)
+        # Get current row's shape_id to determine when a shape is complete
+        shape_id = parsed["shape_id"]
 
-    # Return the list of NGSI-LD GtfsShape entities
-    return ngsi_ld_data
+        # If shape_id changes, the previous shape is complete
+        if current_shape_id and shape_id != current_shape_id:
+
+            # Get collected points and traveled distances for the completed shape
+            points = shapes_dict.pop(current_shape_id)
+
+            # If the shape has at least two points, convert it into an NGSI-LD entity and add to batch
+            if len(points) >= 2:
+                
+                # Convert the collected points into an NGSI-LD entity
+                entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points, city)
+
+                # Remove attributes with None values for NGSI-LD compliance
+                entity = remove_none_values(entity)
+
+                # Append the final NGSI-LD entity to the batch list
+                batch.append(entity)
+
+                # If batch size is reached, yield it and reset
+                if len(batch) >= batch_size:
+                    yield batch
+                    batch = []
+
+        # Add the parsed point to the current shape
+        collect_shape_points(shapes_dict, parsed)
+
+        # Update currently processed shape_id
+        current_shape_id = shape_id
+
+    # Finalize the last shape in the file
+    if current_shape_id in shapes_dict:
+        points = shapes_dict[current_shape_id]
+
+        # If the shape has at least two points, convert it into an NGSI-LD entity and add to batch
+        if len(points) >= 2:
+            # Convert the collected points into an NGSI-LD entity
+            entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points, city)
+            
+            # Remove attributes with None values for NGSI-LD compliance
+            entity = remove_none_values(entity)
+            
+            # Append the final NGSI-LD entity to the batch list
+            batch.append(entity)
+
+    # Yield remaining entities if any exist
+    if batch:
+        yield batch
 
 def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
     """
@@ -2793,7 +2785,43 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
 # -----------------------------------------------------  
   
 def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "gtfs_static", batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
+    """
+    Stream GTFS static data and convert it to NGSI-LD entities in batches.
 
+    This function:
+    1. Locates GTFS files for a given city and file type.
+    2. Reads them row by row using a CSV stream.
+    3. Transforms each row into NGSI-LD entities.
+    4. Yields the entities in batches to avoid loading the entire dataset into memory.
+    
+    Note:
+    Shapes are handled as a special streaming case because they have to be aggregated by shape_id before conversion.
+
+    Args:
+        file_type (str):
+            GTFS file type (e.g. agency, stops, routes, stop_times, shapes).
+
+        city (str):
+            City name used to locate the GTFS directory and to build entity URNs.
+
+        base_dir (str, optional):
+            Base directory containing GTFS folders per city.
+            Default: "gtfs_static".
+
+        batch_size (int, optional):
+            Maximum number of NGSI-LD entities yielded per batch.
+            Default: 1000.
+
+    Yields:
+        Iterator[list[dict]]:
+            Lists of NGSI-LD entities ready to be sent to Orion-LD.
+
+    Raises:
+        ValueError:
+            If an unsupported GTFS file type is provided.
+    """
+
+    # Mapping between GTFS file type, file pattern and transformer function
     mapping = {
         "agency": ("agency*.txt", gtfs_static_agency_to_ngsi_ld),
         "calendar_dates": ("calendar_dates*.txt", gtfs_static_calendar_dates_to_ngsi_ld),
@@ -2801,44 +2829,53 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
         "levels": ("levels*.txt", gtfs_static_levels_to_ngsi_ld),
         "pathways": ("pathways*.txt", gtfs_static_pathways_to_ngsi_ld),
         "routes": ("routes*.txt", gtfs_static_routes_to_ngsi_ld),
-        "shapes": ("shapes*.txt", None),  # special case
+        "shapes": ("shapes*.txt", None),  # Special case due to aggregation
         "stop_times": ("stop_times*.txt", gtfs_static_stop_times_to_ngsi_ld),
         "stops": ("stops*.txt", gtfs_static_stops_to_ngsi_ld),
         "transfers": ("transfers*.txt", gtfs_static_transfers_to_ngsi_ld),
         "trips": ("trips*.txt", gtfs_static_trips_to_ngsi_ld),
     }
 
+    # Validate requested GTFS type
     if file_type not in mapping:
         raise ValueError(f"Unsupported GTFS type: {file_type}")
 
     pattern, transformer = mapping[file_type]
 
+    # Resolve the folder containing the GTFS files for the city
     folder = os.path.join(base_dir, city.lower())
+
+    # Locate all matching GTFS files
     files = sorted(glob.glob(os.path.join(folder, pattern)))
 
+    # Process each file sequentially
     for file_path in files:
 
+        # Open the file and read it as a CSV stream
         with open(file_path, "r", encoding="utf-8-sig", newline="") as f:
             reader = csv.DictReader(f, delimiter=",")
 
-            # 🟣 SHAPES STREAM MODE
+            # SPECIAL CASE: shapes are streamed differently because of aggregation by shape_id
             if file_type == "shapes":
                 yield from gtfs_static_shapes_to_ngsi_ld_stream(reader, city, batch_size)
                 continue
 
-            # 🟢 NORMAL MODE
+            # Standard batch processing
             batch = []
 
             for row in reader:
+                # Convert the GTFS row into NGSI-LD entities
                 entities = transformer([row], city)
 
                 for entity in entities:
                     batch.append(entity)
 
+                    # Yield when batch size limit is reached
                     if len(batch) >= batch_size:
                         yield batch
                         batch = []
 
+            # Yield any remaining entities
             if batch:
                 yield batch
 
