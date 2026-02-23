@@ -71,19 +71,11 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header
             response = requests.post(config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT.value, json=batch_ngsi_ld_data,
                                      headers=header, timeout=60)
 
-            # --------------------
-            # SUCCESS FULL
-            # --------------------
+
             if response.status_code == 201:
-                logger.info(
-                    "Batch OK (%d entities)",
-                    len(batch_ngsi_ld_data),
-                )
+                logger.info("Batch OK (%d entities)", len(batch_ngsi_ld_data))
                 return
 
-            # --------------------
-            # PARTIAL SUCCESS
-            # --------------------
             if response.status_code == 207:
                 payload = response.json()
 
@@ -121,12 +113,7 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header
             )
 
         except requests.exceptions.RequestException as e:
-            logger.warning(
-                "Batch attempt %d/%d failed: %s",
-                attempt,
-                max_retries,
-                str(e),
-            )
+            logger.warning("Batch attempt %d/%d failed: %s", attempt, max_retries, str(e))
 
             if attempt == max_retries:
                 raise
@@ -134,18 +121,14 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header
             time.sleep(2 * attempt)
 
 
-def orion_ld_batch_load_to_context_broker(batches_iterator, header: dict, delay: float = 0.1,) -> None:
+def orion_ld_batch_load_to_context_broker(batches_iterator, header: dict, delay: float = 0.1) -> None:
     """
     Accepts iterator of batches instead of giant list.
     Works with streaming pipeline.
     """
 
     for batch_index, batch in enumerate(batches_iterator, start=1):
-        logger.debug(
-            "Sending batch %d (%d entities)",
-            batch_index,
-            len(batch),
-        )
+        logger.debug("Sending batch %d (%d entities)", batch_index, len(batch))
 
         orion_ld_post_batch_request(batch, header)
         time.sleep(delay)
