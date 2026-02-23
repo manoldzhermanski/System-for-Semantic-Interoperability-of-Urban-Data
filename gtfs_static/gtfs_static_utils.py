@@ -222,7 +222,7 @@ def cleanup_string(value: Any) -> str | None:
 
     if value in (None, ""):
         return None
-    value = str(value).strip()
+    value = str(value).strip().replace(" ", "_")
     return value or None
 
 # -----------------------------------------------------
@@ -1137,13 +1137,13 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any], city: str) -> None:
 
     # Write NGSI-LD URNs based on which location identifier is defined
     if has_stop_id:
-        entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['stop_id']}".replace(" ", "_")
+        entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['stop_id']}"
 
     if has_location_group_id:
-        entity["location_group_id"] = f"urn:ngsi-ld:LocationGroup:{city}:{entity['location_group_id']}".replace(" ", "_")
+        entity["location_group_id"] = f"urn:ngsi-ld:LocationGroup:{city}:{entity['location_group_id']}"
 
     if has_location_id:
-        entity["location_id"] = f"urn:ngsi-ld:Location:{city}:{entity['location_id']}".replace(" ", "_")
+        entity["location_id"] = f"urn:ngsi-ld:Location:{city}:{entity['location_id']}"
         
     # Validate that if 'location_id' or 'location_group_id' are defined, 
     # start_pickup_drop_off_window and end_pickup_drop_off_window must also be defined
@@ -1207,12 +1207,12 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'pickup_booking_rule_id' as a NGSI URN
     pickup_booking_rule_id = entity.get("pickup_booking_rule_id")
     if pickup_booking_rule_id is not None:
-        entity["pickup_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{pickup_booking_rule_id}".replace(" ", "_")
+        entity["pickup_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{pickup_booking_rule_id}"
 
     # If present, write 'drop_off_booking_rule_id' as a NGSI URN
     drop_off_booking_rule_id = entity.get("drop_off_booking_rule_id")
     if drop_off_booking_rule_id is not None:
-        entity["drop_off_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{drop_off_booking_rule_id}".replace
+        entity["drop_off_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{drop_off_booking_rule_id}"
 
 def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
     """
@@ -1237,7 +1237,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
     required_fields = ["stop_id"]
     validate_required_fields(entity, required_fields)
 
-    entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity["stop_id"]}".replace(" ", "_")
+    entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity["stop_id"]}"
     
     # Validate 'location_type' values
     location_type = entity.get("location_type")
@@ -1268,12 +1268,12 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
             raise ValueError(f"'parent_station' is forbidden when 'location_type' is 1")
         
     if parent_station:
-        entity["parent_station"] = f"urn:ngsi-ld:GtfsStop:{city}:{parent_station}".replace(" ", "_")
+        entity["parent_station"] = f"urn:ngsi-ld:GtfsStop:{city}:{parent_station}"
     
     # If present, write zone_id as NGSI URN 
     zone_id = entity.get("zone_id")
     if zone_id is not None:
-        entity["zone_id"] = f"urn:ngsi-ld:GtfsZone:{city}:{zone_id}".replace(" ", "_")
+        entity["zone_id"] = f"urn:ngsi-ld:GtfsZone:{city}:{zone_id}"
 
     # Validate that 'stop_url' is a valid URL
     stop_url = entity.get("stop_url")
@@ -1293,7 +1293,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
     # Validate that 'level_id' is a valid URL
     level_id = entity.get("level_id")
     if level_id is not None:
-        entity["level_id"] = f"urn:ngsi-ld:GtfsLevel:{city}:{level_id}".replace(" ", "_")
+        entity["level_id"] = f"urn:ngsi-ld:GtfsLevel:{city}:{level_id}"
 
     # Validate 'stop_access' values
     stop_access = entity.get("stop_access")
@@ -1357,12 +1357,12 @@ def validate_gtfs_transfers_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'from_route_id' as NGSI URN
     from_route_id = entity.get("from_route_id")
     if from_route_id is not None:
-        entity["from_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{from_route_id}".replace(" ", "_")
+        entity["from_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{from_route_id}"
 
     # If present, write 'to_route_id' as NGSI URN
     to_route_id = entity.get("to_route_id")
     if to_route_id is not None:
-        entity["to_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{to_route_id}".replace(" ", "_")
+        entity["to_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{to_route_id}"
     
     # Check that 'min_transfer_time' is a non-negative integer
     min_transfer_time = entity.get("min_transfer_time")
@@ -1389,10 +1389,10 @@ def validate_gtfs_trips_entity(entity: dict[str, Any], city: str) -> None:
     validate_required_fields(entity, required_fields)
 
     # Write 'route_id' as NGSI URN
-    entity["route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{entity["route_id"]}".replace(" ", "_")
+    entity["route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{entity["route_id"]}"
 
     # Write 'service_id' as NGSI URN
-    entity["service_id"] = f"urn:ngsi-ld:GtfsService:{city}:{entity["service_id"]}".replace(" ", "_")
+    entity["service_id"] = f"urn:ngsi-ld:GtfsService:{city}:{entity["service_id"]}"
 
     # Validate 'direction_id' value
     direction_id = entity.get("direction_id")
@@ -1402,12 +1402,12 @@ def validate_gtfs_trips_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'block_id' as NGSI URN 
     block_id = entity.get("block_id")
     if block_id is not None:
-        entity["block_id"] = f"urn:ngsi-ld:GtfsBlock:{city}:{entity["block_id"]}".replace(" ", "_")
+        entity["block_id"] = f"urn:ngsi-ld:GtfsBlock:{city}:{entity["block_id"]}"
 
     # If present, write 'shape_id' as NGSI URN 
     shape_id = entity.get("shape_id")
     if shape_id is not None:
-        entity["shape_id"] = f"urn:ngsi-ld:GtfsShape:{city}:{entity["shape_id"]}".replace(" ", "_")
+        entity["shape_id"] = f"urn:ngsi-ld:GtfsShape:{city}:{entity["shape_id"]}"
 
     # Validate 'wheelchair_accessible' value
     wheelchair_accessible = entity.get("wheelchair_accessible")
@@ -1502,12 +1502,12 @@ def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str) ->
         dict: An NGSI-LD entity of type GtfsCalendarDateRule.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:{entity.get('service_id')}:{entity.get('date')}".replace(" ", "_"),
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:{entity.get('service_id')}:{entity.get('date')}",
             "type": "GtfsCalendarDateRule",
             
             "hasService": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsService:{entity.get("service_id")}".replace(" ", "_")
+                "object": f"urn:ngsi-ld:GtfsService:{entity.get("service_id")}"
             },
             
             "appliesOn": {
@@ -1780,12 +1780,12 @@ def convert_gtfs_shapes_to_ngsi_ld(shape_id: str, points: list[dict], city: str)
         dist_traveled = None
         
     return {
-            "id": f"urn:ngsi-ld:GtfsShape:{city}:{shape_id}".replace(" ", "_"),
+            "id": f"urn:ngsi-ld:GtfsShape:{city}:{shape_id}",
             "type": "GtfsShape",
             
             "name": {
                 "type": "Property",
-                "value": shape_id.replace(" ", "_")
+                "value": shape_id
                 },
             
             "location": {
@@ -1817,12 +1817,12 @@ def convert_gtfs_stop_times_to_ngsi_ld(entity: dict[str, Any], city: str) -> dic
         dict: An NGSI-LD entity of type GtfsStopTime.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsStopTime:{city}:{entity.get("trip_id")}:{entity.get("stop_sequence")}".replace(" ", "_"),
+            "id": f"urn:ngsi-ld:GtfsStopTime:{city}:{entity.get("trip_id")}:{entity.get("stop_sequence")}",
             "type": "GtfsStopTime",
             
             "hasTrip": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}".replace(" ", "_")
+                "object": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}"
             },
             
             "arrivalTime": {
@@ -2026,19 +2026,19 @@ def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict
         
     if entity.get("from_stop_id") is not None:
         id_parts.append(f"fromStop:{entity.get("from_stop_id")}")
-        entity['from_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['from_stop_id']}".replace(" ", "_")
+        entity['from_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['from_stop_id']}"
             
     if entity.get("to_stop_id") is not None:
         id_parts.append(f"toStop:{entity.get("to_stop_id")}")
-        entity['to_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['to_stop_id']}".replace(" ", "_")
+        entity['to_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['to_stop_id']}"
         
     if entity.get("from_trip_id") is not None:
         id_parts.append(f"fromTrip:{entity.get("from_trip_id")}")
-        entity["from_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["from_trip_id"]}".replace(" ", "_")
+        entity["from_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["from_trip_id"]}"
 
     if entity.get("to_trip_id") is not None:
         id_parts.append(f"toTrip:{entity.get("to_trip_id")}")
-        entity["to_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["to_trip_id"]}".replace(" ", "_")
+        entity["to_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["to_trip_id"]}"
             
     entity_id = f"urn:ngsi-ld:GtfsTransferRule:{city}:" + ":".join(id_parts)
     
@@ -2100,7 +2100,7 @@ def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str
         dict: An NGSI-LD entity of type GtfsTrip.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}".replace(" ", "_"),
+            "id": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}",
             "type": "GtfsTrip",
             
             "route": {
