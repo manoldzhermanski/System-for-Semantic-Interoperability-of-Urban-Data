@@ -189,7 +189,7 @@ def orion_ld_get_entity_by_id(entity_id: str, header: dict[str, str]) -> dict[st
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when sending GET Request: {e}")
 
-def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str]) -> list[dict[str, Any]]:
+def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str], id_pattern: str | None = None) -> list[dict[str, Any]]:
     """
     Retrieve all entities of a specific NGSI-LD type from Orion-LD, handling pagination.
 
@@ -232,9 +232,8 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str]) -> l
             "offset": offset,
             }
         
-        #iteration += 1
-        #if iteration > max_iterations:
-        #    raise RuntimeError("Too many iterations in get_entities_by_type")
+        if id_pattern is not None:
+            params["idPattern"] = id_pattern
         
         try:
             # Send a GET request to extract entities of type 'entity_type'
@@ -265,7 +264,7 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str]) -> l
     # Return all entities
     return all_entities
 
-def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, query_expression: str) -> list[dict[str, Any]]:
+def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, query_expression: str, id_pattern: str | None = None) -> list[dict[str, Any]]:
     """
     Retrieve all entities of a specific NGSI-LD type that match a given query expression.
 
@@ -322,6 +321,9 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, que
             "offset": offset,
             "limit": limit
         }
+
+        if id_pattern is not None:
+            params["idPattern"] = id_pattern
 
         iteration += 1
         if iteration > max_iterations:
@@ -401,7 +403,7 @@ def orion_ld_get_attribute_values_from_etities(entity_ids: list[str], attribute_
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when sending GET request: {e}")
 
-def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, str]) -> int:
+def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, str], id_pattern: str | None = None) -> int:
     """
     Retrieve the total number of NGSI-LD entities of a given type from Orion-LD.
 
@@ -435,6 +437,9 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, s
         "limit": 0,
         "options": "count"
     }
+
+    if id_pattern is not None:
+        params["idPattern"] = id_pattern
 
     try:
         # Send GET request to Orion-LD to get the count of entities of the specified type
