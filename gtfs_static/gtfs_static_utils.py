@@ -198,11 +198,13 @@ def validate_required_fields(data: dict[str, Any],required_fields: list[str]) ->
 
         value = data.get(field)
 
+        if field == "transfers" and (value == "" or value is None):
+            continue
+
         if value is None:
             raise ValueError(f"Missing required GTFS field: {field}")
 
-        if field == "transfers" and value == "":
-            continue
+        
         
         if isinstance(value, str) and value == "":
             raise ValueError(f"Missing required GTFS field: {field}")
@@ -859,6 +861,7 @@ def validate_gtfs_fare_attributes_entity(entity: dict[str, Any], city: str) -> N
     transfers = entity.get("transfers")
     if transfers is None or transfers == "":
         entity["transfers"] = " "
+        transfers = " "
     if not validation_utils.is_valid_transfers(transfers):
         raise ValueError(f"'transfers' should be 0, 1 or 2, got {transfers}")
     
@@ -2884,6 +2887,6 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
 
 
 if __name__ == "__main__":
-    for batch in gtfs_static_get_ngsi_ld_batches("shapes", "helsinki"):
+    for batch in gtfs_static_get_ngsi_ld_batches("fare_attributes", "helsinki"):
         print(json.dumps(batch, indent=2))
         
