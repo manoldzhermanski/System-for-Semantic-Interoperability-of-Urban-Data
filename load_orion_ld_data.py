@@ -13,7 +13,7 @@ GTFS_STATIC_TYPES = (
     "pathways",
     "routes",
     "shapes",
-    "stop_times",
+    #"stop_times",
     "stops",
     "transfers",
     "trips",
