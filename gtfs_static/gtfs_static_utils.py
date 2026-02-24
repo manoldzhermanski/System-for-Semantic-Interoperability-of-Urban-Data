@@ -201,6 +201,9 @@ def validate_required_fields(data: dict[str, Any],required_fields: list[str]) ->
         if value is None:
             raise ValueError(f"Missing required GTFS field: {field}")
 
+        if field == "transfers" and value == "":
+            continue
+        
         if isinstance(value, str) and value == "":
             raise ValueError(f"Missing required GTFS field: {field}")
 
@@ -827,8 +830,6 @@ def validate_gtfs_fare_attributes_entity(entity: dict[str, Any], city: str) -> N
     - The currency_type is a valid ISO 4217 currency code
     - Validation of 'payment_method', 'transfers' values
     - If provided, 'transfer_duration' is a non-negative integer
-    - NOTE: In GTFS Static 'transfers' can be empty and means 'Unlimited transfers are permitted'
-      NGSI-LD does not allow empty values, thus -1 is assigned as 'Unlimited transfers are permitted'
     Args:
         entity (dict[str, Any]): A parsed GTFS fare attributes entity.
 
@@ -856,6 +857,8 @@ def validate_gtfs_fare_attributes_entity(entity: dict[str, Any], city: str) -> N
 
     # Validate 'transfers'
     transfers = entity.get("transfers")
+    if transfers is None or transfers == "":
+        entity["transfers"] = " "
     if not validation_utils.is_valid_transfers(transfers):
         raise ValueError(f"'transfers' should be 0, 1 or 2, got {transfers}")
     
