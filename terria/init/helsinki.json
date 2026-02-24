@@ -1,0 +1,54 @@
+{
+  "homeCamera": {
+    "west": 24.82,
+    "south": 60.14,
+    "east": 25.10,
+    "north": 60.30
+  },
+  "baseMaps": {
+    "items": [
+      {
+        "item": {
+          "id": "helsinki-map",
+          "name": "Helsinki Map",
+          "type": "open-street-map",
+          "url": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+          "attribution": "© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>, © <a href='https://carto.com/attributions'>CARTO</a>",
+          "subdomains": ["a", "b", "c", "d"],
+          "opacity": 1.0
+        },
+        "image": "build/TerriaJS/images/helsinki.png"
+      }
+    ],
+    "defaultBaseMapId": "helsinki-map"
+  },
+  "catalog": [
+    {
+      "name": "GTFS Stops in Helsinki",
+      "type": "geojson",
+      "url": "http://localhost:8000/api/gtfs/stops.geojson",
+      "description": "This dataset contains all public transport stops in Helsinki, Finland, based on GTFS data."
+    },
+    {
+      "name": "GTFS Shapes in Helsinki",
+      "type": "geojson",
+      "url": "http://localhost:8000/api/gtfs/shapes.geojson",
+      "description": "This dataset contains all public transport shapes in Helsinki, Finland, based on GTFS data."
+    },
+    {
+      "name": "PoIs in Helsinki",
+      "type": "geojson",
+      "url": "http://localhost:8000/api/pois/pois.geojson",
+      "description": "This dataset contains different types of Points Of Interest in Helsinki, Finland."
+    },
+    {
+      "name": "Vehicle Positions in Helsinki",
+      "type": "gtfs",
+      "url": "http://localhost:8000/api/gtfs/vehicles",
+      "image":"build/TerriaJS/images/bus.png",
+      "description": "Helsinki's Public Transport in Real Time.",
+      "refreshInterval": 30,
+      "refreshEnabled": true
+    }
+  ]
+}

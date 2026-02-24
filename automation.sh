@@ -19,7 +19,12 @@ usage() {
   echo "  ./automation.sh load pois"
   echo "  ./automation.sh otp_build"
   echo "  ./automation.sh gtfs_static_rebuild"
+  echo "  ./automation.sh clear_all"
   exit 1
+}
+
+clear_all() {
+  docker system prune -a --volumes
 }
 
 activate_venv() {
@@ -128,6 +133,9 @@ case "$COMMAND" in
     ;;
   otp_build)
     otp_build "$@"
+    ;;
+  clear_all)
+    clear_all
     ;;
   *)
     usage

@@ -1,6 +1,7 @@
 {
   "name": "Sofia Map",
   "initializationUrls": [
-    "init/simple.json"
+    "init/simple.json",
+    "init/helsinki.json"
   ]
 }
