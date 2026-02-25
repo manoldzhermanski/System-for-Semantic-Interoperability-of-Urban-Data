@@ -365,7 +365,7 @@ def parse_gtfs_agency_data(entity: dict[str, str]) -> dict[str, Any]:
         "agency_url": cleanup_string(entity.get("agency_url")),
         "agency_timezone": cleanup_string(entity.get("agency_timezone")),
         "agency_lang": cleanup_string(entity.get("agency_lang")),
-        "agency_phone": cleanup_string(entity.get("agency_phone")),
+        "agency_phone": cleanup_string(entity.get("agency_phone")).replace("_", ""),
         "agency_fare_url": cleanup_string(entity.get("agency_fare_url")),
         "agency_email": cleanup_string(entity.get("agency_email")),
         "cemv_support": parse_int(entity.get("cemv_support"), "cemv_support"),
@@ -2497,7 +2497,7 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
     # Return the list of NGSI-LD GtfsRoute
     return ngsi_ld_data
 
-def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city: str, batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
+def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city: str, batch_size: int = 250) -> Iterator[list[dict[str, Any]]]:
     """
     Stream and convert GTFS shapes.txt rows into NGSI-LD entities.
 
@@ -2790,7 +2790,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------  
   
-def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "gtfs_static", batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
+def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "gtfs_static", batch_size: int = 250) -> Iterator[list[dict[str, Any]]]:
     """
     Stream GTFS static data and convert it to NGSI-LD entities in batches.
 

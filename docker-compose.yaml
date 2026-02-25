@@ -23,7 +23,7 @@ services:
       - "27017"
     ports:
       - "27017:27017"
-    command: --nojournal --wiredTigerCacheSizeGB 2
+    command: --nojournal --wiredTigerCacheSizeGB 4
     volumes:
       - mongo-db:/data
 

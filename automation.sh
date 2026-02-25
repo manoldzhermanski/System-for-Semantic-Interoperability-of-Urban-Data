@@ -24,6 +24,7 @@ usage() {
 }
 
 clear_all() {
+  activate_venv
   docker system prune -a --volumes
 }
 
