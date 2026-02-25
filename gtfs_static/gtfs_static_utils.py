@@ -2836,7 +2836,7 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
         "pathways": ("pathways*.txt", gtfs_static_pathways_to_ngsi_ld),
         "routes": ("routes*.txt", gtfs_static_routes_to_ngsi_ld),
         "shapes": ("shapes*.txt", None),  # Special case due to aggregation
-        #"stop_times": ("stop_times*.txt", gtfs_static_stop_times_to_ngsi_ld),
+        "stop_times": ("stop_times*.txt", gtfs_static_stop_times_to_ngsi_ld),
         "stops": ("stops*.txt", gtfs_static_stops_to_ngsi_ld),
         "transfers": ("transfers*.txt", gtfs_static_transfers_to_ngsi_ld),
         "trips": ("trips*.txt", gtfs_static_trips_to_ngsi_ld),
