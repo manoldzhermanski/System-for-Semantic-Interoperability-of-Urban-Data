@@ -361,11 +361,11 @@ def parse_gtfs_agency_data(entity: dict[str, str]) -> dict[str, Any]:
 
     return {
         "agency_id": cleanup_string(entity.get("agency_id")),
-        "agency_name": cleanup_string(entity.get("agency_name")),
+        "agency_name": cleanup_string(entity.get("agency_name")).replace("_", " ") if entity.get("agency_name") else None,
         "agency_url": cleanup_string(entity.get("agency_url")),
         "agency_timezone": cleanup_string(entity.get("agency_timezone")),
         "agency_lang": cleanup_string(entity.get("agency_lang")),
-        "agency_phone": cleanup_string(entity.get("agency_phone")).replace("_", ""),
+        "agency_phone": cleanup_string(entity.get("agency_phone")).replace("_", " ") if entity.get("agency_phone") else None,
         "agency_fare_url": cleanup_string(entity.get("agency_fare_url")),
         "agency_email": cleanup_string(entity.get("agency_email")),
         "cemv_support": parse_int(entity.get("cemv_support"), "cemv_support"),
@@ -448,7 +448,7 @@ def parse_gtfs_levels_data(entity: dict[str, str]) -> dict[str, Any]:
     return {
         "level_id": cleanup_string(entity.get("level_id")),
         "level_index": parse_float(entity.get("level_index"), "level_index"),
-        "level_name": cleanup_string(entity.get("level_name"))
+        "level_name": cleanup_string(entity.get("level_name")).replace("_", " ") if entity.get("level_name") else None
     }
 
 def parse_gtfs_pathways_data(entity: dict[str, str]) -> dict[str, Any]:
@@ -526,7 +526,7 @@ def parse_gtfs_routes_data(entity: dict[str, str]) -> dict[str, Any]:
         "route_id": cleanup_string(entity.get("route_id")),
         "agency_id": cleanup_string(entity.get("agency_id")),
         "route_short_name": cleanup_string(entity.get("route_short_name")),
-        "route_long_name": cleanup_string(entity.get("route_long_name")),
+        "route_long_name": cleanup_string(entity.get("route_long_name")).replace("_", " ") if entity.get("route_long_name") else None,
         "route_desc": cleanup_string(entity.get("route_desc")),
         "route_type": parse_int(entity.get("route_type"), "route_type"),
         "route_url": cleanup_string(entity.get("route_url")),
@@ -657,8 +657,8 @@ def parse_gtfs_stops_data(entity: dict[str, str]) -> dict[str, Any]:
         "stop_id": cleanup_string(entity.get("stop_id")),
         "stop_code": cleanup_string(entity.get("stop_code")),
         "stop_name": cleanup_string(entity.get("stop_name")),
-        "tts_stop_name": cleanup_string(entity.get("tts_stop_name")),
-        "stop_desc": cleanup_string(entity.get("stop_desc")),
+        "tts_stop_name": cleanup_string(entity.get("tts_stop_name")).replace("_", " ") if entity.get("tts_stop_name") else None,
+        "stop_desc": cleanup_string(entity.get("stop_desc")).replace("_", " ") if entity.get("stop_desc") else None,
         "stop_lat": parse_float(entity.get("stop_lat"), "stop_lat"),
         "stop_lon": parse_float(entity.get("stop_lon"), "stop_lon"),
         "zone_id": cleanup_string(entity.get("zone_id")),
@@ -2497,7 +2497,7 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
     # Return the list of NGSI-LD GtfsRoute
     return ngsi_ld_data
 
-def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city: str, batch_size: int = 250) -> Iterator[list[dict[str, Any]]]:
+def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city: str, batch_size: int = 400) -> Iterator[list[dict[str, Any]]]:
     """
     Stream and convert GTFS shapes.txt rows into NGSI-LD entities.
 
@@ -2790,7 +2790,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------  
   
-def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "gtfs_static", batch_size: int = 250) -> Iterator[list[dict[str, Any]]]:
+def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "gtfs_static", batch_size: int = 400) -> Iterator[list[dict[str, Any]]]:
     """
     Stream GTFS static data and convert it to NGSI-LD entities in batches.
 
