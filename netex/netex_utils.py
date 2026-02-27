@@ -29,7 +29,7 @@ def netex_transform_ngsi_ld_agency_to_operator(entities: Iterator[list[dict[str,
 
     # PublicationDelivery
     pub = etree.Element("PublicationDelivery", nsmap=NSMAP)
-    pub.set("version", "1.09:NO-NeTEx-networktimetable:1.3")
+    pub.set("version", "1.15:NO-NeTEx-networktimetable:1.5")
 
     # CompositeFrame
     comp_frame = etree.SubElement(pub, "CompositeFrame", id="CompositeFrame:1", version="1")
@@ -52,8 +52,8 @@ def netex_transform_ngsi_ld_agency_to_operator(entities: Iterator[list[dict[str,
             operator = etree.SubElement(
                 organisations,
                 "Operator",
-                id=f"{entity_id}:Operator:{entity_id}",
-                version="1"
+                version="1",
+                id=f"{entity_id}:Operator:{entity_id}"
             )
 
             # Name
