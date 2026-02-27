@@ -2887,6 +2887,6 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
 
 
 if __name__ == "__main__":
-    for batch in gtfs_static_get_ngsi_ld_batches("fare_attributes", "helsinki"):
-        print(json.dumps(batch, indent=2))
+    for batch in gtfs_static_get_ngsi_ld_batches("agency", "Sofia"):
+        print(json.dumps(batch, indent=2, ensure_ascii=False))
         
