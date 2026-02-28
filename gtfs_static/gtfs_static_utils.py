@@ -359,13 +359,16 @@ def parse_gtfs_agency_data(entity: dict[str, str]) -> dict[str, Any]:
         ValueError: If 'cemv_support' cannot be parsed as an integer.
     """
 
+    agency_name = cleanup_string(entity.get("agency_name"))
+    agency_phone = cleanup_string(entity.get("agency_phone"))
+
     return {
         "agency_id": cleanup_string(entity.get("agency_id")),
-        "agency_name": cleanup_string(entity.get("agency_name")).replace("_", " ") if entity.get("agency_name") else None,
+        "agency_name": agency_name.replace("_", " ") if agency_name else None,
         "agency_url": cleanup_string(entity.get("agency_url")),
         "agency_timezone": cleanup_string(entity.get("agency_timezone")),
         "agency_lang": cleanup_string(entity.get("agency_lang")),
-        "agency_phone": cleanup_string(entity.get("agency_phone")).replace("_", " ") if entity.get("agency_phone") else None,
+        "agency_phone": agency_phone.replace("_", " ") if agency_phone else None,
         "agency_fare_url": cleanup_string(entity.get("agency_fare_url")),
         "agency_email": cleanup_string(entity.get("agency_email")),
         "cemv_support": parse_int(entity.get("cemv_support"), "cemv_support"),
@@ -444,11 +447,11 @@ def parse_gtfs_levels_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If 'level_index' cannot be parsed as a float.
     """
-
+    level_name = cleanup_string(entity.get("level_name"))
     return {
         "level_id": cleanup_string(entity.get("level_id")),
         "level_index": parse_float(entity.get("level_index"), "level_index"),
-        "level_name": cleanup_string(entity.get("level_name")).replace("_", " ") if entity.get("level_name") else None
+        "level_name": level_name.replace("_", " ") if level_name else None
     }
 
 def parse_gtfs_pathways_data(entity: dict[str, str]) -> dict[str, Any]:
@@ -521,12 +524,13 @@ def parse_gtfs_routes_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any integer field cannot be parsed correctly.
     """
+    route_long_name = cleanup_string(entity.get("route_long_name"))
 
     return {
         "route_id": cleanup_string(entity.get("route_id")),
         "agency_id": cleanup_string(entity.get("agency_id")),
         "route_short_name": cleanup_string(entity.get("route_short_name")),
-        "route_long_name": cleanup_string(entity.get("route_long_name")).replace("_", " ") if entity.get("route_long_name") else None,
+        "route_long_name": route_long_name.replace("_", " ") if route_long_name else None,
         "route_desc": cleanup_string(entity.get("route_desc")),
         "route_type": parse_int(entity.get("route_type"), "route_type"),
         "route_url": cleanup_string(entity.get("route_url")),
@@ -652,13 +656,16 @@ def parse_gtfs_stops_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any integer or float field cannot be parsed correctly.
     """
+    
+    tts_stop_name = cleanup_string(entity.get("tts_stop_name"))
+    stop_desc = cleanup_string(entity.get("stop_desc"))
         
     return {
         "stop_id": cleanup_string(entity.get("stop_id")),
         "stop_code": cleanup_string(entity.get("stop_code")),
         "stop_name": cleanup_string(entity.get("stop_name")),
-        "tts_stop_name": cleanup_string(entity.get("tts_stop_name")).replace("_", " ") if entity.get("tts_stop_name") else None,
-        "stop_desc": cleanup_string(entity.get("stop_desc")).replace("_", " ") if entity.get("stop_desc") else None,
+        "tts_stop_name": tts_stop_name.replace("_", " ") if tts_stop_name else None,
+        "stop_desc": stop_desc.replace("_", " ") if stop_desc else None,
         "stop_lat": parse_float(entity.get("stop_lat"), "stop_lat"),
         "stop_lon": parse_float(entity.get("stop_lon"), "stop_lon"),
         "zone_id": cleanup_string(entity.get("zone_id")),
@@ -2887,6 +2894,6 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
 
 
 if __name__ == "__main__":
-    for batch in gtfs_static_get_ngsi_ld_batches("agency", "Sofia"):
+    for batch in gtfs_static_get_ngsi_ld_batches("stops", "Sofia"):
         print(json.dumps(batch, indent=2, ensure_ascii=False))
         
