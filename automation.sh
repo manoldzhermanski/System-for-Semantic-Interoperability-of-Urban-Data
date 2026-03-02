@@ -41,6 +41,18 @@ gtfs_static_rebuild() {
   docker compose up -d orion mongo-db
   wait_for_orion
 
+  echo "Starting FastAPI backend..."
+  uvicorn backend_api.main:app --reload &
+  UVICORN_PID=$!
+
+  echo "Waiting for FastAPI to start..."
+
+  until curl -s http://localhost:8000/docs > /dev/null; do
+    sleep 1
+  done
+
+  echo "FastAPI is up!"
+
   echo "Rebuilding GTFS static data..."
   curl -X POST http://localhost:8000/api/gtfs_static/rebuild
 }
@@ -86,7 +98,16 @@ start() {
     wait_for_orion
 
     echo "Starting FastAPI backend..."
-    uvicorn backend_api.main:app --reload
+    uvicorn backend_api.main:app --reload &
+    UVICORN_PID=$!
+
+    echo "Waiting for FastAPI to start..."
+
+    until curl -s http://localhost:8000/docs > /dev/null; do
+      sleep 1
+    done
+
+    echo "FastAPI is up!"
 }
 
 stop() {
