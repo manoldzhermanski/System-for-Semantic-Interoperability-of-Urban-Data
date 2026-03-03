@@ -41,7 +41,6 @@ def netex_transform_ngsi_ld_agency_to_operator(entities: Iterator[list[dict[str,
     # organisations container
     organisations = etree.SubElement(res_frame, "organisations")
 
-    # обхождаме всички NGSI-LD ентитети
     for batch in entities:
         for entity in batch:
             
@@ -161,9 +160,41 @@ def convert_ngsi_stop_to_nordic_netex(entity: dict) -> etree.Element:
             etree.SubElement(loc, "Latitude").text = str(coords[1])
 
     return stopplace
+
+def netex_convert_calendar_dates_to_dated_service_journey(entity: dict[str, Any]):
+
+    id_value = entity.get("id", None)
+    
+    city = id_value.split(":")[-3] if id_value else "Unknown"
+    service_id = id_value.split(":")[-2] if id_value else "Unknown"
+    date = id_value.split(":")[-1] if id_value else "Unknown"
+    
+    exception_type = entity.get("exceptionType", {}).get("value")
+    is_available = exception_type == 1
+    is_available_value = "true" if is_available else "false"
+
+    dated_service_journey = etree.Element("DayTypeAssignment")
+    dated_service_journey.set("id", f"{city}:DayTypeAssignment:{service_id}-{date}")
+    dated_service_journey.set("version", "0")
+
+    if service_id is not None:
+        service = etree.SubElement(dated_service_journey, "DayTypeRef")
+        service.set("ref", f"{city}:DayType:{service_id}")
+        service.set("version", "0")
+
+    if date is not None:
+        service_date = etree.SubElement(dated_service_journey, "Date")
+        service_date.text = date
+
+    if exception_type is not None:
+        is_available_xml = etree.SubElement(dated_service_journey, "isAvailable")
+        is_available_xml.text = is_available_value
+
+    return dated_service_journey
+
     
 if __name__ == "__main__":
-    for batch in gtfs_static_get_ngsi_ld_batches("stops", "Sofia"):
+    for batch in gtfs_static_get_ngsi_ld_batches("calendar_dates", "Sofia"):
         for ngsi_entity in batch:
-            xml_element = convert_ngsi_stop_to_nordic_netex(ngsi_entity)
+            xml_element = netex_convert_calendar_dates_to_dated_service_journey(ngsi_entity)
             print(etree.tostring(xml_element, pretty_print=True, encoding="unicode"))
