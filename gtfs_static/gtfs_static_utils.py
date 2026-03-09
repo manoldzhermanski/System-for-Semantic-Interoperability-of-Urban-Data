@@ -2504,7 +2504,7 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
     # Return the list of NGSI-LD GtfsRoute
     return ngsi_ld_data
 
-def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city: str, batch_size: int = 400) -> Iterator[list[dict[str, Any]]]:
+def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city: str, batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
     """
     Stream and convert GTFS shapes.txt rows into NGSI-LD entities.
 
@@ -2797,7 +2797,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------  
   
-def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "gtfs_static", batch_size: int = 400) -> Iterator[list[dict[str, Any]]]:
+def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "gtfs_static", batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
     """
     Stream GTFS static data and convert it to NGSI-LD entities in batches.
 

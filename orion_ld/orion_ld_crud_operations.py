@@ -69,7 +69,7 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header
     for attempt in range(1, max_retries + 1):
         try:
             response = requests.post(config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT.value, json=batch_ngsi_ld_data,
-                                     headers=header, timeout=60)
+                                     headers=header, timeout=(10, 600))
 
 
             if response.status_code == 201:

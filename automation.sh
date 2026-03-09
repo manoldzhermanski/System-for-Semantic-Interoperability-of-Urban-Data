@@ -6,7 +6,7 @@ COMMAND=${1:-}
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 VENV_PATH="$ROOT_DIR/venv"
-ORION_URL="http://localhost:1026"
+BROKER_URL="http://localhost:9090"
 
 usage() {
   echo "Usage:"
@@ -36,10 +36,25 @@ activate_venv() {
   source "$VENV_PATH/bin/activate"
 }
 
+wait_for_scorpio() {
+  echo "Waiting for Scorpio Broker..."
+  for i in {1..60}; do
+    if curl -sf "$BROKER_URL/q/health/ready" > /dev/null; then
+      echo "Scorpio is ready!"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "Scorpio did not start in time"
+  docker logs scorpio
+  exit 1
+}
+
 gtfs_static_rebuild() {
   activate_venv
-  docker compose up -d orion mongo-db
-  wait_for_orion
+
+  docker compose up -d scorpio postgres
+  wait_for_scorpio
 
   echo "Starting FastAPI backend..."
   uvicorn backend_api.main:app --reload &
@@ -58,7 +73,7 @@ gtfs_static_rebuild() {
 }
 
 otp_build() {
-  
+
   activate_venv
 
   docker compose up otp-build
@@ -81,21 +96,14 @@ otp_build() {
   fi
 }
 
-wait_for_orion() {
-  echo "Waiting for Orion-LD..."
-  until curl -s "$ORION_URL/version" > /dev/null; do
-    sleep 2
-  done
-}
-
 start() {
 
     activate_venv
 
     echo "Starting Docker containers..."
-    docker compose up -d orion mongo-db terriamap otp
+    docker compose up -d scorpio postgres terriamap otp
 
-    wait_for_orion
+    wait_for_scorpio
 
     echo "Starting FastAPI backend..."
     uvicorn backend_api.main:app --reload &
@@ -131,7 +139,7 @@ load() {
 
   activate_venv
   docker compose up -d
-  wait_for_orion
+  wait_for_scorpio
 
   echo "Loading data: $*"
   python load_orion_ld_data.py "$@"
@@ -163,4 +171,3 @@ case "$COMMAND" in
     usage
     ;;
 esac
-
