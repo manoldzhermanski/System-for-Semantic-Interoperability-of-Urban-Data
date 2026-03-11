@@ -194,9 +194,63 @@ def netex_convert_calendar_dates_to_day_type_assignment(entity: dict[str, Any]):
 
     return day_type_assignment
 
+def netex_convert_routes_to_lines(entity: dict[str, Any]):
+    id_value = entity.get("id")
+    route_id = id_value.split(":")[-1] if id_value else "unknown"
+    city = id_value.split(":")[-2] if id_value else "unknown"
+
+    
+
+    line = etree.Element("Line")
+    line.set("id", f"{city}:Line:{route_id}")
+    line.set("version", "0")
+
+    route_long_name = entity.get("name", {}).get("value")
+    if route_long_name:
+        line_name = etree.SubElement(line, "Name")
+        line_name.text = route_long_name
+
+    route_description = entity.get("description", {}).get("value")
+    if route_description:
+        line_description = etree.SubElement(line, "Description")
+        line_description.text = route_description
+
+    # TO-DO: WRITE A FUNCTION FOR THE TransportMode AND TransportSubmode
+    # REFERENCE: https://github.com/entur/netex-gtfs-converter-java
+
+    route_url = entity.get("route_url", {}).get("value")
+    if route_url:
+        line_url = etree.SubElement(line, "Url")
+        line_url.text = route_url
+
+    route_short_name = entity.get("shortName", {}).get("value")
+    if route_short_name:
+        line_name = etree.SubElement(line, "PublicCode")
+        line_name.text = route_short_name
+
+    agency = entity.get("operatedBy", {}).get("object")
+    if agency:
+        agency_id = agency.split(":")[-1]
+        line_operator_ref = etree.SubElement(line, "OperatorRef")
+        line_operator_ref.set("ref", f"{city}:Operator:{agency_id}")
+
+    route_colour = entity.get("routeColor", {}).get("value")
+    route_text_colour = entity.get("routeTextColor", {}).get("value")
+    if route_colour or route_text_colour:
+        presentation = etree.SubElement(line, "Presentation")
+        
+        if route_colour:
+            line_colour = etree.SubElement(presentation, "Colour")
+            line_colour.text = route_colour
+
+        if route_text_colour:
+            line_text_colour = etree.SubElement(presentation, "TextColour")
+            line_text_colour.text = route_text_colour
+
+    return line
     
 if __name__ == "__main__":
-    for batch in gtfs_static_get_ngsi_ld_batches("calendar_dates", "Sofia"):
+    for batch in gtfs_static_get_ngsi_ld_batches("routes", "Sofia"):
         for ngsi_entity in batch:
-            xml_element = netex_convert_calendar_dates_to_dated_service_journey(ngsi_entity)
+            xml_element = netex_convert_routes_to_lines(ngsi_entity)
             print(etree.tostring(xml_element, pretty_print=True, encoding="unicode"))
