@@ -161,7 +161,7 @@ def convert_ngsi_stop_to_nordic_netex(entity: dict) -> etree.Element:
 
     return stopplace
 
-def netex_convert_calendar_dates_to_dated_service_journey(entity: dict[str, Any]):
+def netex_convert_calendar_dates_to_day_type_assignment(entity: dict[str, Any]):
 
     id_value = entity.get("id", None)
     
@@ -173,24 +173,24 @@ def netex_convert_calendar_dates_to_dated_service_journey(entity: dict[str, Any]
     is_available = exception_type == 1
     is_available_value = "true" if is_available else "false"
 
-    dated_service_journey = etree.Element("DayTypeAssignment")
-    dated_service_journey.set("id", f"{city}:DayTypeAssignment:{service_id}-{date}")
-    dated_service_journey.set("version", "0")
+    day_type_assignment = etree.Element("DayTypeAssignment")
+    day_type_assignment.set("id", f"{city}:DayTypeAssignment:{service_id}-{date}")
+    day_type_assignment.set("version", "0")
 
     if service_id is not None:
-        service = etree.SubElement(dated_service_journey, "DayTypeRef")
+        service = etree.SubElement(day_type_assignment, "DayTypeRef")
         service.set("ref", f"{city}:DayType:{service_id}")
         service.set("version", "0")
 
     if date is not None:
-        service_date = etree.SubElement(dated_service_journey, "Date")
+        service_date = etree.SubElement(day_type_assignment, "Date")
         service_date.text = date
 
     if exception_type is not None:
-        is_available_xml = etree.SubElement(dated_service_journey, "isAvailable")
+        is_available_xml = etree.SubElement(day_type_assignment, "isAvailable")
         is_available_xml.text = is_available_value
 
-    return dated_service_journey
+    return day_type_assignment
 
     
 if __name__ == "__main__":
