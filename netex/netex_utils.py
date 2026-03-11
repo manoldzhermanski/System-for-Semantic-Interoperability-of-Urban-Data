@@ -199,8 +199,6 @@ def netex_convert_routes_to_lines(entity: dict[str, Any]):
     route_id = id_value.split(":")[-1] if id_value else "unknown"
     city = id_value.split(":")[-2] if id_value else "unknown"
 
-    
-
     line = etree.Element("Line")
     line.set("id", f"{city}:Line:{route_id}")
     line.set("version", "0")
