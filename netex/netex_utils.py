@@ -161,6 +161,8 @@ def convert_ngsi_stop_to_nordic_netex(entity: dict) -> etree.Element:
 
     return stopplace
 
+# TO-DO: DayTypeAssignment has to be contained in dayTypeAssignments
+#        dayTypeAssignments has to be contained in ServiceCalendarFrame 
 def netex_convert_calendar_dates_to_day_type_assignment(entity: dict[str, Any]):
 
     id_value = entity.get("id", None)
