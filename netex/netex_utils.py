@@ -1,4 +1,5 @@
 import sys
+import json
 from typing import Iterator, Any
 from pathlib import Path
 from lxml import etree
@@ -7,11 +8,86 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
 from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_batches
+from orion_ld.orion_ld_crud_operations import (
+    orion_ld_define_header,
+    orion_ld_get_entities_by_type
+    )
+
 
 NS = "http://www.netex.org.uk/netex"
 NSMAP = {None: NS}
     
-def netex_transform_ngsi_ld_agency_to_operator(entities: Iterator[list[dict[str, Any]]]) -> str:
+def netex_helper_extract_stops_in_a_trip(city: str) -> dict[str, list[str]]:
+    
+    stops_per_trip = {}
+    
+    header = orion_ld_define_header("gtfs_static")
+    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
+    
+    for stop in stop_times:
+        trip_id = stop.get("hasTrip", {}).get("object")
+        stop_id = stop.get("hasStop", {}).get("object")
+        sequence = stop.get("stopSequence", {}).get("value")
+        
+        if trip_id and stop_id:
+            if trip_id not in stops_per_trip:
+                stops_per_trip[trip_id] = []
+            stops_per_trip[trip_id].append((stop_id, sequence))
+            
+    for trip in stops_per_trip:
+        stops_per_trip[trip].sort(key=lambda x: x[1])  # Sort by stop sequence
+        stops_per_trip[trip] = [stop_id for stop_id, seq in stops_per_trip[trip]]  # Keep only stop IDs
+            
+    return stops_per_trip
+
+def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[str]]) -> dict[str, list[tuple[str, str]]]:
+    
+    trip_stop_pairs = {}
+
+    for trip, stops in stops_per_trip.items():
+
+        pairs = []
+
+        for i in range(len(stops)-1):
+            pairs.append((stops[i], stops[i+1]))
+
+        trip_stop_pairs[trip] = pairs
+
+    return trip_stop_pairs
+
+def netex_helper_extract_stop_coordinates(city: str) -> dict[str, tuple[float, float]]:
+    
+    stop_coordinates = {}
+    
+    header = orion_ld_define_header("gtfs_static")
+    stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
+
+    for stop in stops:
+        stop_id = stop.get("id")
+        longitude, latitude = stop.get("location", {}).get("value", {}).get("coordinates")
+        
+        if stop_id and longitude is not None and latitude is not None:
+            stop_coordinates[stop_id] = (float(longitude), float(latitude))
+
+    return stop_coordinates
+
+def netex_helper_extract_shapes_linestrings(city: str) -> dict[str, list[tuple[float, float]]]:
+    
+    shape_linestrings = {}
+    
+    header = orion_ld_define_header("gtfs_static")
+    shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
+
+    for shape in shapes:
+        shape_id = shape.get("id")
+        points = shape.get("location", {}).get("value", {}).get("coordinates", [])
+        
+        if shape_id and points:
+            shape_linestrings[shape_id] = [(float(point[0]), float(point[1])) for point in points]
+
+    return shape_linestrings
+
+def netex_convert_agency_to_operator(entities: Iterator[list[dict[str, Any]]]) -> str:
     """
     Transforms NGSI-LD GtfsAgency entities to NeTEx Operator XML nested in a ResourceFrame.
 
@@ -82,8 +158,7 @@ def netex_transform_ngsi_ld_agency_to_operator(entities: Iterator[list[dict[str,
 
     return etree.tostring(pub, pretty_print=True, xml_declaration=True, encoding="UTF-8").decode("utf-8")
 
-
-def convert_ngsi_stop_to_nordic_netex(entity: dict) -> etree.Element:
+def netex_convert_stops_to_stop_place(entity: dict) -> etree.Element:
     
     id_value = entity.get("id")
     
@@ -247,8 +322,21 @@ def netex_convert_routes_to_lines(entity: dict[str, Any]):
 
     return line
     
+def netex_convert_shapes_to_service_link(entity:dict[str, Any]):
+    pass
+
 if __name__ == "__main__":
-    for batch in gtfs_static_get_ngsi_ld_batches("routes", "Sofia"):
-        for ngsi_entity in batch:
-            xml_element = netex_convert_routes_to_lines(ngsi_entity)
-            print(etree.tostring(xml_element, pretty_print=True, encoding="unicode"))
+    #for batch in gtfs_static_get_ngsi_ld_batches("stops", "Sofia"):
+    #    for ngsi_entity in batch:
+    #        xml_element = netex_convert_stops_to_stop_place(ngsi_entity)
+    #        print(etree.tostring(xml_element, pretty_print=True, encoding="unicode"))
+    
+    #stops_per_trip = netex_helper_extract_stops_in_a_trip("Sofia")
+    #stop_pairs = netex_helper_split_stops_into_pairs(stops_per_trip)
+    #print(json.dumps(stop_pairs, indent=2, ensure_ascii=False))
+    
+    #stops = netex_helper_extract_stop_coordinates("Sofia")
+    #print(json.dumps(stops, indent=2, ensure_ascii=False))
+    
+    shapes = netex_helper_extract_shapes_linestrings("Sofia")
+    print(json.dumps(shapes, indent=2, ensure_ascii=False))
