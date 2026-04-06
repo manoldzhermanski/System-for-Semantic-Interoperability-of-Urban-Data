@@ -580,7 +580,22 @@ def main():
 
     print(etree.tostring(xml_tree, pretty_print=True, encoding="unicode"))
 
+def netex_helper_build_points_in_sequence_for_route(stops_per_trip: dict[str, list[str]], trip_id: str, city: str) -> etree.Element:
+    
+    points_in_sequence = etree.Element("pointsInSequence")
 
+    stops = stops_per_trip.get(trip_id, [])
+    
+    for index, stop in enumerate(stops, start=1):
+        point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute")
+        point_on_route.set("order", str(index))
+        point_on_route.set("version", "1")
+        point_on_route.set("id", f"{city}:PointOnRoute:{trip_id}_{index}")
+        
+        route_point_ref = etree.SubElement(point_on_route, "RoutePointRef")
+        route_point_ref.set("ref", f"{city}:RoutePoint:{stop}")
+        
+    return points_in_sequence
 
 ############################
 def netex_convert_agency_to_operator(entities: Iterator[list[dict[str, Any]]]) -> str:
@@ -817,11 +832,48 @@ def netex_convert_routes_to_lines(entity: dict[str, Any]):
             line_text_colour.text = route_text_colour
 
     return line
+
+# Questions to ask:
+# Tips on ID creation
+# For pointsInSequence should I copy the Quay data for the stops along the line
+# Tips on IDs for shape segments
+def netex_convert_trips_to_journey_patterns(entity: dict[str, Any], stops_per_trip: dict[str, list[str]]):
+    
+    id_value = entity.get("id")
+    trip_id = id_value.split(":")[-1] if id_value else "unknown"
+    city = id_value.split(":")[-2] if id_value else "unknown"
+    
+    journey_pattern = etree.Element("JourneyPattern")
+    journey_pattern.set("id", f"{city}:JourneyPattern:{trip_id}")
+    journey_pattern.set("version", "1")
+    
+    name = entity.get("headSign", {}).get("value")
+    if name:
+        journey_pattern_name = etree.SubElement(journey_pattern, "Name")
+        journey_pattern_name.text = name
         
+    route = entity.get("route", {}).get("object")
+    route_id = route.split(":")[-1]
+    
+    if route_id:
+        journey_pattern_route = etree.SubElement(journey_pattern, "RouteRef")
+        journey_pattern_route.set("ref", f"{city}:Route:{route_id}")
+        journey_pattern_route.set("version", "1")
+    
+    points_in_sequence = netex_helper_build_points_in_sequence_for_route(stops_per_trip, trip_id, city)
+    
+    journey_pattern.append(points_in_sequence)
+
+    links_in_sequence = etree.SubElement(journey_pattern, "linksInSequence")
+        
+    return journey_pattern
+    
+
+    
 if __name__ == "__main__":
-    #for batch in gtfs_static_get_ngsi_ld_batches("stops", "Sofia"):
+    #for batch in gtfs_static_get_ngsi_ld_batches("routes", "Sofia"):
     #    for ngsi_entity in batch:
-    #        xml_element = netex_convert_stops_to_stop_place(ngsi_entity)
+    #        xml_element = netex_convert_routes_to_lines(ngsi_entity)
     #        print(etree.tostring(xml_element, pretty_print=True, encoding="unicode"))
     
     #stops_per_trip = netex_helper_extract_stops_in_a_trip("Sofia")
@@ -848,4 +900,81 @@ if __name__ == "__main__":
     #    for stop_id, distance in stop_distances.items():
     #        print(f"  {stop_id} -> {distance:.2f} m")
     
-    main()
+    #main()
+    #trip = {
+    #        "id": f"urn:ngsi-ld:GtfsTrip:Sofia:T1",
+    #        "type": "GtfsTrip",
+    #        
+    #        "route": {
+    #            "type": "Relationship",
+    #            "object": "urn:ngsi-ld:GtfsRoute:Sofia:R1"
+    #        },
+    #        
+    #        "service": {
+    #            "type": "Relationship",
+    #            "object": "urn:ngsi-ld:GtfsService:S1"
+    #        },
+    #        
+    #        "headSign": {
+    #            "type": "Property",
+    #            "value": "Head Sign"
+    #        },
+    #
+    #        "shortName": {
+    #            "type": "Property",
+    #            "value": "Short Name"
+    #        },
+    #        
+    #        "direction": {
+    #            "type": "Property",
+    #            "value": "Direction "
+    #        },
+    #
+    #        "block": {
+    #            "type": "Relationship",
+    #            "object": "urn:ngsi-ld:GtfsBlock:Sofia:B1"
+    #        },
+    #        
+    #        "hasShape": {
+    #            "type": "Relationship",
+    #            "object": "urn:ngsi-ld:GtfsShape:Sofia:S1"
+    #        },
+    #        
+    #        "wheelChairAccessible": {
+    #            "type": "Property",
+    #            "value": "WheelChair"
+    #        },
+    #        
+    #        "bikesAllowed": {
+    #            "type": "Property",
+    #            "value": "Bike"
+    #        },
+    #        
+    #        "carsAllowed": {
+    #            "type": "Property",
+    #            "value": "Car"
+    #        }
+    #    }
+    #print(etree.tostring(netex_convert_trips_to_journey_patterns(trip), pretty_print=True, encoding="unicode"))
+    
+    city = "Sofia"
+    header = orion_ld_define_header("gtfs_static")
+    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
+    stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
+    shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
+    trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
+    
+    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+
+    # Root XML
+    journey_patterns_root = etree.Element("journeyPatterns")
+
+    for trip in trips:
+        journey_pattern = netex_convert_trips_to_journey_patterns(
+            trip,
+            stops_per_trip
+        )
+        
+        journey_patterns_root.append(journey_pattern)
+
+    print(etree.tostring(journey_patterns_root, pretty_print=True, encoding="unicode"))
