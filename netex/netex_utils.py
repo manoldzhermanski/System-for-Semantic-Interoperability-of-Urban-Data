@@ -868,17 +868,111 @@ def netex_convert_trips_to_journey_patterns(entity: dict[str, Any], stops_per_tr
         
     return journey_pattern
     
-def netex_helper_generate_scheduled_stop_points(stops: list[dict[str, Any]], city: str) -> etree.Element:
+def netex_helper_generate_scheduled_stop_points(stops: list[dict[str, Any]]) -> etree.Element:
 
     scheduled_stop_points = etree.Element("scheduledStopPoints")
 
-    for stop_index, stop_info in enumerate(stops, start=1):
+    for stop_info in stops:
+        stop = stop_info.get("id")
+        stop_id = stop.split(":")[-1]
+        city = stop.split(":")[-2]
         scheduled_stop_point = etree.SubElement(scheduled_stop_points, "ScheduledStopPoint")
         scheduled_stop_point.set("version", "1")
-        scheduled_stop_point.set("id", f"{city}:ScheduledStopPoint:{stop_index}")
+        scheduled_stop_point.set("id", f"{city}:ScheduledStopPoint:{stop_id}")
         
     return scheduled_stop_points
+
+# TO-DO ADD ORDER AFTER GETTING A REPLY
+def netex_helper_create_passenger_stop_assignment(stops: list[dict[str, Any]])  -> etree.Element:
+
+    stop_assignments = etree.Element("stopAssignments")
+    for stop_info in stops:
+        stop = stop_info.get("id")
+        stop_id = stop.split(":")[-1]
+        city = stop.split(":")[-2]
     
+        passenger_stop_assignment = etree.SubElement(stop_assignments, "PassengerStopAssignment")
+        passenger_stop_assignment.set("version", "1")
+        passenger_stop_assignment.set("id", f"{city}:PassengerStopAssignment:{stop_id}")
+        # TO-DO SET ORDER AFTER GETTING A REPLY
+        #passenger_stop_assignment.set("order", )
+
+        scheduled_stop_point_ref = etree.SubElement(passenger_stop_assignment, "ScheduledStopPointRef")
+        scheduled_stop_point_ref.set("version", "1")
+        scheduled_stop_point_ref.set("ref", f"{city}:ScheduledStopPoint:{stop_id}")
+
+        quay_ref = etree.SubElement(passenger_stop_assignment, "QuayRef")
+        quay_ref.set("ref", f"{city}:Quay:{stop_id}")
+
+    return stop_assignments
+    
+def netex_helper_process_and_group_stop_times(stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """
+    Groups NGSI-LD GtfsStopTime entities by trip, sorts them by stop sequence,
+    and extracts specified fields.
+
+    Args:
+        stop_time_entities: A list of GtfsStopTime entities, each as a dictionary.
+
+    Returns:
+        A dictionary where keys are trip IDs and values are lists of
+        stop information, sorted by stopSequence.
+    """
+    grouped_by_trip = {}
+
+    # 1. Group entities by the 'hasTrip' relationship object
+    for entity in stop_time_entities:
+        trip_id = entity.get("hasTrip", {}).get("object")
+        if trip_id:
+            # If the trip_id is not yet a key in the dictionary, create it with an empty list
+            grouped_by_trip.setdefault(trip_id, []).append(entity)
+
+    processed_data = {}
+
+    # 2. Sort each group and extract the required information
+    for trip_id, stops in grouped_by_trip.items():
+        # Sort the list of stops in-place based on the 'stopSequence' value
+        stops.sort(key=lambda s: s.get("stopSequence", {}).get("value", 0))
+
+        # 3. Extract only the fields you need
+        extracted_stops = []
+        for stop in stops:
+            extracted_info = {
+                "arrivalTime": stop.get("arrivalTime", {}).get("value"),
+                "departureTime": stop.get("departureTime", {}).get("value"),
+                "hasTrip": stop.get("hasTrip", {}).get("object").split(":")[-1],
+                "hasStop": stop.get("hasStop", {}).get("object").split(":")[-1],
+                "pickupType": stop.get("pickupType", {}).get("value"),
+                "dropOffType": stop.get("dropOffType", {}).get("value"),
+                "shapeDistTraveled": stop.get("shapeDistTraveled", {}).get("value"),
+                "stopSequence": stop.get("stopSequence", {}).get("value") # Included for verification
+            }
+            extracted_stops.append(extracted_info)
+        
+        processed_data[trip_id] = extracted_stops
+
+    return processed_data
+
+def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grouped_stop_times: dict[str, list[dict[str, Any]]]):
+
+    stop_time = stop_times.get("id")
+    search_id = ":".join(stop_time.split(":")[:-1])
+    stop_time_id = stop_time.split(":")[-2]
+    city = stop_time.split(":")[-3]
+
+    stop_time_info = grouped_stop_times[search_id]
+
+    service_journey = etree.Element("ServiceJourney")
+    service_journey.add("version", "1")
+    service_journey.add("id", f"{city}:ServiceJourney:{stop_time_id}")
+
+    journey_pattern_ref = etree.SubElement(service_journey, "JourneyPatternRef")
+    journey_pattern_ref.set("ref", f"{city}:JourneyPattern:{stop_time_info[0].get("hasTrip")}")
+
+    passing_times = etree.SubElement(service_journey, "passingTimes")
+    
+    return service_journey
+
 if __name__ == "__main__":
     #for batch in gtfs_static_get_ngsi_ld_batches("routes", "Sofia"):
     #    for ngsi_entity in batch:
@@ -968,14 +1062,15 @@ if __name__ == "__main__":
     
     city = "Sofia"
     stops = [
-        {"id": "S1"},
-        {"id": "S2"},
-        {"id": "S3"},
-        {"id": "S4"},
-        {"id": "S5"},
+        {"id": "urn:ngsi-ld:GtfsStop:Sofia:S1"},
+        {"id": "urn:ngsi-ld:GtfsStop:Sofia:S2"},
+        {"id": "urn:ngsi-ld:GtfsStop:Sofia:S3"},
+        {"id": "urn:ngsi-ld:GtfsStop:Sofia:S4"},
+        {"id": "urn:ngsi-ld:GtfsStop:Sofia:S5"},
     ]
 
-    print(etree.tostring(netex_helper_generate_scheduled_stop_points(stops, city), pretty_print=True, encoding="unicode"))
+    print(etree.tostring(netex_helper_generate_scheduled_stop_points(stops), pretty_print=True, encoding="unicode"))
+    print(etree.tostring(netex_helper_create_passenger_stop_assignment(stops), pretty_print=True, encoding="unicode"))
 
     #header = orion_ld_define_header("gtfs_static")
     #stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
