@@ -6,8 +6,8 @@ from typing import Iterator, Any
 from pathlib import Path
 from lxml import etree # type: ignore
 from pyproj import Transformer
-from shapely.geometry import LineString, Point as ShapelyPoint
-from shapely.ops import substring
+#from shapely.geometry import LineString, Point as ShapelyPoint
+#from shapely.ops import substring
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
@@ -868,7 +868,16 @@ def netex_convert_trips_to_journey_patterns(entity: dict[str, Any], stops_per_tr
         
     return journey_pattern
     
+def netex_helper_generate_scheduled_stop_points(stops: list[dict[str, Any]], city: str) -> etree.Element:
 
+    scheduled_stop_points = etree.Element("scheduledStopPoints")
+
+    for stop_index, stop_info in enumerate(stops, start=1):
+        scheduled_stop_point = etree.SubElement(scheduled_stop_points, "ScheduledStopPoint")
+        scheduled_stop_point.set("version", "1")
+        scheduled_stop_point.set("id", f"{city}:ScheduledStopPoint:{stop_index}")
+        
+    return scheduled_stop_points
     
 if __name__ == "__main__":
     #for batch in gtfs_static_get_ngsi_ld_batches("routes", "Sofia"):
@@ -958,23 +967,33 @@ if __name__ == "__main__":
     #print(etree.tostring(netex_convert_trips_to_journey_patterns(trip), pretty_print=True, encoding="unicode"))
     
     city = "Sofia"
-    header = orion_ld_define_header("gtfs_static")
-    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
-    stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
-    shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
-    trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
+    stops = [
+        {"id": "S1"},
+        {"id": "S2"},
+        {"id": "S3"},
+        {"id": "S4"},
+        {"id": "S5"},
+    ]
+
+    print(etree.tostring(netex_helper_generate_scheduled_stop_points(stops, city), pretty_print=True, encoding="unicode"))
+
+    #header = orion_ld_define_header("gtfs_static")
+    #stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
+    #stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
+    #shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
+    #trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
     
-    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+    #stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
 
     # Root XML
-    journey_patterns_root = etree.Element("journeyPatterns")
+    #journey_patterns_root = etree.Element("journeyPatterns")
 
-    for trip in trips:
-        journey_pattern = netex_convert_trips_to_journey_patterns(
-            trip,
-            stops_per_trip
-        )
-        
-        journey_patterns_root.append(journey_pattern)
-
-    print(etree.tostring(journey_patterns_root, pretty_print=True, encoding="unicode"))
+    #for trip in trips:
+    #    journey_pattern = netex_convert_trips_to_journey_patterns(
+    #        trip,
+    #        stops_per_trip
+    #    )
+    #    
+    #    journey_patterns_root.append(journey_pattern)
+    #
+    #print(etree.tostring(journey_patterns_root, pretty_print=True, encoding="unicode"))
