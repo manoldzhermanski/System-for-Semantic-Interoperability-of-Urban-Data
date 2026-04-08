@@ -374,6 +374,45 @@ def parse_gtfs_agency_data(entity: dict[str, str]) -> dict[str, Any]:
         "cemv_support": parse_int(entity.get("cemv_support"), "cemv_support"),
     }
 
+def parse_gtfs_calendar_data(entity: dict[str, str]) -> dict[str, Any]:
+    """
+    Parses a single GTFS calendar record into a cleaned and typed dictionary.
+
+    Args:
+        entity (dict[str, str]): A dictionary representing a single row from 'calendar.txt',
+            where all values are strings as read from the CSV.
+
+    Returns:
+        dict[str, Any]: A dictionary with cleaned and properly typed fields:
+            - service_id: str | None
+            - monday: int | None
+            - tuesday: int | None
+            - wednesday: int | None
+            - thursday: int | None
+            - friday: int | None
+            - saturday: int | None
+            - sunday: int | None
+            - start_date: str (YYYYMMDD format)
+            - end_date: str (YYYYMMDD format)
+
+    Raises:
+        ValueError: If 'start_date' or 'end_date" is not in YYYYMMDD format or
+          'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday' or 'sunday' cannot be parsed as integer.
+    """
+
+    return {
+        "service_id": cleanup_string(entity.get("service_id")),
+        "monday": parse_int(entity.get("monday"), "monday"),
+        "tuesday": parse_int(entity.get("tuesday"), "tuesday"),
+        "wednesday": parse_int(entity.get("wednesday"), "wednesday"),
+        "thursday": parse_int(entity.get("thursday"), "thursday"),
+        "friday": parse_int(entity.get("friday"), "friday"),
+        "saturday": parse_int(entity.get("saturday"), "saturday"),
+        "sunday": parse_int(entity.get("sunday"), "sunday"),
+        "start_date": parse_date(entity.get("start_date"), "start_date"),
+        "end_date": parse_date(entity.get("end_date"), "end_date")
+    }
+
 def parse_gtfs_calendar_dates_data(entity: dict[str, str]) -> dict[str, Any]:
     """
     Parses a single GTFS calendar_dates record into a cleaned and typed dictionary.
@@ -805,6 +844,59 @@ def validate_gtfs_agency_entity(entity: dict[str, Any]) -> None:
     cemv_support = entity.get("cemv_support")
     if cemv_support is not None and not validation_utils.is_valid_cemv_support(cemv_support):
         raise ValueError(f"cemv_support must be 0, 1 or 2, got {cemv_support}")
+
+def validate_gtfs_calendar_entity(entity: dict[str, Any]) -> None:
+    """
+    Validates a parsed GTFS calendar entity.
+
+    This function performs:
+    - Validation of required fields
+    - Validation of 'monday', 'tuesday', 'wednesday, 'thrusday', 'friday', 'saturday' and 'sunday' values
+
+    Args:
+        entity (dict[str, Any]): A parsed GTFS calendar date entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
+    # Required GTFS fields
+    required_fields = ["service_id", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "start_date", "end_date"]
+    validate_required_fields(entity, required_fields)
+
+    # Validate 'monday' value
+    monday = entity.get("monday")
+    if not validation_utils.is_valid_week_day(monday):
+        raise ValueError(f"monday must be 0 or 1, got {monday}")
+    
+    # Validate 'tuesday' value
+    tuesday = entity.get("tuesday")
+    if not validation_utils.is_valid_week_day(tuesday):
+        raise ValueError(f"tuesday must be 0 or 1, got {tuesday}")
+    
+    # Validate 'wednesday' value
+    wednesday = entity.get("wednesday")
+    if not validation_utils.is_valid_week_day(wednesday):
+        raise ValueError(f"wednesday must be 0 or 1, got {wednesday}")
+    
+    # Validate 'thursday' value
+    thursday = entity.get("thursday")
+    if not validation_utils.is_valid_week_day(thursday):
+        raise ValueError(f"thursday must be 0 or 1, got {thursday}")
+    
+    # Validate 'friday' value
+    friday = entity.get("friday")
+    if not validation_utils.is_valid_week_day(friday):
+        raise ValueError(f"friday must be 0 or 1, got {friday}")
+    
+    # Validate 'saturday' value
+    saturday = entity.get("saturday")
+    if not validation_utils.is_valid_week_day(saturday):
+        raise ValueError(f"saturday must be 0 or 1, got {saturday}")
+    
+    # Validate 'sunday' value
+    sunday = entity.get("sunday")
+    if not validation_utils.is_valid_week_day(sunday):
+        raise ValueError(f"sunday must be 0 or 1, got {sunday}")
 
 def validate_gtfs_calendar_dates_entity(entity: dict[str, Any]) -> None:
     """
@@ -1500,6 +1592,74 @@ def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[st
             "value": entity.get("cemv_support")
         }
     }
+
+def convert_gtfs_calendar_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+    """
+    Maps a parsed GTFS calendar entity to an NGSI-LD GtfsCalendarRule entity.
+
+    This function performs:
+    - Writing 'service_id' and 'date' as NGSI URN
+    - Mapping of GTFS calendar fields to NGSI-LD Properties
+    Args:
+        entity (dict[str, Any]): A parsed GTFS calendar entity.
+
+    Returns:
+        dict: An NGSI-LD entity of type GtfsCalendarRule.
+    """
+    return {
+            "id": f"urn:ngsi-ld:GtfsCalendarRule:{city}:{entity.get('service_id')}",
+            "type": "GtfsCalendarRule",
+            
+            "hasService": {
+                "type": "Relationship",
+                "object": f"urn:ngsi-ld:GtfsService:{entity.get("service_id")}"
+            },
+            
+            "monday": {
+                "type": "Property",
+                "value": entity.get("monday")
+            },
+
+            "tuesday": {
+                "type": "Property",
+                "value": entity.get("tuesday")
+            },
+
+            "wednesday": {
+                "type": "Property",
+                "value": entity.get("wednesday")
+            },
+
+            "thursday": {
+                "type": "Property",
+                "value": entity.get("thursday")
+            },
+
+            "friday": {
+                "type": "Property",
+                "value": entity.get("friday")
+            },
+
+            "saturday": {
+                "type": "Property",
+                "value": entity.get("saturday")
+            },
+
+            "sunday": {
+                "type": "Property",
+                "value": entity.get("date")
+            },
+            
+            "startDate": {
+                "type": "Property",
+                "value": entity.get("start_date")
+            },
+
+            "endDate": {
+                "type": "Property",
+                "value": entity.get("end_date")
+            }
+        }
 
 def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
     """
@@ -2271,6 +2431,53 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
     # Return the list of NGSI-LD GtfsAgency entities
     return ngsi_ld_data
 
+def gtfs_static_calendar_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static calendar rules into NGSI-LD entities.
+
+    The function processes each GTFS calendar date entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed calendar entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsCalendarRule entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
+    Args:
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS calendar entities
+
+    Returns:
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing 'GtfsCalendarRule'
+
+    Raises:
+        ValueError:
+            If any parsed calendar date entity does not satisfy the GTFS validation rules.
+    """
+
+    # Container for the resulting NGSI-LD calendar date rule entities
+    ngsi_ld_data = []
+
+    # Process each GTFS calendar date entity
+    for calendar in raw_data:
+
+        # Parse raw GTFS calendar date data to the according data types
+        parsed_entity = parse_gtfs_calendar_data(calendar)
+
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
+        validate_gtfs_calendar_entity(parsed_entity)
+
+        # Convert the validated entity into NGSI-LD representation
+        ngsi_ld_entity = convert_gtfs_calendar_to_ngsi_ld(parsed_entity, city)
+
+        # Remove attributes with None values for NGSI-LD compliance
+        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+
+        # Append the final NGSI-LD entity to the result list
+        ngsi_ld_data.append(ngsi_ld_entity)
+
+    # Return the list of NGSI-LD GtfsCalendarRule entities
+    return ngsi_ld_data
+
 def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
     """
     Converts GTFS static calendar date rules into NGSI-LD entities.
@@ -2837,6 +3044,7 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
     # Mapping between GTFS file type, file pattern and transformer function
     mapping = {
         "agency": ("agency*.txt", gtfs_static_agency_to_ngsi_ld),
+        "calendar": ("calendar*.txt", gtfs_static_calendar_to_ngsi_ld),
         "calendar_dates": ("calendar_dates*.txt", gtfs_static_calendar_dates_to_ngsi_ld),
         "fare_attributes": ("fare_attributes*.txt", gtfs_static_fare_attributes_to_ngsi_ld),
         "levels": ("levels*.txt", gtfs_static_levels_to_ngsi_ld),

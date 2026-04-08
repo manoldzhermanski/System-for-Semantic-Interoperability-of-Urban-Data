@@ -507,3 +507,16 @@ def is_valid_timepoint(value: Any) -> bool:
     if type(value) is not int:
         return False
     return value in {0, 1}
+
+def is_valid_week_day(value: Any) -> bool:
+    """
+    Check if argument is a valid enum value for 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+
+    Args:
+        value (Any): Argument to check
+    Returns:
+        bool: True if value in enum range, False otherwise
+    """
+    if type(value) is not int:
+        return False
+    return value in {0, 1}
