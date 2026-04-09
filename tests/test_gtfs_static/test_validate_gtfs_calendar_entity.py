@@ -1,7 +1,7 @@
 import pytest
 from gtfs_static.gtfs_static_utils import validate_gtfs_calendar_entity
 
-def test_validate_gtfs_calendar_dates_entity_all_valid_fields():
+def test_validate_gtfs_calendar_entity_all_valid_fields():
     """
     Check that all fields are provided and valid, the validation passes
     """
@@ -20,7 +20,7 @@ def test_validate_gtfs_calendar_dates_entity_all_valid_fields():
 
     validate_gtfs_calendar_entity(entity)
 
-def test_validate_gtfs_calendar_dates_entity_missing_required_field():
+def test_validate_gtfs_calendar_entity_missing_required_field():
     """
     Check that if a required field is missing, a ValueError is raised
     """
@@ -40,7 +40,7 @@ def test_validate_gtfs_calendar_dates_entity_missing_required_field():
 
     assert "Missing required GTFS field:" in str(err.value)
 
-def test_validate_gtfs_calendar_dates_entity_invalid_exception_type():
+def test_validate_gtfs_calendar_entity_invalid_exception_type():
     """
     Check that invalid 'exception_type' value raises ValueError
     """
@@ -60,4 +60,4 @@ def test_validate_gtfs_calendar_dates_entity_invalid_exception_type():
     with pytest.raises(ValueError) as err:
         validate_gtfs_calendar_entity(entity)
 
-    assert "exception_type must be 0 or 1" in str(err.value)
+    assert "monday must be 0 or 1" in str(err.value)

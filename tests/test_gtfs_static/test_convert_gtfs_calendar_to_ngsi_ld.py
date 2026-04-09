@@ -27,7 +27,7 @@ def test_convert_gtfs_calendar_dates_to_ngsi_ld():
             
             "hasService": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsService:S1"
+                "object": f"urn:ngsi-ld:GtfsService:Berlin:S1"
             },
             
             "monday": {

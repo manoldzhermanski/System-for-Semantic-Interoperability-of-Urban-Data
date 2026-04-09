@@ -1,7 +1,7 @@
 import pytest
 from gtfs_static.gtfs_static_utils import parse_gtfs_calendar_data
 
-def test_parse_gtfs_calendar_dates_data_all_fields_present():
+def test_parse_gtfs_calendar_data_all_fields_present():
     """
     Check if all fields are provided, they are parsed correctly
     """
@@ -34,7 +34,7 @@ def test_parse_gtfs_calendar_dates_data_all_fields_present():
         "end_date": "20260430"
     }
 
-def test_parse_gtfs_calendar_dates_data_missing_fields():
+def test_parse_gtfs_calendar_data_missing_fields():
     """
     Check that if a field is missing, None value is assgined
     """
@@ -56,7 +56,7 @@ def test_parse_gtfs_calendar_dates_data_missing_fields():
         "end_date": None
     }
 
-def test_parse_gtfs_calendar_dates_data_whitespace_cleanup():
+def test_parse_gtfs_calendar_data_whitespace_cleanup():
     """
     Check that whitespaces are trimmed
     """
@@ -89,7 +89,7 @@ def test_parse_gtfs_calendar_dates_data_whitespace_cleanup():
         "end_date": "20260430"
     }
 
-def test_parse_gtfs_calendar_dates_data_invalid_date_raises_error():
+def test_parse_gtfs_calendar_data_invalid_date_raises_error():
     """
     Check that invalid date format raises ValueError
     """
@@ -99,9 +99,9 @@ def test_parse_gtfs_calendar_dates_data_invalid_date_raises_error():
     with pytest.raises(ValueError) as err:
         parse_gtfs_calendar_data(entity)
 
-    assert str(err.value) == "date must be a valid date in YYYYMMDD format, got '2024-01-31'"
+    assert str(err.value) == "start_date must be a valid date in YYYYMMDD format, got '2024-01-31'"
 
-def test_parse_gtfs_calendar_dates_data_invalid_exception_type_raises_error():
+def test_parse_gtfs_calendar_data_invalid_exception_type_raises_error():
     """
     Check that if 'exception_type' cannot be parsed to integer, ValueError is raised
     """
@@ -112,4 +112,4 @@ def test_parse_gtfs_calendar_dates_data_invalid_exception_type_raises_error():
     with pytest.raises(ValueError) as err:
         parse_gtfs_calendar_data(entity)
 
-    assert str(err.value) == "exception_type must be integer, got 'abc'"
+    assert str(err.value) == "monday must be integer, got 'abc'"
