@@ -8,6 +8,7 @@ from lxml import etree # type: ignore
 from pyproj import Transformer
 #from shapely.geometry import LineString, Point as ShapelyPoint
 #from shapely.ops import substring
+from datetime import datetime
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
@@ -746,6 +747,53 @@ def netex_convert_stops_to_stop_place(entity: dict) -> etree.Element:
             etree.SubElement(loc, "Latitude").text = str(coords[1])
 
     return stopplace
+
+def netex_helper_convert_yyyymmdd_date_to_iso_date(date_str: str) -> str:
+    """
+    Converts a date string from YYYYMMDD format to YYYY-MM-DDTHH:MM:SS format.
+
+    Args:
+        date_str: The date string in "YYYYMMDD" format.
+
+    Returns:
+        The date and time string in ISO 8601 format.
+    """
+    if not isinstance(date_str, str) or len(date_str) != 8:
+        raise ValueError("Input must be a string in YYYYMMDD format.")
+        
+    # Parse the string into a datetime object
+    date_obj = datetime.strptime(date_str, '%Y%m%d')
+    
+    # Format the object into an ISO string
+    return date_obj.isoformat()
+
+def netex_convert_calendar_to_operating_period(entities: list[dict[str, Any]]) -> etree.Element:
+
+    operating_periods = etree.Element("operatingPeriods")
+
+    for period in entities:
+
+        service_id = period.get("id")
+        service_id_value = service_id.split(":")[-1]
+        city = service_id.split(":")[-2]
+
+        from_date = period.get("startDate", {}).get("value")
+        from_date_iso = netex_helper_convert_yyyymmdd_date_to_iso_date(from_date)
+
+        to_date = period.get("endDate", {}).get("value")
+        to_date_iso = netex_helper_convert_yyyymmdd_date_to_iso_date(to_date)
+
+        operating_period = etree.SubElement(operating_periods, "OperatingPeriod")
+        operating_period.set("version", "1")
+        operating_period.set("id", f"{city}:OperatingPeriod:{service_id_value}")
+
+        operating_period_from_date = etree.SubElement(operating_period, "FromDate")
+        operating_period_from_date.text = from_date_iso
+
+        operating_period_to_date = etree.SubElement(operating_period, "ToDate")
+        operating_period_to_date.text = to_date_iso
+
+    return operating_periods
 
 # TO-DO: DayTypeAssignment has to be contained in dayTypeAssignments
 #        dayTypeAssignments has to be contained in ServiceCalendarFrame 
