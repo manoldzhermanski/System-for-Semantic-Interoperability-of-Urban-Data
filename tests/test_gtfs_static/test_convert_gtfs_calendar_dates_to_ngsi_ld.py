@@ -19,7 +19,7 @@ def test_convert_gtfs_calendar_dates_to_ngsi_ld():
         "type": "GtfsCalendarDateRule",
         "hasService": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsService:S1",
+            "object": "urn:ngsi-ld:GtfsService:Berlin:S1",
         },
         "appliesOn": {
             "type": "Property",

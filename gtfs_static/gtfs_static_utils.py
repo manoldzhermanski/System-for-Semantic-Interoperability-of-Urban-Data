@@ -1612,7 +1612,7 @@ def convert_gtfs_calendar_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[
             
             "hasService": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsService:{entity.get("service_id")}"
+                "object": f"urn:ngsi-ld:GtfsService:{city}:{entity.get("service_id")}"
             },
             
             "monday": {
@@ -1647,7 +1647,7 @@ def convert_gtfs_calendar_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[
 
             "sunday": {
                 "type": "Property",
-                "value": entity.get("date")
+                "value": entity.get("sunday")
             },
             
             "startDate": {
@@ -1680,7 +1680,7 @@ def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str) ->
             
             "hasService": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsService:{entity.get("service_id")}"
+                "object": f"urn:ngsi-ld:GtfsService:{city}:{entity.get("service_id")}"
             },
             
             "appliesOn": {
