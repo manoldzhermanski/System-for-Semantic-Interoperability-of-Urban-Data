@@ -1,6 +1,7 @@
 import sys
 import json
 import math
+import logging
 import xml.etree.ElementTree as ET
 from typing import Iterator, Any
 from pathlib import Path
@@ -19,6 +20,7 @@ from orion_ld.orion_ld_crud_operations import (
     orion_ld_get_entities_by_type
     )
 
+logger = logging.getLogger("NeTEx_Converter")
 
 NS = "http://www.netex.org.uk/netex"
 GIS_NS = "http://www.opengis.net/gml/3.2"
@@ -748,6 +750,8 @@ def netex_convert_stops_to_stop_place(entity: dict) -> etree.Element:
 
     return stopplace
 
+# GtfsCalendarRule and GtfsCalendarDateRule
+
 def netex_helper_convert_yyyymmdd_date_to_iso_date(date_str: str) -> str:
     """
     Converts a date string from YYYYMMDD format to YYYY-MM-DDTHH:MM:SS format.
@@ -767,6 +771,87 @@ def netex_helper_convert_yyyymmdd_date_to_iso_date(date_str: str) -> str:
     # Format the object into an ISO string
     return date_obj.isoformat()
 
+def netex_helper_day_type_get_active_days(entity: dict[str, Any]) -> str:
+
+    days_map = {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+    }
+
+    active_days = [
+        name for key, name in days_map.items()
+        if entity.get(key, {}).get("value") == 1
+    ]
+
+    # Everyday
+    if len(active_days) == 7:
+        return "Everyday"
+
+    # Weekdays
+    weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    if active_days == weekdays:
+        return "Weekdays"
+
+    # Weekend
+    if active_days == ["Saturday", "Sunday"]:
+        return "Weekend"
+
+    # Specific days
+    return " ".join(active_days)
+
+def netex_convert_calendar_or_calendar_dates_to_day_type(entities: list[dict[str, Any]]) -> etree.Element:
+    
+    logger.debug("Converting %d GtfsCalendarDateRule / GtfsCalendarRule entities to DayTypes", len(entities))
+    
+    day_types = etree.Element("dayTypes")
+    
+    for entity in entities:
+        
+        entity_type = entity.get("type")
+        day_type_id = entity.get("id")
+        
+        if entity_type == "GtfsCalendarDateRule":
+                        
+            if day_type_id:
+                day_type_id_value = day_type_id.split(":")[-2]
+                city = day_type_id.split(":")[-3]
+                
+                logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
+            
+                day_type = etree.SubElement(day_types, "DayType")
+                day_type.set("version", "1")
+                day_type.set("id", f"{city}:DayType:{day_type_id_value}")
+            
+        elif entity_type == "GtfsCalendarRule":
+                        
+            if day_type_id:
+                day_type_id_value = day_type_id.split(":")[-1]
+                city = day_type_id.split(":")[-2]
+                
+                logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
+            
+                day_type = etree.SubElement(day_types, "DayType")
+                day_type.set("version", "1")
+                day_type.set("id", f"{city}:DayType:{day_type_id_value}")
+                
+                day_type_properties = etree.SubElement(day_type, "properties")
+                day_type__property_of_day = etree.SubElement(day_type_properties, "PropertyOfDay")
+                day_type_days_of_week = etree.SubElement(day_type__property_of_day, "DaysOfWeek")
+                day_type_days_of_week.text = netex_helper_day_type_get_active_days(day_type)
+                
+        else:
+            logger.error("Unsupported entity type: %s, id: %s", entity_type, day_type_id)
+    
+    logger.info("DayType conversion completed")
+    logger.info("Created %d DayTypes", len(day_types))
+    
+    return day_types
+
 def netex_convert_calendar_to_operating_period(entities: list[dict[str, Any]]) -> etree.Element:
 
     operating_periods = etree.Element("operatingPeriods")
@@ -774,6 +859,10 @@ def netex_convert_calendar_to_operating_period(entities: list[dict[str, Any]]) -
     for period in entities:
 
         service_id = period.get("id")
+        
+        if not service_id:
+            continue
+        
         service_id_value = service_id.split(":")[-1]
         city = service_id.split(":")[-2]
 
@@ -797,36 +886,73 @@ def netex_convert_calendar_to_operating_period(entities: list[dict[str, Any]]) -
 
 # TO-DO: DayTypeAssignment has to be contained in dayTypeAssignments
 #        dayTypeAssignments has to be contained in ServiceCalendarFrame 
-def netex_convert_calendar_dates_to_day_type_assignment(entity: dict[str, Any]):
+def netex_convert_calendar_or_calendar_dates_to_day_type_assignment(entities: list[dict[str, Any]]):
 
-    id_value = entity.get("id", None)
+    logger.debug("Converting %d GtfsCalendarDateRule / GtfsCalendarRule entities to DayTypeAssignments", len(entities))
     
-    city = id_value.split(":")[-3] if id_value else "Unknown"
-    service_id = id_value.split(":")[-2] if id_value else "Unknown"
-    date = id_value.split(":")[-1] if id_value else "Unknown"
+    day_type_assignments = etree.Element("dayTypeAssignments")
     
-    exception_type = entity.get("exceptionType", {}).get("value")
-    is_available = exception_type == 1
-    is_available_value = "true" if is_available else "false"
-
-    day_type_assignment = etree.Element("DayTypeAssignment")
-    day_type_assignment.set("id", f"{city}:DayTypeAssignment:{service_id}-{date}")
-    day_type_assignment.set("version", "0")
-
-    if service_id is not None:
-        service = etree.SubElement(day_type_assignment, "DayTypeRef")
-        service.set("ref", f"{city}:DayType:{service_id}")
-        service.set("version", "0")
-
-    if date is not None:
-        service_date = etree.SubElement(day_type_assignment, "Date")
-        service_date.text = date
-
-    if exception_type is not None:
-        is_available_xml = etree.SubElement(day_type_assignment, "isAvailable")
-        is_available_xml.text = is_available_value
-
-    return day_type_assignment
+    for index, entity in enumerate(entities):
+        
+        entity_type = entity.get("type")
+        day_type_assignment_id = entity.get("id")
+        
+        if entity_type == "GtfsCalendarDateRule":
+                        
+            if day_type_assignment_id:
+                day_type_id_value = day_type_assignment_id.split(":")[-2]
+                city = day_type_assignment_id.split(":")[-3]
+                raw_date = day_type_assignment_id.split(":")[-1]
+                
+                exception_type = entity.get("exceptionType", {}).get("value")
+                is_available = exception_type == 1
+                is_available_value = "true" if is_available else "false"
+                
+                logger.debug("Creating DayTypeAssignment for %s (%s)", day_type_id_value, entity_type)
+            
+                day_type_assignment = etree.SubElement(day_type_assignments, "DayTypeAssignment")
+                day_type_assignment.set("order", str(index))
+                day_type_assignment.set("version", "1")
+                day_type_assignment.set("id", f"{city}:DayTypeAssignment:{day_type_id_value}-{index}")
+                
+                date = etree.SubElement(day_type_assignment, "Date")
+                date.text = datetime.strptime(raw_date, "%Y%m%d").strftime("%Y-%m-%d")
+                
+                day_type_ref = etree.SubElement(day_type_assignment, "DayTypeRef")
+                day_type_ref.set("version", "1")
+                day_type_ref.set("ref", f"{city}:DayType:{day_type_id_value}")
+                
+                is_available_el = etree.SubElement(day_type_assignment, "IsAvailable")
+                is_available_el.text = is_available_value
+                
+        elif entity_type == "GtfsCalendarRule":
+            
+            if day_type_assignment_id:
+                day_type_id_value = day_type_assignment_id.split(":")[-1]
+                city = day_type_assignment_id.split(":")[-2]
+                
+                logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
+            
+                day_type_assignment = etree.SubElement(day_type_assignments, "DayTypeAssignment")
+                day_type_assignment.set("order", str(index))
+                day_type_assignment.set("version", "1")
+                day_type_assignment.set("id", f"{city}:DayTypeAssignment:{day_type_id_value}")
+                
+                operating_period_ref = etree.SubElement(day_type_assignment, "OperatingPeriodRef")
+                operating_period_ref.set("version", "1")
+                operating_period_ref.set("ref", f"{city}:OperatingPeriod:{day_type_id_value}")
+                
+                day_type_ref = etree.SubElement(day_type_assignment, "DayTypeRef")
+                day_type_ref.set("version", "1")
+                day_type_ref.set("ref", f"{city}:DayType:{day_type_id_value}-{index}")
+                
+        else:
+            logger.error("Unsupported entity type: %s, id: %s", entity_type, day_type_assignment_id)
+    
+    logger.info("DayTypeAssignment conversion completed")
+    logger.info("Created %d DayTypeAssignments", len(day_type_assignments))
+    
+    return day_type_assignments
 
 def netex_convert_routes_to_lines(entity: dict[str, Any]):
     id_value = entity.get("id")
@@ -922,6 +1048,10 @@ def netex_helper_generate_scheduled_stop_points(stops: list[dict[str, Any]]) -> 
 
     for stop_info in stops:
         stop = stop_info.get("id")
+        
+        if not stop:
+            continue
+        
         stop_id = stop.split(":")[-1]
         city = stop.split(":")[-2]
         scheduled_stop_point = etree.SubElement(scheduled_stop_points, "ScheduledStopPoint")
@@ -936,6 +1066,10 @@ def netex_helper_create_passenger_stop_assignment(stops: list[dict[str, Any]])  
     stop_assignments = etree.Element("stopAssignments")
     for stop_info in stops:
         stop = stop_info.get("id")
+        
+        if not stop:
+            continue
+        
         stop_id = stop.split(":")[-1]
         city = stop.split(":")[-2]
     
