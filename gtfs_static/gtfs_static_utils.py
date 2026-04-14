@@ -863,40 +863,18 @@ def validate_gtfs_calendar_entity(entity: dict[str, Any]) -> None:
     required_fields = ["service_id", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "start_date", "end_date"]
     validate_required_fields(entity, required_fields)
 
-    # Validate 'monday' value
-    monday = entity.get("monday")
-    if not validation_utils.is_valid_week_day(monday):
-        raise ValueError(f"monday must be 0 or 1, got {monday}")
-    
-    # Validate 'tuesday' value
-    tuesday = entity.get("tuesday")
-    if not validation_utils.is_valid_week_day(tuesday):
-        raise ValueError(f"tuesday must be 0 or 1, got {tuesday}")
-    
-    # Validate 'wednesday' value
-    wednesday = entity.get("wednesday")
-    if not validation_utils.is_valid_week_day(wednesday):
-        raise ValueError(f"wednesday must be 0 or 1, got {wednesday}")
-    
-    # Validate 'thursday' value
-    thursday = entity.get("thursday")
-    if not validation_utils.is_valid_week_day(thursday):
-        raise ValueError(f"thursday must be 0 or 1, got {thursday}")
-    
-    # Validate 'friday' value
-    friday = entity.get("friday")
-    if not validation_utils.is_valid_week_day(friday):
-        raise ValueError(f"friday must be 0 or 1, got {friday}")
-    
-    # Validate 'saturday' value
-    saturday = entity.get("saturday")
-    if not validation_utils.is_valid_week_day(saturday):
-        raise ValueError(f"saturday must be 0 or 1, got {saturday}")
-    
-    # Validate 'sunday' value
-    sunday = entity.get("sunday")
-    if not validation_utils.is_valid_week_day(sunday):
-        raise ValueError(f"sunday must be 0 or 1, got {sunday}")
+    # Validate weekdays
+    for day in ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]:
+        value = entity.get(day)
+        if not validation_utils.is_valid_week_day(value):
+            raise ValueError(f"{day} must be 0 or 1, got {value}")
+
+    # Validate date order
+    start = datetime.strptime(entity["start_date"], "%Y%m%d")
+    end = datetime.strptime(entity["end_date"], "%Y%m%d")
+
+    if end < start:
+        raise ValueError(f"end_date ({entity['end_date']}) cannot be before start_date ({entity['start_date']})")
 
 def validate_gtfs_calendar_dates_entity(entity: dict[str, Any]) -> None:
     """
