@@ -750,6 +750,7 @@ def netex_convert_stops_to_stop_place(entity: dict) -> etree.Element:
 
     return stopplace
 
+##########################################################
 # GtfsCalendarRule and GtfsCalendarDateRule
 
 def netex_helper_convert_yyyymmdd_date_to_iso_date(date_str: str) -> str:
@@ -764,15 +765,34 @@ def netex_helper_convert_yyyymmdd_date_to_iso_date(date_str: str) -> str:
     """
     if not isinstance(date_str, str) or len(date_str) != 8:
         raise ValueError("Input must be a string in YYYYMMDD format.")
-        
+       
     # Parse the string into a datetime object
     date_obj = datetime.strptime(date_str, '%Y%m%d')
-    
+   
     # Format the object into an ISO string
     return date_obj.isoformat()
 
 def netex_helper_day_type_get_active_days(entity: dict[str, Any]) -> str:
+    """
+    Determines a human-readable string for active days from a GtfsCalendarRule entity.
 
+    This function processes a GtfsCalendarRule entity and identifies
+    which days of the week are active. It returns special keywords for common
+    combinations like "Everyday", "Weekdays", or "Weekend". Otherwise, it returns
+    a space-separated string of the active day names.
+
+    Args:
+        entity: A GtfsCalendarRule entity
+
+    Returns:
+        A string representing the active days:
+        - "Everyday" if all 7 days are active.
+        - "Weekdays" if Monday to Friday are active.
+        - "Weekend" if Saturday and Sunday are active.
+        - A space-separated list of day names (e.g., "Monday Wednesday") for other combinations.
+        - An empty string if no days are active or the entity is malformed.
+    """
+    # Map lowercase day keys to their proper capitalized names.
     days_map = {
         "monday": "Monday",
         "tuesday": "Tuesday",
@@ -783,10 +803,8 @@ def netex_helper_day_type_get_active_days(entity: dict[str, Any]) -> str:
         "sunday": "Sunday"
     }
 
-    active_days = [
-        name for key, name in days_map.items()
-        if entity.get(key, {}).get("value") == 1
-    ]
+    # Build a list of active day names from the entity.
+    active_days = [name for key, name in days_map.items() if entity.get(key, {}).get("value") == 1]
 
     # Everyday
     if len(active_days) == 7:
@@ -794,87 +812,152 @@ def netex_helper_day_type_get_active_days(entity: dict[str, Any]) -> str:
 
     # Weekdays
     weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-    if active_days == weekdays:
+    if set(active_days) == set(weekdays):
         return "Weekdays"
 
     # Weekend
-    if active_days == ["Saturday", "Sunday"]:
+    weekends = ["Saturday", "Sunday"]
+    if set(active_days) == set(weekends):
         return "Weekend"
 
     # Specific days
     return " ".join(active_days)
 
 def netex_convert_calendar_or_calendar_dates_to_day_type(entities: list[dict[str, Any]]) -> etree.Element:
-    
+    """
+    Converts a list of GtfsCalendarRule or GtfsCalendarDateRule entities into a NeTEx <dayType> XML element.
+
+    Args:
+        entities: A list of GtfsCalendarRule or GtfsCalendarDateRule entites which are validated beforehand
+
+    Returns:
+        An lxml.etree.Element object representing the <dayTypes> container
+        with <DayType> children for each valid entity.
+    """
     logger.debug("Converting %d GtfsCalendarDateRule / GtfsCalendarRule entities to DayTypes", len(entities))
-    
-    day_types = etree.Element("dayTypes")
-    
+
+    # Used to store unique DayType XML elements
+    day_types_dict = {}
+
     for entity in entities:
-        
-        entity_type = entity.get("type")
+       
+        # Get the Gtfs NGSI-LD entity id and type
         day_type_id = entity.get("id")
-        
-        if entity_type == "GtfsCalendarDateRule":
-                        
-            if day_type_id:
-                day_type_id_value = day_type_id.split(":")[-2]
-                city = day_type_id.split(":")[-3]
-                
-                logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
-            
-                day_type = etree.SubElement(day_types, "DayType")
-                day_type.set("version", "1")
-                day_type.set("id", f"{city}:DayType:{day_type_id_value}")
-            
-        elif entity_type == "GtfsCalendarRule":
-                        
-            if day_type_id:
+        entity_type = entity.get("type")
+
+        if not entity_type or not day_type_id:
+            continue
+       
+        # Used to generate the DayType id
+        final_id = ""
+
+        # Process the GtfsCalendarRule as it's of higher priority
+        if entity_type == "GtfsCalendarRule":
+
+            try:
+                # Get id value and city
                 day_type_id_value = day_type_id.split(":")[-1]
                 city = day_type_id.split(":")[-2]
-                
-                logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
-            
-                day_type = etree.SubElement(day_types, "DayType")
-                day_type.set("version", "1")
-                day_type.set("id", f"{city}:DayType:{day_type_id_value}")
-                
-                day_type_properties = etree.SubElement(day_type, "properties")
-                day_type__property_of_day = etree.SubElement(day_type_properties, "PropertyOfDay")
-                day_type_days_of_week = etree.SubElement(day_type__property_of_day, "DaysOfWeek")
-                day_type_days_of_week.text = netex_helper_day_type_get_active_days(day_type)
-                
+            except IndexError:
+                logger.error("Invalid ID for GtfsCalendarRule: %s", day_type_id_value)
+                continue
+
+            # Generate the DayType id
+            final_id = f"{city}:DayType:{day_type_id_value}"
+           
+            logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
+       
+            # Create DayType element and it's meta-data
+            day_type = etree.Element("DayType", version = "1", id = final_id)
+            day_type_properties = etree.SubElement(day_type, "properties")
+            day_type__property_of_day = etree.SubElement(day_type_properties, "PropertyOfDay")
+            day_type_days_of_week = etree.SubElement(day_type__property_of_day, "DaysOfWeek")
+            day_type_days_of_week.text = netex_helper_day_type_get_active_days(entity)
+
+            # Add DayType element generated by GtfsCalendarRule as it's of higher priority
+            day_types_dict[final_id] = day_type
+
+        # Process the GtfsCalendarDateRule as it's of lower priority
+        elif entity_type == "GtfsCalendarDateRule":
+
+            try:
+                # Get id value and city
+                day_type_id_value = day_type_id.split(":")[-2]
+                city = day_type_id.split(":")[-3]
+            except IndexError:
+                logger.error("Invalid ID for GtfsCalendarRule: %s", day_type_id_value)
+                continue
+
+            # Generate the DayType id
+            final_id = f"{city}:DayType:{day_type_id_value}"
+           
+            logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
+
+            # Add DayType ONLY if one doesn't already exist.
+            if final_id not in day_types_dict:
+                day_type = etree.Element("DayType", version = "1", id = final_id)
+                day_types_dict[final_id] = day_type
+                           
         else:
             logger.error("Unsupported entity type: %s, id: %s", entity_type, day_type_id)
-    
+
+    # Create dayTypes container and populate it with the DayType XML elements
+    day_types = etree.Element("dayTypes")
+    for final_id in day_types_dict.keys():
+        day_types.append(day_types_dict[final_id])
+   
     logger.info("DayType conversion completed")
     logger.info("Created %d DayTypes", len(day_types))
-    
+   
     return day_types
 
 def netex_convert_calendar_to_operating_period(entities: list[dict[str, Any]]) -> etree.Element:
+    """
+    Converts a list of GtfsCalendarRule entities into a NeTEx <OperatingPeriod> XML element.
 
-    operating_periods = etree.Element("operatingPeriods")
+    Args:
+        entities: A list of GtfsCalendarRule entities
+
+    Returns:
+        An lxml.etree.Element object for the <operatingPeriods> container,
+        containing a unique set of <OperatingPeriod> children.
+    """
+    # Used to store unique OperatingPeriod XML elements
+    operating_period_dict = {}
+
+    logger.debug("Converting %d GtfsCalendarRule entities to OperatingPeriod", len(entities))
 
     for period in entities:
 
-        service_id = period.get("id")
-        
-        if not service_id:
-            continue
-        
-        service_id_value = service_id.split(":")[-1]
-        city = service_id.split(":")[-2]
+        # Get the Gtfs NGSI-LD entity id
+        period_id = period.get("id")
+       
+        # Used to generate the OperatingPeriod id
+        final_id = ""
+       
+        try:
+            # Get id value and city
+            period_id_value = period_id.split(":")[-1]
+            city = period_id.split(":")[-2]
+        except IndexError:
+                logger.error("Invalid ID for GtfsCalendarRule: %s", period_id_value)
+                continue
+       
+        logger.debug("Creating OperatingPeriod for %s", period_id_value)
+       
+        # Generate the OperatingPeriod id
+        final_id = f"{city}:OperatingPeriod:{period_id_value}"
 
+        # Get FromDate and convert it from YYYYMMDD to ISO 8601 format
         from_date = period.get("startDate", {}).get("value")
         from_date_iso = netex_helper_convert_yyyymmdd_date_to_iso_date(from_date)
 
+        # Get ToDate and convert it from YYYYMMDD to ISO 8601 format
         to_date = period.get("endDate", {}).get("value")
         to_date_iso = netex_helper_convert_yyyymmdd_date_to_iso_date(to_date)
 
-        operating_period = etree.SubElement(operating_periods, "OperatingPeriod")
-        operating_period.set("version", "1")
-        operating_period.set("id", f"{city}:OperatingPeriod:{service_id_value}")
+        # Generate OperatingPeriod XML elements
+        operating_period = etree.Element("OperatingPeriod", version = "1", id = final_id)
 
         operating_period_from_date = etree.SubElement(operating_period, "FromDate")
         operating_period_from_date.text = from_date_iso
@@ -882,77 +965,146 @@ def netex_convert_calendar_to_operating_period(entities: list[dict[str, Any]]) -
         operating_period_to_date = etree.SubElement(operating_period, "ToDate")
         operating_period_to_date.text = to_date_iso
 
+        # If the XML element is unique, add it to the dict so we remove duplicates
+        if final_id not in operating_period_dict:
+            operating_period_dict[final_id] = operating_period
+
+    # Create operatingPeriods container and populate it with the OperatingPeriod XML elements
+    operating_periods = etree.Element("operatingPeriods")
+    for final_id in operating_period_dict.keys():
+        operating_periods.append(operating_period_dict[final_id])
+
+    logger.info("OperatingPeriod conversion completed")
+    logger.info("Created %d OperatingPeriods", len(operating_periods))
+
     return operating_periods
 
-# TO-DO: DayTypeAssignment has to be contained in dayTypeAssignments
-#        dayTypeAssignments has to be contained in ServiceCalendarFrame 
 def netex_convert_calendar_or_calendar_dates_to_day_type_assignment(entities: list[dict[str, Any]]):
+    """
+    Converts a list of GtfsCalendarRule or GtfsCalendarDateRule entities into a NeTEx <dayTypeAssignments> element.
 
+    Args:
+        entities: A list of dictionaries representing GtfsCalendarRule and
+                  GtfsCalendarDateRule entities.
+
+    Returns:
+        An lxml.etree.Element for the <dayTypeAssignments> container
+        containing a unique set of <DayTypeAssignment> children.
+    """
     logger.debug("Converting %d GtfsCalendarDateRule / GtfsCalendarRule entities to DayTypeAssignments", len(entities))
-    
+   
     day_type_assignments = etree.Element("dayTypeAssignments")
-    
+   
     for index, entity in enumerate(entities):
-        
+       
         entity_type = entity.get("type")
         day_type_assignment_id = entity.get("id")
-        
+       
         if entity_type == "GtfsCalendarDateRule":
-                        
+                       
             if day_type_assignment_id:
                 day_type_id_value = day_type_assignment_id.split(":")[-2]
                 city = day_type_assignment_id.split(":")[-3]
                 raw_date = day_type_assignment_id.split(":")[-1]
-                
+               
                 exception_type = entity.get("exceptionType", {}).get("value")
                 is_available = exception_type == 1
                 is_available_value = "true" if is_available else "false"
-                
+               
                 logger.debug("Creating DayTypeAssignment for %s (%s)", day_type_id_value, entity_type)
-            
+           
                 day_type_assignment = etree.SubElement(day_type_assignments, "DayTypeAssignment")
                 day_type_assignment.set("order", str(index))
                 day_type_assignment.set("version", "1")
                 day_type_assignment.set("id", f"{city}:DayTypeAssignment:{day_type_id_value}-{index}")
-                
+               
                 date = etree.SubElement(day_type_assignment, "Date")
                 date.text = datetime.strptime(raw_date, "%Y%m%d").strftime("%Y-%m-%d")
-                
+               
                 day_type_ref = etree.SubElement(day_type_assignment, "DayTypeRef")
                 day_type_ref.set("version", "1")
                 day_type_ref.set("ref", f"{city}:DayType:{day_type_id_value}")
-                
+               
                 is_available_el = etree.SubElement(day_type_assignment, "IsAvailable")
                 is_available_el.text = is_available_value
-                
+               
         elif entity_type == "GtfsCalendarRule":
-            
+           
             if day_type_assignment_id:
                 day_type_id_value = day_type_assignment_id.split(":")[-1]
                 city = day_type_assignment_id.split(":")[-2]
-                
+               
                 logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
-            
+           
                 day_type_assignment = etree.SubElement(day_type_assignments, "DayTypeAssignment")
                 day_type_assignment.set("order", str(index))
                 day_type_assignment.set("version", "1")
                 day_type_assignment.set("id", f"{city}:DayTypeAssignment:{day_type_id_value}")
-                
+               
                 operating_period_ref = etree.SubElement(day_type_assignment, "OperatingPeriodRef")
                 operating_period_ref.set("version", "1")
                 operating_period_ref.set("ref", f"{city}:OperatingPeriod:{day_type_id_value}")
-                
+               
                 day_type_ref = etree.SubElement(day_type_assignment, "DayTypeRef")
                 day_type_ref.set("version", "1")
                 day_type_ref.set("ref", f"{city}:DayType:{day_type_id_value}-{index}")
-                
+               
         else:
             logger.error("Unsupported entity type: %s, id: %s", entity_type, day_type_assignment_id)
-    
+   
     logger.info("DayTypeAssignment conversion completed")
     logger.info("Created %d DayTypeAssignments", len(day_type_assignments))
-    
+   
     return day_type_assignments
+
+def netex_build_service_calendar_frame(calendars: list[dict[str, Any]], calendar_dates: list[dict[str, Any]], city: str) -> etree.Element:
+    """
+    Assembles a complete and valid NeTEx <ServiceCalendarFrame>.
+
+    This function orchestrates the creation of the main components of a NeTEx
+    ServiceCalendarFrame by calling specialized helper functions. It ensures that all
+    definitions are de-duplicated and correctly structured according to the
+    NeTEx Nordic standard.
+
+    The process involves:
+    1.  Combining all calendar-related entities (`calendars` and `calendar_dates`).
+    2.  Creating a single, de-duplicated <dayTypes> container.
+    3.  Creating a de-duplicated <operatingPeriods> container from `calendars`.
+    4.  Creating a complete <dayTypeAssignments> container from all entities.
+
+    Args:
+        calendars: A list of entities from `calendar.txt` (GtfsCalendarRule).
+        calendar_dates: A list of entities from `calendar_dates.txt` (GtfsCalendarDateRule).
+        city: The city identifier used for creating unique NeTEx IDs.
+
+    Returns:
+        A complete and valid lxml.etree.Element for the <ServiceCalendarFrame>.
+    """
+    logger.info("ServiceCalendarFrame has started")
+
+    # Create ServiceCalendarFrame
+    service_calendar_frame = etree.Element("ServiceCalendarFrame", version = "1", id = f"{city}:ServiceCalendarFrame:1")
+
+    # Combine both GtfsCalendarRule and GtfsCalendarDateRule for creating the <DayType> and <DayTypeAssignment> XML elements
+    all_entities = calendars + calendar_dates
+
+    # Create and append <DayType> XML elements
+    day_types = netex_convert_calendar_or_calendar_dates_to_day_type(all_entities)
+    service_calendar_frame.append(day_types)
+
+    # Create and append <OperatingPeriod> XML elements
+    operating_periods = netex_convert_calendar_to_operating_period(calendars)
+    service_calendar_frame.append(operating_periods)
+
+    # Create and append <DayTypeAssignment> XML elements
+    day_type_assignments = netex_convert_calendar_or_calendar_dates_to_day_type_assignment(all_entities)
+    service_calendar_frame.append(day_type_assignments)
+   
+    logger.info("ServiceCalendarFrame creation is completed")
+    return service_calendar_frame
+
+##########################################################
+
 
 def netex_convert_routes_to_lines(entity: dict[str, Any]):
     id_value = entity.get("id")
