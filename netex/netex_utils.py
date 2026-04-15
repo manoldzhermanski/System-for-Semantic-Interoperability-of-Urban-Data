@@ -600,156 +600,259 @@ def netex_helper_build_points_in_sequence_for_route(stops_per_trip: dict[str, li
         
     return points_in_sequence
 
-############################
-def netex_convert_agency_to_operator(entities: Iterator[list[dict[str, Any]]]) -> str:
+##########################################################
+# GtfsAgency
+# For FrameDefaults: How should I handle the timezone and default language and if there are multiple timezones in agency.txt
+# Questions: Observing the Netur Dataset we see a mapping of GTFS Agency to NeTEx Authority.
+# We already discussed that we will map GTFS Agency also to Operator but this begs the question - In general where does the Operator data come from if not observed in the GTFS files ?
+
+def netex_build_frame_defaults(agency: dict[str, Any]) -> etree.Element:
     """
-    Transforms NGSI-LD GtfsAgency entities to NeTEx Operator XML nested in a ResourceFrame.
+    Builds the NeTEx FrameDefaults element from a GtfsAgency entity
 
     Args:
-        entities: List iterator of NGSI-LD GtfsAgency
-                  Required fields:
-                  - agency_name
-                  - agency_url
-                  - agency_phone
-                  - agency_email
-                  - id
+        agency: GtfsAgency entity
 
     Returns:
-        XML string with ResourceFrame and Operator objects
+        An lxml.etree.Element object representing the <FrameDefaults> XML structure.
     """
+    # Extract from the entity it's timezone (required field) and language (optional field)
+    time_zone = agency.get("agency_timezone", {}).get("value")
+    language = agency.get("agency_lang", {}).get("value")
 
-    # PublicationDelivery
-    pub = etree.Element("PublicationDelivery", nsmap=NSMAP)
-    pub.set("version", "1.15:NO-NeTEx-networktimetable:1.5")
+    # Build FrameDefaults
+    frame_defaults = etree.Element("FrameDefaults")
 
-    # CompositeFrame
-    comp_frame = etree.SubElement(pub, "CompositeFrame", id="CompositeFrame:1", version="1")
+    # Add DefaultLocale element
+    frame_default_locale = etree.SubElement(frame_defaults, "DefaultLocale")
 
-    # ResourceFrame
-    res_frame = etree.SubElement(comp_frame, "ResourceFrame", id="ResourceFrame:1", version="1")
+    # Add TimeZone element
+    frame_default_time_zone = etree.SubElement(frame_default_locale, "TimeZone")
+    frame_default_time_zone.text = time_zone
 
-    # organisations container
-    organisations = etree.SubElement(res_frame, "organisations")
+    # If the optional language field is provided, add the DefaultLanguage element
+    if language:
+        frame_default_default_language = etree.SubElement(frame_default_locale, "DefaultLanguage")
+        frame_default_default_language.text = language
 
-    for batch in entities:
-        for entity in batch:
-            
-            id_value = entity.get("id")
-    
-            entity_id = id_value.split(":")[-1] if id_value else "unknown"
-            city = id_value.split(":")[-2] if id_value else "unknown"
-            name = entity.get("agency_name", {}).get("value")
-            url = entity.get("agency_url", {}).get("value", "")
-            phone = entity.get("agency_phone", {}).get("value", "")
-            email = entity.get("agency_email", {}).get("value", "")
+    # Return FrameDefaults
+    return frame_defaults
 
-            operator = etree.SubElement(
-                organisations,
-                "Operator",
-                version="1",
-                id=f"{city}:Operator:{entity_id}"
-            )
+def netex_convert_agency_to_authority(entities: list[dict[str, Any]]) -> list[etree.Element]:
+    """Converts a list of GtfsAgency entities into NeTEx Nordic 'Authority' XML elements.
 
-            # Name
-            name_el = etree.SubElement(operator, "Name")
-            name_el.text = name
-            
-            # Legal Name
-            legal_name_el = etree.SubElement(operator, "LegalName")
-            legal_name_el.text = name
+    Args:
+        entities: A list of GtfsAgency entities
+    Returns:
+        A list of lxml.etree.Element objects, where each element is a fully
+        formed NeTEx <Authority> representing an agency from the input list.
+    """
+    # List to store Authority elements
+    authority_list = []
 
-            # ContactDetails
-            contact = etree.SubElement(operator, "ContactDetails")
-            if url:
-                url_el = etree.SubElement(contact, "Url")
-                url_el.text = url
-            if phone:
-                phone_el = etree.SubElement(contact, "Phone")
-                phone_el.text = phone
-            if email:
-                email_el = etree.SubElement(contact, "Email")
-                email_el.text = email
+    # Iterate through all agencies
+    for index, entity in enumerate(entities, start = 1):
 
-    return etree.tostring(pub, pretty_print=True, xml_declaration=True, encoding="UTF-8").decode("utf-8")
+        # Get the agency id value
+        try:
+            agency_id = entity.get("id")
+            agency_id_value = agency_id.split(":")[-1]
+        except IndexError:
+                logger.error("Invalid ID for GtfsAgency: %s", agency_id_value)
 
-def netex_convert_stops_to_stop_place(entity: dict) -> etree.Element:
-    
-    id_value = entity.get("id")
-    
-    stop_id = id_value.split(":")[-1] if id_value else "unknown"
-    city = id_value.split(":")[-2] if id_value else "unknown"
-    location_type = entity.get("locationType", {}).get("value", 0)
+        # Get agency name
+        agency_name = entity.get("agency_name", {}).get("value")
 
-    name_value = entity.get("name", {}).get("value")
-    code_value = entity.get("code", {}).get("value")
+        # Build Authority XML element
+        authority = etree.Element("Authority", version = "1", id = f"{agency_id_value}:Authority:{agency_id_value}_ID")
 
-    coords = entity.get("location", {}).get("value", {}).get("coordinates")
+        # Set mandatory company number to index at which the element is at the input list
+        authority_company_number = etree.SubElement(authority, "CompanyNumber")
+        authority_company_number.text = str(index)
 
-    parent = entity.get("hasParentStation", {}).get("object")
-    wheelchair = entity.get("wheelchair_boarding", {}).get("value")
+        # Set Name element
+        authority_name = etree.SubElement(authority, "Name")
+        authority_name.text = agency_name
 
-    # --- CREATE STOPPLACE ---
-    stopplace = etree.Element("StopPlace", nsmap=NSMAP)
-    stopplace.set("id", f"{city}:StopPlace:{stop_id}")
-    stopplace.set("version", "1")
+        # Set LegalName element
+        authority_legal_name = etree.SubElement(authority, "LegalName")
+        authority_legal_name.text = agency_name
 
-    if name_value:
-        name_el = etree.SubElement(stopplace, "Name")
-        name_el.text = name_value
+        # Get agency_fare_url (mandatory field), agency_phone (optional field) and agency_email (optional field)
+        agency_phone = entity.get("agency_phone", {}).get("value")
+        agency_fare_url = entity.get("agency_fare_url", {}).get("value")
+        agency_email = entity.get("agency_email", {}).get("value")
 
-    # Parent reference
-    if parent:
-        parent_ref = etree.SubElement(stopplace, "ParentSiteRef")
-        parent_ref.set("ref", f"{city}:StopPlace:{parent}")
-        parent_ref.set("version", "1")
+        # Set ContactDetails element
+        authority_contact_details = etree.SubElement(authority, "ContactDetails")
 
-    # Coordinates
-    if coords:
-        centroid = etree.SubElement(stopplace, "Centroid")
-        loc = etree.SubElement(centroid, "Location")
-        etree.SubElement(loc, "Longitude").text = str(coords[0])
-        etree.SubElement(loc, "Latitude").text = str(coords[1])
+        # Set authority email if provided
+        if agency_email:
+            agency_email_address = etree.SubElement(authority_contact_details, "Email")
+            agency_email_address.text = agency_email
 
-    # Accessibility
-    if wheelchair is not None:
-        access = etree.SubElement(stopplace, "AccessibilityAssessment")
-        mobility = etree.SubElement(access, "MobilityImpairedAccess")
+        # Set authority phone if provided
+        if agency_phone:
+            authority_phone = etree.SubElement(authority_contact_details, "Phone")
+            authority_phone.text = agency_phone
 
-        if wheelchair == 1:
-            mobility.text = "true"
-        elif wheelchair == 2:
-            mobility.text = "false"
-        else:
-            mobility.text = "unknown"
+        # Set authority url
+        authority_url = etree.SubElement(authority_contact_details, "Url")
+        authority_url.text = agency_fare_url
 
-    # StopPlaceType (safe fallback for OTP)
-    sptype = etree.SubElement(stopplace, "StopPlaceType")
+        # Set OrganisationType to authority
+        authority_organisation_type = etree.SubElement(authority, "OrganisationType")
+        authority_organisation_type.text = "authority"
 
-    if location_type == 1:
-        sptype.text = "station"
-    else:
-        sptype.text = "other"
+        # Append authority
+        authority_list.append(authority)
+   
+    # Return authority_list
+    return authority_list
 
-    # --- CREATE QUAY FOR BOARDING POINTS ---
-    if location_type in (0, 4):
+def netex_convert_agency_to_operator(entities: list[dict[str, Any]]) -> list[etree.Element]:
+    """Converts a list of GtfsAgency entities into NeTEx Nordic 'Operator' XML elements.
 
-        quays_container = etree.SubElement(stopplace, "quays")
+    Args:
+        entities: A list of GtfsAgency entities
+    Returns:
+        A list of lxml.etree.Element objects, where each element is a fully
+        formed NeTEx <Operator> representing an agency from the input list.
+    """
+    # List to store Operator elements
+    operator_list = []
 
-        quay = etree.SubElement(quays_container, "Quay")
-        quay.set("id", f"{city}:Quay:{stop_id}")
-        quay.set("version", "1")
+    # Iterate through all agencies
+    for index, entity in enumerate(entities, start = 1):
 
-        if code_value:
-            etree.SubElement(quay, "PublicCode").text = str(code_value)
+        # Get the agency id value
+        try:
+            agency_id = entity.get("id")
+            agency_id_value = agency_id.split(":")[-1]
+        except IndexError:
+                logger.error("Invalid ID for GtfsAgency: %s", agency_id_value)
 
-        if coords:
-            centroid = etree.SubElement(quay, "Centroid")
-            loc = etree.SubElement(centroid, "Location")
-            etree.SubElement(loc, "Longitude").text = str(coords[0])
-            etree.SubElement(loc, "Latitude").text = str(coords[1])
+        # Get agency name
+        agency_name = entity.get("agency_name", {}).get("value")
 
-    return stopplace
+        # Build Operator XML element
+        operator = etree.Element("Operator", version = "1", id = f"{agency_id_value}:Operator:{agency_id_value}_{index}")
 
+        # Set mandatory company number to index at which the element is at the input list
+        operator_company_number = etree.SubElement(operator, "CompanyNumber")
+        operator_company_number.text = str(index)
+
+        # Set Name element
+        operator_name = etree.SubElement(operator, "Name")
+        operator_name.text = agency_name
+
+        # Set LegalName element
+        operator_legal_name = etree.SubElement(operator, "LegalName")
+        operator_legal_name.text = agency_name
+
+        # Get agency_fare_url (mandatory field), agency_phone (optional field) and agency_email (optional field)
+        agency_phone = entity.get("agency_phone", {}).get("value")
+        agency_fare_url = entity.get("agency_fare_url", {}).get("value")
+        agency_email = entity.get("agency_email", {}).get("value")
+
+        # Set ContactDetails element
+        operator_contact_details = etree.SubElement(operator, "ContactDetails")
+
+        # Set authority email if provided
+        if agency_email:
+            agency_email_address = etree.SubElement(operator_contact_details, "Email")
+            agency_email_address.text = agency_email
+
+        # Set authority phone if provided
+        if agency_phone:
+            authority_phone = etree.SubElement(operator_contact_details, "Phone")
+            authority_phone.text = agency_phone
+
+        # Set authority url
+        authority_url = etree.SubElement(operator_contact_details, "Url")
+        authority_url.text = agency_fare_url
+
+        # Set OrganisationType to operator
+        authority_organisation_type = etree.SubElement(operator, "OrganisationType")
+        authority_organisation_type.text = "operator"
+
+        # Append operator
+        operator_list.append(operator)
+
+    # Return operator_list
+    return operator_list
+
+def netex_build_resource_frame(agency: list[dict[str, Any]], city: str) -> etree.Element:
+    """
+    Builds a NeTEx ResourceFrame .
+
+    This function acts as an orchestrator to create a complete ResourceFrame.
+    It populates the frame by converting a list of GtfsAgency entities into both
+    <Authority> and <Operator> XML elements, and then appends them under the
+    <organisations> collection.
+
+    Args:
+        agency: A list of GtfsAgency entities
+        city: The name of the city for which the transport data is
+    Returns:
+        An lxml.etree.Element object representing the complete <ResourceFrame>.
+    """
+    # Create ResourceFrame element and add it's organisations sub-element
+    resource_frame = etree.Element("ResourceFrame", version = "1", id = f"{city}:ResourceFrame:1")
+    organisations = etree.SubElement(resource_frame, "organisations")
+
+    # Append all authorites to organisations
+    authorities = netex_convert_agency_to_authority(agency)
+    for authority in authorities:
+        organisations.append(authority)
+
+    # Append all operators to organisations
+    operators = netex_convert_agency_to_operator(agency)
+    for operator in operators:
+        organisations.append(operator)
+
+    # Return ResourceFrame
+    return resource_frame
+
+def netex_build_networks(agencies: list[dict[str, Any]]) -> list[etree.Element]:
+    """Builds a list of NeTEx <Network> elements from GtfsAgency entities.
+
+    Args:
+        agencies: A list of GtfsAgency entities
+
+    Returns:
+        A list of lxml.etree.Element objects, where each element is a
+        <Network> for an agency.
+    """
+    # List to store the Network elements
+    network_list = []
+
+    # Traverse through all agencies
+    for agency in agencies:
+
+        # Get network id value
+        try:
+            network_id = agency.get("id")
+            network_id_value = network_id.split(":")[-1]
+        except IndexError:
+                logger.error("Invalid ID for GtfsAgency: %s", network_id_value)
+
+        # Get network name
+        agency_name = agency.get("agency_name",{}).get("value")
+
+        network = etree.Element("Network", version = "1", id = f"{network_id_value}:Network:{network_id_value}Nett")
+        network_name = etree.SubElement(network, "Name")
+        network_name.text = agency_name
+
+        # Make authority reference
+        network_authority_ref = etree.SubElement(network, "AuthorityRef", ref = f"{network_id_value}:Authority:{network_id_value}_ID", version = "1")
+
+        # Append network
+        network_list.append(network)
+
+    # Return network_list
+    return network_list
+   
 ##########################################################
 # GtfsCalendarRule and GtfsCalendarDateRule
 
