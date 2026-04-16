@@ -60,12 +60,12 @@ def test_single_agency_minimal_details():
     result_list = netex_convert_agency_to_authority(input_agencies)
 
     expected_xml = """
-    <Authority version="1" id="ID2:Authority:ID2_ID">
+    <Authority version="1" id="ID1:Authority:ID1_ID">
         <CompanyNumber>1</CompanyNumber>
-        <Name>Metro Bus</Name>
-        <LegalName>Metro Bus</LegalName>
+        <Name>City Transit</Name>
+        <LegalName>City Transit</LegalName>
         <ContactDetails>
-            <Url>"http://city-transit.com/fares"</Url>
+            <Url>http://city-transit.com/fares</Url>
         </ContactDetails>
         <OrganisationType>authority</OrganisationType>
     </Authority>
@@ -100,7 +100,7 @@ def test_with_two_agencies():
             <Name>City Transit</Name>
             <LegalName>City Transit</LegalName>
             <ContactDetails>
-                <Url>"http://city-transit.com/fares"</Url>
+                <Url>http://city-transit.com/fares</Url>
             </ContactDetails>
             <OrganisationType>authority</OrganisationType>
         </Authority>
@@ -109,7 +109,7 @@ def test_with_two_agencies():
             <Name>City Transit 2</Name>
             <LegalName>City Transit 2</LegalName>
             <ContactDetails>
-                <Url>"http://city-transit.com/fares2"</Url>
+                <Url>http://city-transit.com/fares2</Url>
             </ContactDetails>
             <OrganisationType>authority</OrganisationType>
         </Authority>

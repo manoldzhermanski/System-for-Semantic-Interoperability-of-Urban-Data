@@ -35,16 +35,16 @@ def test_build_resource_frame_structure_and_content():
             <Name>City Transit</Name>
             <LegalName>City Transit</LegalName>
             <ContactDetails>
-                <Url>"http://city-transit.com/fares"</Url>
+                <Url>http://city-transit.com/fares</Url>
             </ContactDetails>
             <OrganisationType>authority</OrganisationType>
         </Authority>
-        <Operator version="1" id="ID1:Operator:ID1_ID">
+        <Operator version="1" id="ID1:Operator:ID1">
             <CompanyNumber>1</CompanyNumber>
             <Name>City Transit</Name>
             <LegalName>City Transit</LegalName>
             <ContactDetails>
-                <Url>"http://city-transit.com/fares"</Url>
+                <Url>http://city-transit.com/fares</Url>
             </ContactDetails>
             <OrganisationType>operator</OrganisationType>
         </Operator>

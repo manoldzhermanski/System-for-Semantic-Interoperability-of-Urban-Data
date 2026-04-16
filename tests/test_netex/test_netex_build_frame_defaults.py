@@ -2,7 +2,6 @@ import pytest
 from lxml import etree
 from typing import Any, Dict
 from netex.netex_utils import netex_build_frame_defaults
-# --- Custom Assertion Helper ---
 
 def assert_xml_equal(generated_xml, expected_xml_str):
     """Compares two XML elements for equivalence."""
@@ -12,7 +11,6 @@ def assert_xml_equal(generated_xml, expected_xml_str):
     generated = etree.fromstring(etree.tostring(generated_xml), parser)
 
     assert etree.tostring(generated) == etree.tostring(expected)
-
 
 def test_with_full_agency_data():
     agency = {
@@ -60,50 +58,45 @@ def test_with_full_agency_data():
     [
         (
             {
-            "id": f"urn:ngsi-ld:GtfsAgency:Sofia:TA",
+                "id": "urn:ngsi-ld:GtfsAgency:Sofia:TA",
                 "type": "GtfsAgency",
-                   
-                "agency_name":{
+                "agency_name": {
                     "type": "Property",
                     "value": "TestAgency"
                 },
-
                 "agency_url": {
                     "type": "Property",
                     "value": "https://agency.com"
                 },
-                   
                 "agency_timezone": {
                     "type": "Property",
                     "value": "Europe/Sofia"
                 }
-            }
+            },
+            "Europe/Sofia"
         ),
         (
             {
-                "id": f"urn:ngsi-ld:GtfsAgency:Sofia:TA",
+                "id": "urn:ngsi-ld:GtfsAgency:Sofia:TA",
                 "type": "GtfsAgency",
-                   
-                "agency_name":{
+                "agency_name": {
                     "type": "Property",
                     "value": "TestAgency"
                 },
-
                 "agency_url": {
                     "type": "Property",
                     "value": "https://agency.com"
                 },
-                   
                 "agency_timezone": {
                     "type": "Property",
                     "value": "Europe/Sofia"
                 },
-
                 "agency_lang": {
                     "type": "Property",
                     "value": None
                 }
-            }
+            },
+            "Europe/Sofia"
         )
     ]
 )

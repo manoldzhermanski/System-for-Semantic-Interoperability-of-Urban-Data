@@ -736,7 +736,7 @@ def netex_convert_agency_to_operator(entities: list[dict[str, Any]]) -> list[etr
         agency_name = entity.get("agency_name", {}).get("value")
 
         # Build Operator XML element
-        operator = etree.Element("Operator", version = "1", id = f"{agency_id_value}:Operator:{agency_id_value}_{index}")
+        operator = etree.Element("Operator", version = "1", id = f"{agency_id_value}:Operator:{agency_id_value}")
 
         # Set mandatory company number to index at which the element is at the input list
         operator_company_number = etree.SubElement(operator, "CompanyNumber")
@@ -1207,16 +1207,62 @@ def netex_build_service_calendar_frame(calendars: list[dict[str, Any]], calendar
     return service_calendar_frame
 
 ##########################################################
+# GtfsRoute
+# Need to cross-check the transport mode mapping with NeTEx
+def netex_helper_get_transport_mode_and_submode(gtfs_route_type_code: int) -> tuple:
+    """
+    Retrieves the NeTEx transport mode and submode based on the GTFS route type code.
 
+    Args:
+        gtfs_route_type_code: The GTFS route type code.
 
-def netex_convert_routes_to_lines(entity: dict[str, Any]):
+    Returns:
+        A tuple containing the NeTEx transport mode and submode, or (None, None) if not found.
+    """
+    gtfs_to_netex_map = {
+        100: ('rail', 'unknown'),
+        101: ('rail', 'airportLinkRail'),
+        102: ('rail', 'longDistance'),
+        103: ('rail', 'interregionalRail'),
+        105: ('rail', 'nightRail'),
+        106: ('rail', 'regionalRail'),
+        107: ('rail', 'touristRailway'),
+        108: ('rail', 'airportLinkRail'),
+        109: ('rail', 'regionalRail'),
+        200: ('coach', 'unknown'),
+        201: ('coach', 'internationalCoach'),
+        202: ('coach', 'nationalCoach'),
+        204: ('coach', 'touristCoach'),
+        400: ('metro', 'urbanRailway'),
+        401: ('metro', 'metro'),
+        402: ('metro', 'metro'),
+        403: ('metro', 'urbanRailway'),
+        405: ('metro', 'urbanRailway'),
+        700: ('bus', 'unknown'),
+        701: ('bus', 'regionalBus'),
+        702: ('bus', 'expressBus'),
+        704: ('bus', 'localBus'),
+        715: ('bus', 'unknown'),
+        800: ('trolleyBus', 'unknown'), # not in the official documentation but found here https://github.com/entur/netex-gtfs-converter-java
+        900: ('tram', 'unknown'),
+        1000: ('water', 'unknown'),
+        1200: ('water', 'unknown'),
+        1300: ('cableway', 'unknown'),
+        1301: ('cableway', 'telecabin'),
+        1400: ('funicular', 'funicular'),
+        1501: ('taxi', 'communalTaxi'),
+        1700: ('other', 'unknown'), # not in the official documentation but found here https://github.com/entur/netex-gtfs-converter-java
+        1702: ('other', 'unknown'), # not in the official documentation but found here https://github.com/entur/netex-gtfs-converter-java
+    }
+    return gtfs_to_netex_map.get(gtfs_route_type_code, (None, None))
+
+def netex_convert_routes_to_lines(entity: dict[str, Any]) -> etree.Element:
+   
     id_value = entity.get("id")
     route_id = id_value.split(":")[-1] if id_value else "unknown"
     city = id_value.split(":")[-2] if id_value else "unknown"
 
-    line = etree.Element("Line")
-    line.set("id", f"{city}:Line:{route_id}")
-    line.set("version", "1")
+    line = etree.Element("Line", version = "1", id = f"{city}:Line:{route_id}")
 
     route_long_name = entity.get("name", {}).get("value")
     if route_long_name:
@@ -1227,6 +1273,40 @@ def netex_convert_routes_to_lines(entity: dict[str, Any]):
     if route_description:
         line_description = etree.SubElement(line, "Description")
         line_description.text = route_description
+
+    SUBMODE_TAG_MAP = {
+    'rail': 'RailSubmode',
+    'coach': 'CoachSubmode',
+    'metro': 'MetroSubmode',
+    'bus': 'BusSubmode',
+    'trolleyBus': 'TrolleyBusSubmode',
+    'tram': 'TramSubmode',
+    'water': 'WaterSubmode',
+    'cableway': 'TelecabinSubmode',
+    'funicular': 'FunicularSubmode',
+    'taxi': 'TaxiSubMode',
+    'other': 'OtherSubMode'
+    }
+
+    route_type = entity.get("routeType", {}).get("value")
+    transport_mode_and_submode = netex_helper_get_transport_mode_and_submode(route_type)
+
+    try:
+        mode_text, submode_text = transport_mode_and_submode
+    except (ValueError, TypeError):
+        raise ValueError("transport_mode_and_submode must be a tuple of two strings.")
+
+    transport_mode = etree.SubElement(line, "TransportMode")
+    transport_mode.text = mode_text
+
+    submode_tag = SUBMODE_TAG_MAP.get(mode_text)
+
+    if not submode_tag:
+        raise ValueError(f"Unknown Transport Mode: '{mode_text}'")
+   
+    transport_submode_parent = etree.SubElement(line, "TransportSubmode")
+    submode = etree.SubElement(transport_submode_parent, submode_tag)
+    submode.text = submode_text
 
     # TO-DO: WRITE A FUNCTION FOR THE TransportMode AND TransportSubmode
     # REFERENCE: https://github.com/entur/netex-gtfs-converter-java
@@ -1244,14 +1324,15 @@ def netex_convert_routes_to_lines(entity: dict[str, Any]):
     agency = entity.get("operatedBy", {}).get("object")
     if agency:
         agency_id = agency.split(":")[-1]
-        line_operator_ref = etree.SubElement(line, "OperatorRef")
-        line_operator_ref.set("ref", f"{city}:Operator:{agency_id}")
+        line_operator_ref = etree.SubElement(line, "OperatorRef", ref = f"{agency_id}:Operator:{agency_id}")
+        line_represented_by_group_ref = etree.SubElement(line, "RepresentedByGroupRef", ref = f"{agency_id}:Operator:{agency_id}Nett")
+
 
     route_colour = entity.get("routeColor", {}).get("value")
     route_text_colour = entity.get("routeTextColor", {}).get("value")
     if route_colour or route_text_colour:
         presentation = etree.SubElement(line, "Presentation")
-        
+       
         if route_colour:
             line_colour = etree.SubElement(presentation, "Colour")
             line_colour.text = route_colour

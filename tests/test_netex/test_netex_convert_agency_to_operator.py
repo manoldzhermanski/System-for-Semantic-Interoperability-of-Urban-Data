@@ -30,7 +30,7 @@ def test_single_operator_full_details():
     result_list = netex_convert_agency_to_operator(input_agencies)
 
     expected_xml = """
-    <Operator version="1" id="CITY_TRANSIT:Operator:CITY_TRANSIT_1">
+    <Operator version="1" id="CITY_TRANSIT:Operator:CITY_TRANSIT">
         <CompanyNumber>1</CompanyNumber>
         <Name>City Transit</Name>
         <LegalName>City Transit</LegalName>
