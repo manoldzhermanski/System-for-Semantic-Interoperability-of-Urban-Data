@@ -1257,37 +1257,53 @@ def netex_helper_get_transport_mode_and_submode(gtfs_route_type_code: int) -> tu
     return gtfs_to_netex_map.get(gtfs_route_type_code, (None, None))
 
 def netex_convert_routes_to_lines(entity: dict[str, Any]) -> etree.Element:
-   
-    id_value = entity.get("id")
-    route_id = id_value.split(":")[-1] if id_value else "unknown"
-    city = id_value.split(":")[-2] if id_value else "unknown"
+    """
+    Converts a GTFS Route entity into a NeTEx Line XML element.
 
-    line = etree.Element("Line", version = "1", id = f"{city}:Line:{route_id}")
+    Args:
+        entity (dict[str, Any]): GtfsRoute entity
 
+    Returns:
+        etree.Element: A NeTEx Line XML element populated with the corresponding
+        route information.
+    """
+
+    # Extract route ID and city from entity ID
+    route_id = entity.get("id")
+    route_id_value = route_id.split(":")[-1] if route_id else "unknown"
+    city = route_id.split(":")[-2] if route_id else "unknown"
+
+    # Create Line element
+    line = etree.Element("Line", version="1", id=f"{city}:Line:{route_id_value}")
+
+    # Add line Name
     route_long_name = entity.get("name", {}).get("value")
     if route_long_name:
         line_name = etree.SubElement(line, "Name")
         line_name.text = route_long_name
 
+    # Add line Description
     route_description = entity.get("description", {}).get("value")
     if route_description:
         line_description = etree.SubElement(line, "Description")
         line_description.text = route_description
 
+    # Mapping between transport mode and NeTEx submode tags
     SUBMODE_TAG_MAP = {
-    'rail': 'RailSubmode',
-    'coach': 'CoachSubmode',
-    'metro': 'MetroSubmode',
-    'bus': 'BusSubmode',
-    'trolleyBus': 'TrolleyBusSubmode',
-    'tram': 'TramSubmode',
-    'water': 'WaterSubmode',
-    'cableway': 'TelecabinSubmode',
-    'funicular': 'FunicularSubmode',
-    'taxi': 'TaxiSubMode',
-    'other': 'OtherSubMode'
+        'rail': 'RailSubmode',
+        'coach': 'CoachSubmode',
+        'metro': 'MetroSubmode',
+        'bus': 'BusSubmode',
+        'trolleyBus': 'TrolleyBusSubmode',
+        'tram': 'TramSubmode',
+        'water': 'WaterSubmode',
+        'cableway': 'TelecabinSubmode',
+        'funicular': 'FunicularSubmode',
+        'taxi': 'TaxiSubMode',
+        'other': 'OtherSubMode'
     }
 
+    # Get transport mode and submode from route type
     route_type = entity.get("routeType", {}).get("value")
     transport_mode_and_submode = netex_helper_get_transport_mode_and_submode(route_type)
 
@@ -1296,43 +1312,53 @@ def netex_convert_routes_to_lines(entity: dict[str, Any]) -> etree.Element:
     except (ValueError, TypeError):
         raise ValueError("transport_mode_and_submode must be a tuple of two strings.")
 
+    # Add TransportMode element
     transport_mode = etree.SubElement(line, "TransportMode")
     transport_mode.text = mode_text
 
+    # Get submode tag based on transport mode
     submode_tag = SUBMODE_TAG_MAP.get(mode_text)
 
     if not submode_tag:
         raise ValueError(f"Unknown Transport Mode: '{mode_text}'")
-   
+
+    # Add TransportSubmode element
     transport_submode_parent = etree.SubElement(line, "TransportSubmode")
     submode = etree.SubElement(transport_submode_parent, submode_tag)
     submode.text = submode_text
 
-    # TO-DO: WRITE A FUNCTION FOR THE TransportMode AND TransportSubmode
-    # REFERENCE: https://github.com/entur/netex-gtfs-converter-java
+    # TODO: Move TransportMode and TransportSubmode logic to a helper function
+    # Reference: https://github.com/entur/netex-gtfs-converter-java
 
+    # Add line URL
     route_url = entity.get("route_url", {}).get("value")
     if route_url:
         line_url = etree.SubElement(line, "Url")
         line_url.text = route_url
 
+    # Add line short name (PublicCode)
     route_short_name = entity.get("shortName", {}).get("value")
     if route_short_name:
         line_name = etree.SubElement(line, "PublicCode")
         line_name.text = route_short_name
 
+    # Add operator references
     agency = entity.get("operatedBy", {}).get("object")
     if agency:
         agency_id = agency.split(":")[-1]
-        line_operator_ref = etree.SubElement(line, "OperatorRef", ref = f"{agency_id}:Operator:{agency_id}")
-        line_represented_by_group_ref = etree.SubElement(line, "RepresentedByGroupRef", ref = f"{agency_id}:Operator:{agency_id}Nett")
 
+        line_operator_ref = etree.SubElement(line, "OperatorRef", ref=f"{agency_id}:Operator:{agency_id}")
 
+        line_represented_by_group_ref = etree.SubElement(line,"RepresentedByGroupRef",ref=f"{agency_id}:Authority:{agency_id}Nett"
+        )
+
+    # Add presentation (colors)
     route_colour = entity.get("routeColor", {}).get("value")
     route_text_colour = entity.get("routeTextColor", {}).get("value")
+
     if route_colour or route_text_colour:
         presentation = etree.SubElement(line, "Presentation")
-       
+
         if route_colour:
             line_colour = etree.SubElement(presentation, "Colour")
             line_colour.text = route_colour
