@@ -2,7 +2,6 @@ import pytest
 from lxml import etree
 from netex.netex_utils import netex_build_resource_frame
 
-
 def assert_xml_equal(generated_xml, expected_xml_str):
     """Compares two XML elements for equivalence."""
     parser = etree.XMLParser(remove_blank_text=True)
@@ -11,6 +10,7 @@ def assert_xml_equal(generated_xml, expected_xml_str):
     generated = etree.fromstring(etree.tostring(generated_xml), parser)
 
     assert etree.tostring(generated) == etree.tostring(expected)
+    
 def test_build_resource_frame_structure_and_content():
     """
     Tests that the ResourceFrame is built correctly, with all organisations.

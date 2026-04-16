@@ -14,8 +14,6 @@ def assert_xml_equal(generated_xml, expected_xml_str):
 
     assert etree.tostring(generated) == etree.tostring(expected)
 
-# --- Pytest Scenarios ---
-
 def test_netex_convert_calendar_or_calendar_dates_to_day_type_with_gtfs_calendar_rule():
     """Tests a single GtfsCalendarRule entity which should have a <properties> block."""
     entities = [
