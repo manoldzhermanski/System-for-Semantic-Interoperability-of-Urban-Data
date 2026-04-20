@@ -1557,7 +1557,7 @@ def netex_helper_get_transport_modes_per_stop(
 
     return transport_modes_per_stop
 
-def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]]) -> etree.Element:
+def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_modes_per_stop: dict[str, set[tuple[str, str]]]) -> etree.Element:
 
     stop_places_dict = {}
 
@@ -1624,13 +1624,17 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]]) -> etree.E
         # TO-DO:
         #  Need to write a function that based on the stop_id it locates in which trips it is in
         # After that based on trip_id we will see what route it's associated with and from there we will know the transport mode
+        mode = "unknown"
+        submode = "unknown"
         
-        etree.SubElement(stop_place, "TransportMode").text = ""
+        transport_modes = transport_modes_per_stop.get(stop_id, set())
 
-        # TO-DO: Can expand the other TO-DO to give the StopPlaceType
-        if parent_station:
-            etree.SubElement(stop_place, "StopPlaceType").text = ""
-   
+        if transport_modes:
+            mode, submode = sorted(transport_modes)[0]  
+    
+        etree.SubElement(stop_place, "TransportMode").text = mode
+        etree.SubElement(stop_place, "StopPlaceType").text = submode
+           
         if location_type in (0, 4):
 
             quays_container = etree.SubElement(stop_place, "quays")
