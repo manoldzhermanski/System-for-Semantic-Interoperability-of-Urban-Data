@@ -3,6 +3,10 @@ from lxml import etree
 from typing import Any, Dict, List
 from netex.netex_utils import netex_convert_agency_to_authority
 
+@pytest.fixture(autouse=True)
+def set_netex_authority(monkeypatch):
+    monkeypatch.setattr("netex.netex_utils.config.NETEX_AUTHORITY", "TEST")
+
 def assert_xml_equal(generated_xml, expected_xml_str):
     """Compares two XML elements for equivalence."""
     parser = etree.XMLParser(remove_blank_text=True)
@@ -18,7 +22,7 @@ def test_single_agency_full_details():
     """
     input_agencies = [
         {
-            "id": "urn:ngsi-ld:Agency:ID1",
+            "id": "urn:ngsi-ld:GtfsAgency:TESTCITY:ID1",
             "agency_name": {"value": "City Transit"},
             "agency_phone": {"value": "555-0100"},
             "agency_fare_url": {"value": "http://city-transit.com/fares"},
@@ -29,7 +33,7 @@ def test_single_agency_full_details():
     result_list = netex_convert_agency_to_authority(input_agencies)
 
     expected_xml = """
-    <Authority version="1" id="ID1:Authority:ID1_ID">
+    <Authority version="1" id="TEST:Authority:ID1_ID">
         <CompanyNumber>1</CompanyNumber>
         <Name>City Transit</Name>
         <LegalName>City Transit</LegalName>
@@ -51,7 +55,7 @@ def test_single_agency_minimal_details():
     """
     input_agencies = [
         {
-            "id": "urn:ngsi-ld:Agency:ID1",
+            "id": "urn:ngsi-ld:GtfsAgency:TESTCITY:ID1",
             "agency_name": {"value": "City Transit"},
             "agency_fare_url": {"value": "http://city-transit.com/fares"}
         }
@@ -60,7 +64,7 @@ def test_single_agency_minimal_details():
     result_list = netex_convert_agency_to_authority(input_agencies)
 
     expected_xml = """
-    <Authority version="1" id="ID1:Authority:ID1_ID">
+    <Authority version="1" id="TEST:Authority:ID1_ID">
         <CompanyNumber>1</CompanyNumber>
         <Name>City Transit</Name>
         <LegalName>City Transit</LegalName>
@@ -77,12 +81,12 @@ def test_with_two_agencies():
 
     input_agencies = [
         {
-            "id": "urn:ngsi-ld:Agency:ID1",
+            "id": "urn:ngsi-ld:GtfsAgency:TESTCITY:ID1",
             "agency_name": {"value": "City Transit"},
             "agency_fare_url": {"value": "http://city-transit.com/fares"},
         },
         {
-            "id": "urn:ngsi-ld:Agency:ID2",
+            "id": "urn:ngsi-ld:GtfsAgency:TESTCITY:ID2",
             "agency_name": {"value": "City Transit 2"},
             "agency_fare_url": {"value": "http://city-transit.com/fares2"},
         }
@@ -95,7 +99,7 @@ def test_with_two_agencies():
 
     expected_xml = """
     <organisations>
-        <Authority version="1" id="ID1:Authority:ID1_ID">
+        <Authority version="1" id="TEST:Authority:ID1_ID">
             <CompanyNumber>1</CompanyNumber>
             <Name>City Transit</Name>
             <LegalName>City Transit</LegalName>
@@ -104,7 +108,7 @@ def test_with_two_agencies():
             </ContactDetails>
             <OrganisationType>authority</OrganisationType>
         </Authority>
-        <Authority version="1" id="ID2:Authority:ID2_ID">
+        <Authority version="1" id="TEST:Authority:ID2_ID">
             <CompanyNumber>2</CompanyNumber>
             <Name>City Transit 2</Name>
             <LegalName>City Transit 2</LegalName>

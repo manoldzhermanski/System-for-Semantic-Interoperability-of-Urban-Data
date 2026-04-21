@@ -2,6 +2,10 @@ import pytest
 from lxml import etree
 from netex.netex_utils import netex_convert_agency_to_operator
 
+@pytest.fixture(autouse=True)
+def set_netex_authority(monkeypatch):
+    monkeypatch.setattr("netex.netex_utils.config.NETEX_AUTHORITY", "TEST")
+
 def assert_xml_equal(generated_xml, expected_xml_str):
     """Compares two XML elements for equivalence."""
     parser = etree.XMLParser(remove_blank_text=True)
@@ -10,7 +14,6 @@ def assert_xml_equal(generated_xml, expected_xml_str):
     generated = etree.fromstring(etree.tostring(generated_xml), parser)
 
     assert etree.tostring(generated) == etree.tostring(expected)
-# --- Pytest Test Functions ---
 
 def test_single_operator_full_details():
     """
@@ -30,7 +33,7 @@ def test_single_operator_full_details():
     result_list = netex_convert_agency_to_operator(input_agencies)
 
     expected_xml = """
-    <Operator version="1" id="CITY_TRANSIT:Operator:CITY_TRANSIT">
+    <Operator version="1" id="TEST:Operator:CITY_TRANSIT">
         <CompanyNumber>1</CompanyNumber>
         <Name>City Transit</Name>
         <LegalName>City Transit</LegalName>
@@ -53,12 +56,14 @@ def test_two_operators():
 
     input_agencies = [
         {
-            "id": "urn:ngsi-ld:Agency:ID1",
+            "id": "urn:ngsi-ld:GtfsAgency:TESTCITY:ID1",
+            "type": "GtfsAgency",
             "agency_name": {"value": "City Transit"},
             "agency_fare_url": {"value": "http://city.com"},
         },
         {
-            "id": "urn:ngsi-ld:Agency:ID2",
+            "id": "urn:ngsi-ld:GtfsAgency:TESTCITY:ID2",
+            "type": "GtfsAgency",
             "agency_name": {"value": "City Transit 2"},
             "agency_fare_url": {"value": "http://citytwo.com"},
         }
@@ -71,7 +76,7 @@ def test_two_operators():
 
     expected_xml = """
     <organisations>
-        <Operator version="1" id="ID1:Operator:ID1">
+        <Operator version="1" id="TEST:Operator:ID1">
             <CompanyNumber>1</CompanyNumber>
             <Name>City Transit</Name>
             <LegalName>City Transit</LegalName>
@@ -80,7 +85,7 @@ def test_two_operators():
             </ContactDetails>
             <OrganisationType>operator</OrganisationType>
         </Operator>
-        <Operator version="1" id="ID2:Operator:ID2">
+        <Operator version="1" id="TEST:Operator:ID2">
             <CompanyNumber>2</CompanyNumber>
             <Name>City Transit 2</Name>
             <LegalName>City Transit 2</LegalName>

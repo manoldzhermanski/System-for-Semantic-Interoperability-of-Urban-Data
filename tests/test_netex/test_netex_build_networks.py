@@ -2,6 +2,10 @@ import pytest
 from lxml import etree
 from netex.netex_utils import netex_build_networks
 
+@pytest.fixture(autouse=True)
+def set_netex_authority(monkeypatch):
+    monkeypatch.setattr("netex.netex_utils.config.NETEX_AUTHORITY", "TEST")
+
 def assert_xml_equal(generated_xml, expected_xml_str):
     """Compares two XML elements for equivalence."""
     parser = etree.XMLParser(remove_blank_text=True)
@@ -26,9 +30,9 @@ def test_single_network_creation():
     result_list = netex_build_networks(input_agencies)
 
     expected_xml = """
-    <Network version="1" id="AGENCY1:Network:AGENCY1Nett">
+    <Network version="1" id="TEST:Network:AGENCY1Nett">
         <Name>Mainline Transit</Name>
-        <AuthorityRef ref="AGENCY1:Authority:AGENCY1_ID" version="1"/>
+        <AuthorityRef ref="TEST:Authority:AGENCY1_ID" version="1"/>
     </Network>
     """
     assert_xml_equal(result_list[0], expected_xml)
@@ -48,9 +52,9 @@ def test_multiple_networks_creation():
     assert len(result_list) == 2
     # Check the second element to ensure its data is correct
     expected_xml_for_second = """
-    <Network version="1" id="A2:Network:A2Nett">
+    <Network version="1" id="TEST:Network:A2Nett">
         <Name>Agency Two</Name>
-        <AuthorityRef ref="A2:Authority:A2_ID" version="1"/>
+        <AuthorityRef ref="TEST:Authority:A2_ID" version="1"/>
     </Network>
     """
     assert_xml_equal(result_list[1], expected_xml_for_second)

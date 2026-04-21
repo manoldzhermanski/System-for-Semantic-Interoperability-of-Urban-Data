@@ -303,11 +303,11 @@ def netex_build_networks(agencies: list[dict[str, Any]]) -> list[etree.Element]:
         # Get network name
         agency_name = agency.get("agency_name",{}).get("value")
 
-        network = etree.Element("Network", version = "1", id = f"{network_id_value}:Network:{network_id_value}Nett")
+        network = etree.Element("Network", version = "1", id = f"{config.NETEX_AUTHORITY}:Network:{network_id_value}Nett")
         etree.SubElement(network, "Name").text = agency_name
 
         # Make authority reference
-        etree.SubElement(network, "AuthorityRef", ref = f"{network_id_value}:Authority:{network_id_value}_ID", version = "1")
+        etree.SubElement(network, "AuthorityRef", ref = f"{config.NETEX_AUTHORITY}:Authority:{network_id_value}_ID", version = "1")
 
         # Append network
         network_list.append(network)
@@ -1598,8 +1598,8 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
 
         if wheelchair:
             accessibility_assessment = etree.SubElement(stop_place, "AccessibilityAssessment", version = "1", id = f"{config.NETEX_AUTHORITY}:AccessibilityAssessment:1")
-            mobility_impaired_access = etree.SubElement(accessibility_assessment, "MobilityImpairedAccess").text = "partial"
-            limitations = etree.SubElement(mobility_impaired_access, "limitations")
+            etree.SubElement(accessibility_assessment, "MobilityImpairedAccess").text = "partial"
+            limitations = etree.SubElement(accessibility_assessment, "limitations")
             accessibility_limitation = etree.SubElement(limitations, "AccessibilityLimitation", version = "1", id = str(index))
             etree.SubElement(accessibility_limitation, "WheelchairAccess").text = "true"
             etree.SubElement(accessibility_limitation, "StepFreeAccess").text = "unknown"
@@ -1619,7 +1619,7 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
         if parent_station:
             parent_station_value = parent_station.split(":")[-1]
 
-            parent_ref = etree.SubElement(stop_place, "ParentSiteRef", ref = f"{1}:StopPlace:{parent_station_value}", version = "1")
+            parent_ref = etree.SubElement(stop_place, "ParentSiteRef", ref = f"{config.NETEX_AUTHORITY}:StopPlace:{parent_station_value}", version = "1")
 
         # TO-DO:
         #  Need to write a function that based on the stop_id it locates in which trips it is in
@@ -1639,7 +1639,7 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
 
             quays_container = etree.SubElement(stop_place, "quays")
 
-            quay = etree.SubElement(quays_container, "Quay", version = "1", id = f"{1}:Quay:{stop_id_value}")
+            quay = etree.SubElement(quays_container, "Quay", version = "1", id = f"{config.NETEX_AUTHORITY}:Quay:{stop_id_value}")
 
 
             if stop_code_value:
