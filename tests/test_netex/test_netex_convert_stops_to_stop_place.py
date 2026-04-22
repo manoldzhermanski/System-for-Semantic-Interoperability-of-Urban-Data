@@ -24,23 +24,51 @@ def assert_xml_equal(generated_xml, expected_xml_str):
             "description": {"type": "Property","value": "Main hub"},
             "location": {"type": "GeoProperty", "value": {"type": "Point", "coordinates": [23.0, 42.0]}},
             "locationType": {"type": "Property", "value": 0},
+            "wheelchair_boarding": {"type": "Property", "value": 1},
+            "hasParentStation": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsStop:TestCity:ParentStop"},
         }
     ]
 
-    result = netex_convert_stops_to_stop_place(entities, {})
+    result_xml = netex_convert_stops_to_stop_place(entities, {})
 
-    xml = etree.tostring(result)
-    root = etree.fromstring(xml)
-
-    stop_place = root.find("StopPlace")
-
-    assert stop_place is not None
-    assert stop_place.attrib["id"] == "TEST:StopPlace:TestStop"
-
-    assert stop_place.findtext("Name") == "Central Station"
-    assert stop_place.findtext("PublicCode") == "100"
-    assert stop_place.findtext("Description") == "Main hub"
-
-    coords = stop_place.find(".//Centroid/Location")
-    assert coords.findtext("Longitude") == "23.0"
-    assert coords.findtext("Latitude") == "42.0"
+    expected_xml = """<StopPlace version="1" id="TEST:StopPlace:TestStop">
+                            <Name>Central Station</Name>
+                            <Description>Main hub</Description>
+                            <PublicCode>100</PublicCode>
+                            <Centroid>
+                            <Location>
+                                <Longitude>23.0</Longitude>
+                                <Latitude>42.0</Latitude>
+                            </Location>
+                            </Centroid>
+                            <AccessibilityAssessment version="1" id="TEST:AccessibilityAssessment:1">
+                                <MobilityImpairedAccess>partial</MobilityImpairedAccess>
+                                <limitations>
+                                    <AccessibilityLimitation  version="1" id="1">
+                                        <WheelchairAccess>true</WheelchairAccess>
+                                        <StepFreeAccess>unknown</StepFreeAccess>
+                                        <EscalatorFreeAccess>unknown</EscalatorFreeAccess>
+                                        <LiftFreeAccess>unknown</LiftFreeAccess>
+                                        <AudibleSignalsAvailable>unknown</AudibleSignalsAvailable>
+                                        <VisualSignsAvailable>unknown</VisualSignsAvailable>
+                                    </AccessibilityLimitation>
+                                </limitations>
+                            </AccessibilityAssessment>
+                            <ParentSiteRef ref="TEST:StopPlace:ParentStop" version="1"/>
+                            <TransportMode>bus</TransportMode>
+                            <StopPlaceType>busStation</StopPlaceType>
+                            <quays>
+                                <Quay version="1" id="TEST:Quay:TestStop">
+                                    <PublicCode>100</PublicCode>
+                                    <Centroid>
+                                        <Location>
+                                            <Longitude>23.0</Longitude>
+                                            <Latitude>42.0</Latitude>
+                                        </Location>
+                                    </Centroid>
+                                </Quay>
+                            </quays>
+                        </StopPlace>
+                    """
+    
+    assert_xml_equal(result_xml, expected_xml)

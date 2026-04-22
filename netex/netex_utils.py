@@ -1597,7 +1597,7 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
         tts_stop_name = entity.get("tts_stop_name", {}).get("value")
 
         if wheelchair:
-            accessibility_assessment = etree.SubElement(stop_place, "AccessibilityAssessment", version = "1", id = f"{config.NETEX_AUTHORITY}:AccessibilityAssessment:1")
+            accessibility_assessment = etree.SubElement(stop_place, "AccessibilityAssessment", version = "1", id = f"{config.NETEX_AUTHORITY}:AccessibilityAssessment:{str(index)}")
             etree.SubElement(accessibility_assessment, "MobilityImpairedAccess").text = "partial"
             limitations = etree.SubElement(accessibility_assessment, "limitations")
             accessibility_limitation = etree.SubElement(limitations, "AccessibilityLimitation", version = "1", id = str(index))
@@ -1615,7 +1615,6 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
 
         parent_station = entity.get("hasParentStation", {}).get("object")
        
-
         if parent_station:
             parent_station_value = parent_station.split(":")[-1]
 
