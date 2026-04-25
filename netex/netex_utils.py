@@ -99,7 +99,7 @@ def netex_build_frame_defaults(agency: dict[str, Any]) -> etree.Element:
     return frame_defaults
 
 # -----------------------------------------------------
-# GtfsAgency to NeTex Authority and Operator
+# GtfsAgency to NeTex <Authority> and <Operator>
 # -----------------------------------------------------
 ##########################################################
 # Questions: 
@@ -1558,24 +1558,39 @@ def netex_helper_get_transport_modes_per_stop(
     return transport_modes_per_stop
 
 def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_modes_per_stop: dict[str, set[tuple[str, str]]]) -> etree.Element:
+    """
+    Create <StopPlace> elements from a list of GtfsStop entities and store them in a <stopPlaces> container.
 
+    Args:
+        entities (list[dict[str, Any]]): List of GtfsStop entities
+
+    Returns:
+        etree.Element: <stopPlaces> container with <StopPlace> elements
+    """
+    # Used to store unique StopPlace XML elements
     stop_places_dict = {}
 
+    # Iterate through the list of GtfsStop entities
     for index, entity in enumerate(entities, start = 1):
 
+        # Extract stop_id
         stop_id = entity["id"]
         if not isinstance(stop_id, str) or ":" not in stop_id:
             logger.error("Invalid or missing ID for GtfsAgency: %r", stop_id)
             continue
         stop_id_value = stop_id.split(":")[-1]
        
+        # Create StopPlace element
         stop_place = etree.Element("StopPlace", version = "1", id = f"{config.NETEX_AUTHORITY}:StopPlace:{stop_id_value}")
 
+        # Extract location type, name, code, description and coordinates
         location_type = entity.get("locationType", {}).get("value", 0)
         name_value = entity.get("name", {}).get("value")
         stop_code_value = entity.get("code", {}).get("value")
         description_value = entity.get("description", {}).get("value")
+        coords = entity.get("location", {}).get("value", {}).get("coordinates")
 
+        # Add Name, Description, PublicCode and Centroid elements if values are present
         if name_value:
             etree.SubElement(stop_place, "Name").text = name_value
 
@@ -1585,17 +1600,17 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
         if stop_code_value:
             etree.SubElement(stop_place, "PublicCode").text = str(stop_code_value)
 
-        coords = entity.get("location", {}).get("value", {}).get("coordinates")
-
         if coords:
             centroid = etree.SubElement(stop_place, "Centroid")
             location = etree.SubElement(centroid, "Location")
             etree.SubElement(location, "Longitude").text = str(coords[0])
             etree.SubElement(location, "Latitude").text = str(coords[1])
 
+        # Extract wheelchair boarding and tts_stop_name for accessibility information
         wheelchair = entity.get("wheelchair_boarding", {}).get("value")
         tts_stop_name = entity.get("tts_stop_name", {}).get("value")
 
+        # Add AccessibilityAssessment and AccessibilityLimitation elements if wheelchair boarding information is present
         if wheelchair:
             accessibility_assessment = etree.SubElement(stop_place, "AccessibilityAssessment", version = "1", id = f"{config.NETEX_AUTHORITY}:AccessibilityAssessment:{str(index)}")
             etree.SubElement(accessibility_assessment, "MobilityImpairedAccess").text = "partial"
@@ -1605,88 +1620,113 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
             etree.SubElement(accessibility_limitation, "StepFreeAccess").text = "unknown"
             etree.SubElement(accessibility_limitation, "EscalatorFreeAccess").text = "unknown"
             etree.SubElement(accessibility_limitation, "LiftFreeAccess").text = "unknown"
+            
+            # If tts_stop_name is present, we can assume that audible signs are available, otherwise we set it to unknown
             if tts_stop_name:
                 etree.SubElement(accessibility_limitation, "AudibleSignsAvailable").text = "true"
             else:
                 etree.SubElement(accessibility_limitation, "AudibleSignsAvailable").text = "unknown"
             etree.SubElement(accessibility_limitation, "VisualSignsAvailable").text = "unknown"
 
-        parent_station_value = ""
-
+        # Extract parent station information and add ParentSiteRef element if present
         parent_station = entity.get("hasParentStation", {}).get("object")
        
         if parent_station:
             parent_station_value = parent_station.split(":")[-1]
+            etree.SubElement(stop_place, "ParentSiteRef", ref = f"{config.NETEX_AUTHORITY}:StopPlace:{parent_station_value}", version = "1")
 
-            parent_ref = etree.SubElement(stop_place, "ParentSiteRef", ref = f"{config.NETEX_AUTHORITY}:StopPlace:{parent_station_value}", version = "1")
-
-        # TO-DO:
-        #  Need to write a function that based on the stop_id it locates in which trips it is in
-        # After that based on trip_id we will see what route it's associated with and from there we will know the transport mode
+        # Determine transport mode and submode for the stop based on the routes that pass through it
         mode = "unknown"
         submode = "unknown"
         
+        # Get transport modes for the stop from the provided mapping
         transport_modes = transport_modes_per_stop.get(stop_id, set())
 
+        # Choose the first transport mode and submode
         if transport_modes:
             mode, submode = sorted(transport_modes)[0]  
     
+        # Add TransportMode and StopPlaceType elements
         etree.SubElement(stop_place, "TransportMode").text = mode
         etree.SubElement(stop_place, "StopPlaceType").text = submode
            
-        if location_type in (0, 4):
+        # Add Quay element with its data
+        quays_container = etree.SubElement(stop_place, "quays")
+        quay = etree.SubElement(quays_container, "Quay", version = "1", id = f"{config.NETEX_AUTHORITY}:Quay:{stop_id_value}")
 
-            quays_container = etree.SubElement(stop_place, "quays")
+        if stop_code_value:
+            stop_public_code = etree.SubElement(quay, "PublicCode")
+            stop_public_code.text = str(stop_code_value)
 
-            quay = etree.SubElement(quays_container, "Quay", version = "1", id = f"{config.NETEX_AUTHORITY}:Quay:{stop_id_value}")
+        if coords:
+            centroid = etree.SubElement(quay, "Centroid")
+            loc = etree.SubElement(centroid, "Location")
+            etree.SubElement(loc, "Longitude").text = str(coords[0])
+            etree.SubElement(loc, "Latitude").text = str(coords[1])
 
-
-            if stop_code_value:
-                stop_public_code = etree.SubElement(quay, "PublicCode")
-                stop_public_code.text = str(stop_code_value)
-
-            if coords:
-                centroid = etree.SubElement(quay, "Centroid")
-                loc = etree.SubElement(centroid, "Location")
-                etree.SubElement(loc, "Longitude").text = str(coords[0])
-                etree.SubElement(loc, "Latitude").text = str(coords[1])
-
+        # If the XML element is unique, add it to the dict so we remove duplicates
         if stop_id not in stop_places_dict:
             stop_places_dict[stop_id] = stop_place
 
+    # Create stopPlaces container and populate it with the StopPlace XML elements
     stop_places = etree.Element("stopPlaces")
     for stop_place in stop_places_dict.values():
         stop_places.append(stop_place)
 
+    # Return the stopPlaces container with all StopPlace elements
     return stop_places
 
+# -----------------------------------------------------
+# GtfsStop to NeTex <PassengerStopAssignment>
+# Note: Have to ask if this is the correct way to add order
+# -----------------------------------------------------
+def netex_create_passenger_stop_assignment(entities: list[dict[str, Any]])  -> etree.Element:
+    """
+    Create <PassengerStopAssignment> elements from a list of GtfsStop entities and store them in a <stopAssignments> container.
 
-# TO-DO ADD ORDER AFTER GETTING A REPLY
-def netex_helper_create_passenger_stop_assignment(stops: list[dict[str, Any]])  -> etree.Element:
+    Args:
+        entities (list[dict[str, Any]]): List of GtfsStop entities
 
-    stop_assignments = etree.Element("stopAssignments")
-    for stop_info in stops:
-        stop = stop_info.get("id")
+    Returns:
+        etree.Element: <stopAssignments> container with <PassengerStopAssignment> elements
+    """
+    # Used to store unique PassengerStopAssignment XML elements
+    passenger_stop_assignment_dict = {}
         
-        if not stop:
+    # Iterate through the list of GtfsStop entities
+    for index, entity in enumerate(entities, start=1):
+        
+        # Extract stop_id
+        stop_id = entity["id"]
+        if not isinstance(stop_id, str) or ":" not in stop_id:
+            logger.error("Invalid or missing ID for GtfsAgency: %r", stop_id)
             continue
-        
-        stop_id = stop.split(":")[-1]
-        city = stop.split(":")[-2]
+        stop_id_value = stop_id.split(":")[-1]
     
-        passenger_stop_assignment = etree.SubElement(stop_assignments, "PassengerStopAssignment")
-        passenger_stop_assignment.set("version", "1")
-        passenger_stop_assignment.set("id", f"{city}:PassengerStopAssignment:{stop_id}")
-        # TO-DO SET ORDER AFTER GETTING A REPLY
-        #passenger_stop_assignment.set("order", )
+        # Create PassengerStopAssignment element
+        passenger_stop_assignment = etree.Element("PassengerStopAssignment", order = str(index), version = "1", 
+                                                id = f"{config.NETEX_AUTHORITY}:PassengerStopAssignment:{stop_id_value}")
 
-        scheduled_stop_point_ref = etree.SubElement(passenger_stop_assignment, "ScheduledStopPointRef")
-        scheduled_stop_point_ref.set("version", "1")
-        scheduled_stop_point_ref.set("ref", f"{city}:ScheduledStopPoint:{stop_id}")
+        # Add ScheduledStopPointRef elements
+        etree.SubElement(passenger_stop_assignment, "ScheduledStopPointRef", versionRef = "1", 
+                        ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}")
 
-        quay_ref = etree.SubElement(passenger_stop_assignment, "QuayRef")
-        quay_ref.set("ref", f"{city}:Quay:{stop_id}")
+        # Add QuayRef elements
+        etree.SubElement(passenger_stop_assignment, "QuayRef", 
+                         ref = f"{config.NETEX_AUTHORITY}:Quay:{stop_id_value}", version = "1")
+        
+        # If the XML element is unique, add it to the dict so we remove duplicates
+        if stop_id not in passenger_stop_assignment_dict:
+            passenger_stop_assignment_dict[stop_id] = passenger_stop_assignment
+            
+    # Create stopAssignments container
+    stop_assignments = etree.Element("stopAssignments")
+    
+    # Append unique PassengerStopAssignment elements to the stopAssignments container
+    for stop_id in passenger_stop_assignment_dict.keys():
+        stop_assignments.append(passenger_stop_assignment_dict[stop_id])
 
+    # Return the stopAssignments container with all PassengerStopAssignment elements
     return stop_assignments
     
 def netex_helper_process_and_group_stop_times(stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
