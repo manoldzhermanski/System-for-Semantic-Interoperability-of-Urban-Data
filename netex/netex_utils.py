@@ -1767,6 +1767,66 @@ def netex_convert_stops_to_passenger_stop_assignment(entities: list[dict[str, An
     # Return the stopAssignments container with all PassengerStopAssignment elements
     return stop_assignments
     
+# -----------------------------------------------------
+# GtfsStop to NeTex <RoutePoint> and <PointProjection>
+# -----------------------------------------------------
+def netex_convert_stops_to_route_points(entities: list[dict[str, Any]]) -> etree.Element:
+    """
+    Create <RoutePoint> elements from a list of GtfsStop entities and store them in a <routePoints> container.
+
+    Args:
+        entities (list[dict[str, Any]]): List of GtfsStop entities
+
+    Returns:
+        etree.Element: <routePoints> container with <RoutePoint> elements
+    """
+    # Used to store unique RoutePoint XML elements
+    route_points_dict = {}
+        
+    # Iterate through the list of GtfsStop entities
+    for  entity in entities:
+        
+        # Check if entity is of proper type
+        entity_type = entity["type"]
+        if entity_type != "GtfsStop":
+            continue
+        
+        # Extract stop_id
+        stop_id = entity["id"]
+        if not isinstance(stop_id, str) or ":" not in stop_id:
+            logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
+            continue
+        stop_id_value = stop_id.split(":")[-1]
+    
+        # Create RoutePoint element
+        route_point = etree.Element("RoutePoint", version = "1", 
+                                                id = f"{config.NETEX_AUTHORITY}:RoutePoint:{stop_id_value}")
+
+        # Add <projections> container
+        projections = etree.SubElement(route_point, "projections")
+        
+        # Add <PointProjection> element
+        point_projection = etree.SubElement(projections, "PointProjection", version = "1", 
+                                            id = f"{config.NETEX_AUTHORITY}:PointProjection:{stop_id_value}")
+        
+        # Add <ProjectToPointRef> to <PointProjection>
+        etree.SubElement(point_projection, "ProjectToPointRef",
+                         ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}")
+        
+        # If the XML element is unique, add it to the dict so we remove duplicates
+        if stop_id not in route_points_dict:
+            route_points_dict[stop_id] = route_point
+            
+    # Create routePoints container
+    route_points = etree.Element("routePoints")
+    
+    # Append unique RoutePoint elements to the routePoints container
+    for stop_id in route_points_dict.values():
+        route_points.append(stop_id)
+
+    # Return the routePoints container with all RoutePoint elements
+    return route_points
+
 def netex_helper_process_and_group_stop_times(stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
     Groups NGSI-LD GtfsStopTime entities by trip, sorts them by stop sequence,
