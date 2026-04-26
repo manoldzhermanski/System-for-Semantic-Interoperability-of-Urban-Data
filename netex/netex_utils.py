@@ -1046,8 +1046,8 @@ def netex_convert_calendar_or_calendar_dates_to_day_type(entities: list[dict[str
 
     # Create dayTypes container and populate it with the DayType XML elements
     day_types = etree.Element("dayTypes")
-    for final_id in day_types_dict.keys():
-        day_types.append(day_types_dict[final_id])
+    for final_id in day_types_dict.values():
+        day_types.append(final_id)
    
     logger.info("DayType conversion completed")
     logger.info("Created %d DayTypes", len(day_types))
@@ -1116,8 +1116,8 @@ def netex_convert_calendar_to_operating_period(entities: list[dict[str, Any]]) -
 
     # Create operatingPeriods container and populate it with the OperatingPeriod XML elements
     operating_periods = etree.Element("operatingPeriods")
-    for final_id in operating_period_dict.keys():
-        operating_periods.append(operating_period_dict[final_id])
+    for final_id in operating_period_dict.values():
+        operating_periods.append(final_id)
 
     logger.info("OperatingPeriod conversion completed")
     logger.info("Created %d OperatingPeriods", len(operating_periods))
@@ -1469,23 +1469,51 @@ def netex_convert_trips_to_journey_patterns(entity: dict[str, Any], stops_per_tr
     links_in_sequence = etree.SubElement(journey_pattern, "linksInSequence")
         
     return journey_pattern
+
+# -----------------------------------------------------
+# GtfsStop to NeTEx <ScheduledStopPoint>
+# ----------------------------------------------------- 
+def netex_convert_stops_to_scheduled_stop_points(entities: list[dict[str, Any]]) -> etree.Element:
+    """
+    Create <ScheduledStopPoint> elements from a list of GtfsStop entities and store them in a <scheduledStopPoints> container.
+
+    Args:
+        entities (list[dict[str, Any]]): List of GtfsStop entities
+
+    Returns:
+        etree.Element: <scheduledStopPoints> container with <ScheduledStopPoint> elements
+    """
+    # Used to store unique ScheduledStopPoint XML elements
+    scheduled_stop_point_dict = {}
     
-def netex_helper_generate_scheduled_stop_points(stops: list[dict[str, Any]]) -> etree.Element:
-
-    scheduled_stop_points = etree.Element("scheduledStopPoints")
-
-    for stop_info in stops:
-        stop = stop_info.get("id")
+    # Iterate through the list of GtfsStop entities
+    for entity in entities:
         
-        if not stop:
+        # Check if entity is of proper type
+        entity_type = entity["type"]
+        if entity_type != "GtfsStop":
             continue
         
-        stop_id = stop.split(":")[-1]
-        city = stop.split(":")[-2]
-        scheduled_stop_point = etree.SubElement(scheduled_stop_points, "ScheduledStopPoint")
-        scheduled_stop_point.set("version", "1")
-        scheduled_stop_point.set("id", f"{city}:ScheduledStopPoint:{stop_id}")
+        # Extract stop_id
+        stop_id = entity["id"]
+        if not isinstance(stop_id, str) or ":" not in stop_id:
+            logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
+            continue
+        stop_id_value = stop_id.split(":")[-1]
         
+        scheduled_stop_point = etree.Element("ScheduledStopPoint", version = "1",
+                                             id = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}")
+        
+        # If the XML element is unique, add it to the dict so we remove duplicates
+        if stop_id not in scheduled_stop_point_dict:
+            scheduled_stop_point_dict[stop_id] = scheduled_stop_point
+            
+    # Create scheduledStopPoints container and populate it with the ScheduledStopPoint XML elements
+    scheduled_stop_points = etree.Element("scheduledStopPoints")
+    for stop in scheduled_stop_point_dict.values():
+        scheduled_stop_points.append(stop)
+         
+    # Return the scheduledStopPoints container with all ScheduledStopPoint elements
     return scheduled_stop_points
 
 # -----------------------------------------------------
@@ -1581,7 +1609,7 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
         # Extract stop_id
         stop_id = entity["id"]
         if not isinstance(stop_id, str) or ":" not in stop_id:
-            logger.error("Invalid or missing ID for GtfsAgency: %r", stop_id)
+            logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
             continue
         stop_id_value = stop_id.split(":")[-1]
        
@@ -1709,7 +1737,7 @@ def netex_convert_stops_to_passenger_stop_assignment(entities: list[dict[str, An
         # Extract stop_id
         stop_id = entity["id"]
         if not isinstance(stop_id, str) or ":" not in stop_id:
-            logger.error("Invalid or missing ID for GtfsAgency: %r", stop_id)
+            logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
             continue
         stop_id_value = stop_id.split(":")[-1]
     
@@ -1733,8 +1761,8 @@ def netex_convert_stops_to_passenger_stop_assignment(entities: list[dict[str, An
     stop_assignments = etree.Element("stopAssignments")
     
     # Append unique PassengerStopAssignment elements to the stopAssignments container
-    for stop_id in passenger_stop_assignment_dict.keys():
-        stop_assignments.append(passenger_stop_assignment_dict[stop_id])
+    for stop_id in passenger_stop_assignment_dict.values():
+        stop_assignments.append(stop_id)
 
     # Return the stopAssignments container with all PassengerStopAssignment elements
     return stop_assignments
