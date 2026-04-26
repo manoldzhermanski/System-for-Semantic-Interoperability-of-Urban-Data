@@ -1,6 +1,5 @@
 import pytest
-from lxml import etree
-from typing import Any, Dict, List
+from lxml import etree # type: ignore
 from netex.netex_utils import netex_convert_agency_to_authority
 
 @pytest.fixture(autouse=True)

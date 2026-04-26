@@ -1573,6 +1573,11 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
     # Iterate through the list of GtfsStop entities
     for index, entity in enumerate(entities, start = 1):
 
+        # Check if entity is of proper type
+        entity_type = entity["type"]
+        if entity_type != "GtfsStop":
+            continue
+        
         # Extract stop_id
         stop_id = entity["id"]
         if not isinstance(stop_id, str) or ":" not in stop_id:
@@ -1680,7 +1685,7 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
 # GtfsStop to NeTex <PassengerStopAssignment>
 # Note: Have to ask if this is the correct way to add order
 # -----------------------------------------------------
-def netex_create_passenger_stop_assignment(entities: list[dict[str, Any]])  -> etree.Element:
+def netex_convert_stops_to_passenger_stop_assignment(entities: list[dict[str, Any]])  -> etree.Element:
     """
     Create <PassengerStopAssignment> elements from a list of GtfsStop entities and store them in a <stopAssignments> container.
 
@@ -1696,6 +1701,11 @@ def netex_create_passenger_stop_assignment(entities: list[dict[str, Any]])  -> e
     # Iterate through the list of GtfsStop entities
     for index, entity in enumerate(entities, start=1):
         
+        # Check if entity is of proper type
+        entity_type = entity["type"]
+        if entity_type != "GtfsStop":
+            continue
+        
         # Extract stop_id
         stop_id = entity["id"]
         if not isinstance(stop_id, str) or ":" not in stop_id:
@@ -1708,8 +1718,8 @@ def netex_create_passenger_stop_assignment(entities: list[dict[str, Any]])  -> e
                                                 id = f"{config.NETEX_AUTHORITY}:PassengerStopAssignment:{stop_id_value}")
 
         # Add ScheduledStopPointRef elements
-        etree.SubElement(passenger_stop_assignment, "ScheduledStopPointRef", versionRef = "1", 
-                        ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}")
+        etree.SubElement(passenger_stop_assignment, "ScheduledStopPointRef", 
+                        ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}", versionRef = "1")
 
         # Add QuayRef elements
         etree.SubElement(passenger_stop_assignment, "QuayRef", 
