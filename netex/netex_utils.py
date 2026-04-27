@@ -791,7 +791,7 @@ def netex_helper_convert_line_string_to_string(gtfs_shape_line_string: list[Poin
     """
     return " ".join(f"{lon:.6f} {lat:.6f}" for lon, lat in gtfs_shape_line_string)
 
-def netex_helper_build_service_link(service_link_data: dict[str, Any], city: str, index: int) -> etree.Element:
+def netex_helper_build_service_link(service_link_data: dict[str, Any], index: int) -> etree.Element:
 
     geometry_projected = service_link_data["geometry"]
 
@@ -808,7 +808,7 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any], city: str
     to_stop = to_stop.split(":")[-1]
 
     service_link = etree.Element("ServiceLink")
-    service_link.set("id", f"{city}:ServiceLink:{index}")
+    service_link.set("id", f"{config.NETEX_AUTHORITY}:ServiceLink:{index}")
     service_link.set("version", "1")
     
     link_distance = etree.SubElement(service_link, "Distance")
@@ -816,7 +816,7 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any], city: str
 
     projections = etree.SubElement(service_link, "projections")
     link_sequence_projection = etree.SubElement(projections, "LinkSequenceProjection")
-    link_sequence_projection.set("id", f"{city}:LinkSequenceProjection:{index}")
+    link_sequence_projection.set("id", f"{config.NETEX_AUTHORITY}:LinkSequenceProjection:{index}")
     link_sequence_projection.set("version", "1")
     
     line_string_info = etree.SubElement(link_sequence_projection, f"{{{GIS_NS}}}LineString")
@@ -830,22 +830,22 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any], city: str
     line_string.text = pos_list
     
     from_point_ref = etree.SubElement(service_link, "FromPointRef")
-    from_point_ref.set("ref", f"{city}:ScheduledStopPoint:{from_stop}")
+    from_point_ref.set("ref", f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop}")
     from_point_ref.set("version", "1")
 
     to_point_ref = etree.SubElement(service_link, "ToPointRef")
-    to_point_ref.set("ref", f"{city}:ScheduledStopPoint:{to_stop}")
+    to_point_ref.set("ref", f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop}")
     to_point_ref.set("version", "1")
 
     return service_link
     
-def netex_convert_shapes_to_service_link(service_links: list[dict], city: str) -> etree.Element:
+def netex_convert_shapes_to_service_link(service_links: list[dict]) -> etree.Element:
     
     root = etree.Element("serviceLinks", nsmap=NSMAP)
 
     for index, service_link_data in enumerate(service_links, start=1):
 
-        service_link_xml = netex_helper_build_service_link(service_link_data, city, index)
+        service_link_xml = netex_helper_build_service_link(service_link_data, index)
 
         root.append(service_link_xml)
 
@@ -869,24 +869,21 @@ def main():
 
     print("Building XML...")
 
-    xml_tree = netex_convert_shapes_to_service_link(service_links, city)
+    xml_tree = netex_convert_shapes_to_service_link(service_links)
 
     print(etree.tostring(xml_tree, pretty_print=True, encoding="unicode"))
 
-def netex_helper_build_points_in_sequence_for_route(stops_per_trip: dict[str, list[str]], trip_id: str, city: str) -> etree.Element:
+def netex_helper_build_points_in_sequence_for_route(stops_per_trip: dict[str, list[str]], trip_id: str) -> etree.Element:
     
     points_in_sequence = etree.Element("pointsInSequence")
 
     stops = stops_per_trip.get(trip_id, [])
     
     for index, stop in enumerate(stops, start=1):
-        point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute")
-        point_on_route.set("order", str(index))
-        point_on_route.set("version", "1")
-        point_on_route.set("id", f"{city}:PointOnRoute:{trip_id}_{index}")
+        point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute", order = str(index), version = "1", id = f"{config.NETEX_AUTHORITY}:PointOnRoute:{trip_id}_{index}")
         
         route_point_ref = etree.SubElement(point_on_route, "RoutePointRef")
-        route_point_ref.set("ref", f"{city}:RoutePoint:{stop}")
+        route_point_ref.set("ref", f"{config.NETEX_AUTHORITY}:RoutePoint:{stop}")
         
     return points_in_sequence
 
@@ -998,12 +995,11 @@ def netex_convert_calendar_or_calendar_dates_to_day_type(entities: list[dict[str
             if not isinstance(day_type_id, str) or ":" not in day_type_id:
                 logger.error("Invalid ID for GtfsCalendarRule: %r", day_type_id)
                 continue
-            # Get id value and city
+            # Get id value
             day_type_id_value = day_type_id.split(":")[-1]
-            city = day_type_id.split(":")[-2]
 
             # Generate the DayType id
-            final_id = f"{city}:DayType:{day_type_id_value}"
+            final_id = f"{config.NETEX_AUTHORITY}:DayType:{day_type_id_value}"
            
             logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
        
@@ -1027,12 +1023,11 @@ def netex_convert_calendar_or_calendar_dates_to_day_type(entities: list[dict[str
             if len(parts) < 3:
                 logger.error("Invalid ID for GtfsCalendarDateRule: %r", day_type_id)
                 continue
-            # Get id value and city
+            # Get id value
             day_type_id_value = parts[-2]
-            city = parts[-3]
 
             # Generate the DayType id
-            final_id = f"{city}:DayType:{day_type_id_value}"
+            final_id = f"{config.NETEX_AUTHORITY}:DayType:{day_type_id_value}"
            
             logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
 
@@ -1086,12 +1081,11 @@ def netex_convert_calendar_to_operating_period(entities: list[dict[str, Any]]) -
             logger.error("Invalid ID for GtfsCalendarRule: %r", period_id)
             continue
         period_id_value = parts[-1]
-        city = parts[-2]
        
         logger.debug("Creating OperatingPeriod for %s", period_id_value)
        
         # Generate the OperatingPeriod id
-        final_id = f"{city}:OperatingPeriod:{period_id_value}"
+        final_id = f"{config.NETEX_AUTHORITY}:OperatingPeriod:{period_id_value}"
 
         # Get FromDate and convert it from YYYYMMDD to ISO 8601 format
         from_date = period.get("startDate", {}).get("value")
@@ -1140,7 +1134,7 @@ def netex_convert_calendar_or_calendar_dates_to_day_type_assignment(entities: li
    
     day_type_assignments = etree.Element("dayTypeAssignments")
    
-    for index, entity in enumerate(entities):
+    for index, entity in enumerate(entities, start=1):
        
         entity_type = entity.get("type")
         day_type_assignment_id = entity.get("id")
@@ -1149,7 +1143,6 @@ def netex_convert_calendar_or_calendar_dates_to_day_type_assignment(entities: li
                        
             if day_type_assignment_id:
                 day_type_id_value = day_type_assignment_id.split(":")[-2]
-                city = day_type_assignment_id.split(":")[-3]
                 raw_date = day_type_assignment_id.split(":")[-1]
                
                 exception_type = entity.get("exceptionType", {}).get("value")
@@ -1161,14 +1154,14 @@ def netex_convert_calendar_or_calendar_dates_to_day_type_assignment(entities: li
                 day_type_assignment = etree.SubElement(day_type_assignments, "DayTypeAssignment")
                 day_type_assignment.set("order", str(index))
                 day_type_assignment.set("version", "1")
-                day_type_assignment.set("id", f"{city}:DayTypeAssignment:{day_type_id_value}-{index}")
+                day_type_assignment.set("id", f"{config.NETEX_AUTHORITY}:DayTypeAssignment:{day_type_id_value}-{index}")
                
                 date = etree.SubElement(day_type_assignment, "Date")
                 date.text = datetime.strptime(raw_date, "%Y%m%d").strftime("%Y-%m-%d")
                
                 day_type_ref = etree.SubElement(day_type_assignment, "DayTypeRef")
                 day_type_ref.set("version", "1")
-                day_type_ref.set("ref", f"{city}:DayType:{day_type_id_value}")
+                day_type_ref.set("ref", f"{config.NETEX_AUTHORITY}:DayType:{day_type_id_value}")
                
                 is_available_el = etree.SubElement(day_type_assignment, "IsAvailable")
                 is_available_el.text = is_available_value
@@ -1177,22 +1170,21 @@ def netex_convert_calendar_or_calendar_dates_to_day_type_assignment(entities: li
            
             if day_type_assignment_id:
                 day_type_id_value = day_type_assignment_id.split(":")[-1]
-                city = day_type_assignment_id.split(":")[-2]
                
                 logger.debug("Creating DayType for %s (%s)", day_type_id_value, entity_type)
            
                 day_type_assignment = etree.SubElement(day_type_assignments, "DayTypeAssignment")
                 day_type_assignment.set("order", str(index))
                 day_type_assignment.set("version", "1")
-                day_type_assignment.set("id", f"{city}:DayTypeAssignment:{day_type_id_value}")
+                day_type_assignment.set("id", f"{config.NETEX_AUTHORITY}:DayTypeAssignment:{day_type_id_value}")
                
                 operating_period_ref = etree.SubElement(day_type_assignment, "OperatingPeriodRef")
                 operating_period_ref.set("version", "1")
-                operating_period_ref.set("ref", f"{city}:OperatingPeriod:{day_type_id_value}")
+                operating_period_ref.set("ref", f"{config.NETEX_AUTHORITY}:OperatingPeriod:{day_type_id_value}")
                
                 day_type_ref = etree.SubElement(day_type_assignment, "DayTypeRef")
                 day_type_ref.set("version", "1")
-                day_type_ref.set("ref", f"{city}:DayType:{day_type_id_value}-{index}")
+                day_type_ref.set("ref", f"{config.NETEX_AUTHORITY}:DayType:{day_type_id_value}-{index}")
                
         else:
             logger.error("Unsupported entity type: %s, id: %s", entity_type, day_type_assignment_id)
@@ -1202,7 +1194,7 @@ def netex_convert_calendar_or_calendar_dates_to_day_type_assignment(entities: li
    
     return day_type_assignments
 
-def netex_build_service_calendar_frame(calendars: list[dict[str, Any]], calendar_dates: list[dict[str, Any]], city: str) -> etree.Element:
+def netex_build_service_calendar_frame(calendars: list[dict[str, Any]], calendar_dates: list[dict[str, Any]]) -> etree.Element:
     """
     Assembles a complete and valid NeTEx <ServiceCalendarFrame>.
 
@@ -1220,7 +1212,6 @@ def netex_build_service_calendar_frame(calendars: list[dict[str, Any]], calendar
     Args:
         calendars: A list of entities from `calendar.txt` (GtfsCalendarRule).
         calendar_dates: A list of entities from `calendar_dates.txt` (GtfsCalendarDateRule).
-        city: The city identifier used for creating unique NeTEx IDs.
 
     Returns:
         A complete and valid lxml.etree.Element for the <ServiceCalendarFrame>.
@@ -1228,7 +1219,7 @@ def netex_build_service_calendar_frame(calendars: list[dict[str, Any]], calendar
     logger.info("ServiceCalendarFrame has started")
 
     # Create ServiceCalendarFrame
-    service_calendar_frame = etree.Element("ServiceCalendarFrame", version = "1", id = f"{city}:ServiceCalendarFrame:1")
+    service_calendar_frame = etree.Element("ServiceCalendarFrame", version = "1", id = f"{config.NETEX_AUTHORITY}:ServiceCalendarFrame:1")
 
     # Combine both GtfsCalendarRule and GtfsCalendarDateRule for creating the <DayType> and <DayTypeAssignment> XML elements
     all_entities = calendars + calendar_dates
@@ -1334,13 +1325,12 @@ def netex_convert_routes_to_lines(entity: dict[str, Any]) -> etree.Element:
         route information.
     """
 
-    # Extract route ID and city from entity ID
+    # Extract route ID
     route_id = entity.get("id")
     route_id_value = route_id.split(":")[-1] if route_id else "unknown"
-    city = route_id.split(":")[-2] if route_id else "unknown"
 
     # Create Line element
-    line = etree.Element("Line", version="1", id=f"{city}:Line:{route_id_value}")
+    line = etree.Element("Line", version="1", id=f"{config.NETEX_AUTHORITY}:Line:{route_id_value}")
 
     # Add line Name
     route_long_name = entity.get("name", {}).get("value")
@@ -1443,11 +1433,8 @@ def netex_convert_trips_to_journey_patterns(entity: dict[str, Any], stops_per_tr
     
     id_value = entity.get("id")
     trip_id = id_value.split(":")[-1] if id_value else "unknown"
-    city = id_value.split(":")[-2] if id_value else "unknown"
     
-    journey_pattern = etree.Element("JourneyPattern")
-    journey_pattern.set("id", f"{city}:JourneyPattern:{trip_id}")
-    journey_pattern.set("version", "1")
+    journey_pattern = etree.Element("JourneyPattern", id = f"{config.NETEX_AUTHORITY}:JourneyPattern:{trip_id}", version = "1")
     
     name = entity.get("headSign", {}).get("value")
     if name:
@@ -1459,10 +1446,10 @@ def netex_convert_trips_to_journey_patterns(entity: dict[str, Any], stops_per_tr
     
     if route_id:
         journey_pattern_route = etree.SubElement(journey_pattern, "RouteRef")
-        journey_pattern_route.set("ref", f"{city}:Route:{route_id}")
+        journey_pattern_route.set("ref", f"{config.NETEX_AUTHORITY}:Route:{route_id}")
         journey_pattern_route.set("version", "1")
     
-    points_in_sequence = netex_helper_build_points_in_sequence_for_route(stops_per_trip, trip_id, city)
+    points_in_sequence = netex_helper_build_points_in_sequence_for_route(stops_per_trip, trip_id)
     
     journey_pattern.append(points_in_sequence)
 
@@ -1879,16 +1866,13 @@ def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grou
     stop_time = stop_times.get("id")
     search_id = ":".join(stop_time.split(":")[:-1])
     stop_time_id = stop_time.split(":")[-2]
-    city = stop_time.split(":")[-3]
 
     stop_time_info = grouped_stop_times[search_id]
 
-    service_journey = etree.Element("ServiceJourney")
-    service_journey.add("version", "1")
-    service_journey.add("id", f"{city}:ServiceJourney:{stop_time_id}")
+    service_journey = etree.Element("ServiceJourney", version = "1", id = f"{config.NETEX_AUTHORITY}:ServiceJourney:{stop_time_id}")
 
     journey_pattern_ref = etree.SubElement(service_journey, "JourneyPatternRef")
-    journey_pattern_ref.set("ref", f"{city}:JourneyPattern:{stop_time_info[0].get("hasTrip")}")
+    journey_pattern_ref.set("ref", f"{config.NETEX_AUTHORITY}:JourneyPattern:{stop_time_info[0].get("hasTrip")}")
 
     passing_times = etree.SubElement(service_journey, "passingTimes")
     
