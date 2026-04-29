@@ -3,6 +3,10 @@ import logging
 from lxml import etree
 from netex.netex_utils import netex_convert_calendar_or_calendar_dates_to_day_type
 
+@pytest.fixture(autouse=True)
+def set_netex_authority(monkeypatch):
+    monkeypatch.setattr("netex.netex_utils.config.NETEX_AUTHORITY", "TEST")
+
 def assert_xml_equal(generated_xml, expected_xml_str):
     """
     Compares two XML elements by parsing the expected string and comparing string dumps.
@@ -77,7 +81,7 @@ def test_netex_convert_calendar_or_calendar_dates_to_day_type_with_gtfs_calendar
    
     expected_xml = """
     <dayTypes>
-      <DayType version="1" id="TestCity:DayType:WeekdayId">
+      <DayType version="1" id="TEST:DayType:WeekdayId">
         <properties>
           <PropertyOfDay>
             <DaysOfWeek>Weekdays</DaysOfWeek>
@@ -115,7 +119,7 @@ def test_netex_convert_calendar_or_calendar_dates_to_day_type_with_gtfs_calendar
    
     expected_xml = """
     <dayTypes>
-      <DayType version="1" id="TestCity:DayType:WeekdayId"/>
+      <DayType version="1" id="TEST:DayType:WeekdayId"/>
     </dayTypes>
     """
     assert_xml_equal(result_xml, expected_xml)
@@ -201,14 +205,14 @@ def test_netex_convert_calendar_or_calendar_dates_to_day_type_with_mixed_entitie
    
     expected_xml = """
     <dayTypes>
-      <DayType version="1" id="TestCity:DayType:WeekdayId">
+      <DayType version="1" id="TEST:DayType:WeekdayId">
         <properties>
           <PropertyOfDay>
             <DaysOfWeek>Weekdays</DaysOfWeek>
           </PropertyOfDay>
         </properties>
       </DayType>
-      <DayType version="1" id="TestCity:DayType:SpecialDay"/>
+      <DayType version="1" id="TEST:DayType:SpecialDay"/>
     </dayTypes>
     """
     assert_xml_equal(result_xml, expected_xml)
@@ -286,7 +290,7 @@ def test_netex_convert_calendar_or_calendar_dates_to_day_type_with_invalid_and_m
     # Only the first, valid entity should be processed.
     expected_xml = """
     <dayTypes>
-      <DayType version="1" id="TestCity:DayType:WeekdayId">
+      <DayType version="1" id="TEST:DayType:WeekdayId">
         <properties>
           <PropertyOfDay>
             <DaysOfWeek>Weekdays</DaysOfWeek>

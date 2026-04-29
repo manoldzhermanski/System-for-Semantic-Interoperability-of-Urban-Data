@@ -369,25 +369,37 @@ def netex_helper_extract_stops_in_a_trip(stop_times: list[dict[str, Any]]) -> di
     
     # Traverse the retrieved stop times and populate the stops_per_trip dictionary
     for stop in stop_times:
-        
-        # Get trip ID
+
+        trip_id_value = None
+        stop_id_value = None
+        sequence = None
+
+        # Get trip 
         trip_id = stop.get("hasTrip", {}).get("object")
+
+        # Extractr trip ID value
+        if trip_id:
+            trip_id_value = trip_id.split(":")[-1]
         
-        # Get stop ID
+        # Get stop
         stop_id = stop.get("hasStop", {}).get("object")
+        
+        # Extract stop ID value
+        if stop_id:
+            stop_id_value = stop_id.split(":")[-1]
         
         # Get stop sequence number
         sequence = stop.get("stopSequence", {}).get("value")
         
         # Only consider stop times that have valid trip ID, stop ID, and stop sequence
-        if trip_id and stop_id and sequence is not None:
+        if trip_id_value and stop_id_value and sequence is not None:
             
             # If the trip ID is not already in the stops_per_trip dictionary, initialize it with an empty list
-            if trip_id not in stops_per_trip:
-                stops_per_trip[trip_id] = []
+            if trip_id_value not in stops_per_trip:
+                stops_per_trip[trip_id_value] = []
                 
             # Append the stop ID and its sequence to the list of stops for the corresponding trip ID
-            stops_per_trip[trip_id].append((stop_id, sequence))
+            stops_per_trip[trip_id_value].append((stop_id_value, sequence))
             
     # After populating the stops_per_trip dictionary, sort the stops for each trip by their stop sequence
     for trip in stops_per_trip:
@@ -1814,6 +1826,9 @@ def netex_convert_stops_to_route_points(entities: list[dict[str, Any]]) -> etree
     # Return the routePoints container with all RoutePoint elements
     return route_points
 
+def netex_generate_route():
+    pass
+
 def netex_helper_process_and_group_stop_times(stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
     Groups NGSI-LD GtfsStopTime entities by trip, sorts them by stop sequence,
@@ -1881,26 +1896,31 @@ def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grou
 if __name__ == "__main__":
     header = orion_ld_define_header("gtfs_static")
     stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
-    trips = orion_ld_get_entities_by_type("GtfsTrip", header)
-    routes = orion_ld_get_entities_by_type("GtfsRoute", header)
+    #trips = orion_ld_get_entities_by_type("GtfsTrip", header)
+    #routes = orion_ld_get_entities_by_type("GtfsRoute", header)
     
     stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
 
-    route_per_trip = netex_helper_extract_routes_in_a_trip(trips)
+    #route_per_trip = netex_helper_extract_routes_in_a_trip(trips)
 
-    route_type_per_route = netex_helper_get_gtfs_route_type_code(routes)
+    #route_type_per_route = netex_helper_get_gtfs_route_type_code(routes)
 
-    transport_modes_per_stop = netex_helper_get_transport_modes_per_stop(
-    stops_per_trip,
-    route_per_trip,
-    route_type_per_route
-)
+    #transport_modes_per_stop = netex_helper_get_transport_modes_per_stop(
+    #stops_per_trip,
+    #route_per_trip,
+    #route_type_per_route
+    #)
 
     # convert set -> list (JSON не поддържа set)
-    data_to_save = {
-        stop: list(modes)
-        for stop, modes in transport_modes_per_stop.items()
-    }
+    #data_to_save = {
+    #    stop: list(modes)
+    #    for stop, modes in transport_modes_per_stop.items()
+    #}
 
-    with open("transport_modes_per_stop.json", "w", encoding="utf-8") as f:
-        json.dump(data_to_save, f, indent=4, ensure_ascii=False)
+    #with open("transport_modes_per_stop.json", "w", encoding="utf-8") as f:
+    #    json.dump(data_to_save, f, indent=4, ensure_ascii=False)
+
+    for key, values in stops_per_trip.items():
+        print(f"{key}:")
+        for v in values:
+            print(f"  - {v}")

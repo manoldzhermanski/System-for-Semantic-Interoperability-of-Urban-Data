@@ -2,6 +2,10 @@ import pytest
 from lxml import etree
 from netex.netex_utils import netex_convert_routes_to_lines
 
+@pytest.fixture(autouse=True)
+def set_netex_authority(monkeypatch):
+    monkeypatch.setattr("netex.netex_utils.config.NETEX_AUTHORITY", "TEST")
+
 def assert_xml_equal(generated_xml, expected_xml_str):
     """Compares two XML elements for equivalence."""
     parser = etree.XMLParser(remove_blank_text=True)
@@ -11,7 +15,7 @@ def assert_xml_equal(generated_xml, expected_xml_str):
 
     assert etree.tostring(generated) == etree.tostring(expected)
 
-def test_with_full_route_data():
+def test_netex_convert_routes_to_lines_with_full_gtfs_route_entity():
     entity = {
             "id": f"urn:ngsi-ld:GtfsRoute:TestCity:T1",
             "type": "GtfsRoute",
@@ -85,7 +89,7 @@ def test_with_full_route_data():
     result = netex_convert_routes_to_lines(entity)
 
     expected_xml = """
-    <Line version="1" id="TestCity:Line:T1">
+    <Line version="1" id="TEST:Line:T1">
         <Name>Name</Name>
         <Description>Description</Description>
         <TransportMode>rail</TransportMode>
@@ -106,7 +110,7 @@ def test_with_full_route_data():
     assert_xml_equal(result, expected_xml)
 
 
-def test_minimal_route():
+def test_netex_convert_routes_to_lines_with_minimal_route():
     entity = {
             "id": f"urn:ngsi-ld:GtfsRoute:TestCity:T1",
             "type": "GtfsRoute",
@@ -135,7 +139,7 @@ def test_minimal_route():
     result = netex_convert_routes_to_lines(entity)
 
     expected_xml = """
-    <Line version="1" id="TestCity:Line:T1">
+    <Line version="1" id="TEST:Line:T1">
         <Name>Name</Name>
         <TransportMode>rail</TransportMode>
         <TransportSubmode>
@@ -160,7 +164,7 @@ def test_minimal_route():
         (1000, "water", "WaterSubmode"),
     ]
 )
-def test_transport_modes(route_type, expected_mode, expected_submode_tag):
+def test_netex_convert_routes_to_lines_with_different_transport_modes(route_type, expected_mode, expected_submode_tag):
     entity = {
         "id": "urn:ngsi-ld:Route:Sofia:10",
         "routeType": {"value": route_type}
@@ -171,8 +175,7 @@ def test_transport_modes(route_type, expected_mode, expected_submode_tag):
     assert result.find("TransportMode").text == expected_mode
     assert result.find(f"TransportSubmode/{expected_submode_tag}") is not None
 
-
-def test_operator_refs():
+def test_netex_convert_routes_to_lines_with_operator_refs():
     entity = {
         "id": "urn:ngsi-ld:Route:Sofia:10",
         "routeType": {"value": 700},
@@ -185,7 +188,7 @@ def test_operator_refs():
     assert result.find("RepresentedByGroupRef") is not None
 
 
-def test_presentation_only_colour():
+def test_netex_convert_routes_to_lines_with_presentation_only_colour():
     entity = {
         "id": "urn:ngsi-ld:Route:Sofia:10",
         "routeType": {"value": 700},
@@ -207,7 +210,7 @@ def test_presentation_only_text_colour():
     result = netex_convert_routes_to_lines(entity)
 
     expected_xml = """
-    <Line version="1" id="TestCity:Line:T1">
+    <Line version="1" id="TEST:Line:T1">
         <Name>Name</Name>
         <Description>Description</Description>
         <TransportMode>rail</TransportMode>
@@ -216,8 +219,8 @@ def test_presentation_only_text_colour():
         </TransportSubmode>
         <Url>https://test.com</Url>
         <PublicCode>Short Name</PublicCode>
-        <OperatorRef ref="TestCity:Operator:A1"/>
-        <RepresentedByGroupRef ref="TestCity:Authority:A1Nett"/>
+        <OperatorRef ref="TEST:Operator:A1"/>
+        <RepresentedByGroupRef ref="TEST:Authority:A1Nett"/>
         <Presentation>
             <Colour>FFFFFF</Colour>
             <TextColour>FFFFFF</TextColour>

@@ -2,6 +2,10 @@ import pytest
 from lxml import etree
 from netex.netex_utils import netex_convert_calendar_to_operating_period
 
+@pytest.fixture(autouse=True)
+def set_netex_authority(monkeypatch):
+    monkeypatch.setattr("netex.netex_utils.config.NETEX_AUTHORITY", "TEST")
+
 def assert_xml_equal(generated_xml, expected_xml_str):
     """Compares two XML elements for equivalence."""
     parser = etree.XMLParser(remove_blank_text=True)
@@ -70,7 +74,7 @@ def test_netex_convert_calendar_to_operating_period_single_valid_entity():
     result_xml = netex_convert_calendar_to_operating_period(entities)
     expected_xml = """
     <operatingPeriods>
-      <OperatingPeriod version="1" id="TestCity:OperatingPeriod:WeekdayId">
+      <OperatingPeriod version="1" id="TEST:OperatingPeriod:WeekdayId">
         <FromDate>2026-04-14T00:00:00</FromDate>
         <ToDate>2026-04-30T00:00:00</ToDate>
       </OperatingPeriod>
@@ -78,9 +82,7 @@ def test_netex_convert_calendar_to_operating_period_single_valid_entity():
     """
     assert_xml_equal(result_xml, expected_xml)
 
-# NEED TO REFACTOR THIS ONE
-def test_netex_convert_calendar_to_operating_period_handles_duplicate_ids_in_validated_input():
-    """CRITICAL TEST: Ensures duplicate service_ids produce only one OperatingPeriod."""
+def test_netex_convert_calendar_to_operating_period_handles_duplicate_ids_in_validated_input(): 
     entities = [
         {"id": "urn:city:TestCity:Service1", "startDate": {"value": "20240101"}, "endDate": {"value": "20241231"}},
         {"id": "urn:city:TestCity:Service2", "startDate": {"value": "20250101"}, "endDate": {"value": "20251231"}},
@@ -94,10 +96,10 @@ def test_netex_convert_calendar_to_operating_period_handles_duplicate_ids_in_val
 
     ids = [p.get("id") for p in periods]
 
-    assert "TestCity:OperatingPeriod:Service1" in ids
-    assert "TestCity:OperatingPeriod:Service2" in ids
+    assert "TEST:OperatingPeriod:Service1" in ids
+    assert "TEST:OperatingPeriod:Service2" in ids
 
-    service1 = next(p for p in periods if p.get("id") == "TestCity:OperatingPeriod:Service1")
+    service1 = next(p for p in periods if p.get("id") == "TEST:OperatingPeriod:Service1")
     assert service1.find("FromDate").text == "2024-01-01T00:00:00"
 
 def test_netex_convert_calendar_to_operating_period_with_empty_list():
