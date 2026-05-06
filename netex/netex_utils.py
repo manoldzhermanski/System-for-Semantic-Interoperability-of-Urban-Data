@@ -2,7 +2,6 @@ import sys
 import json
 import math
 import logging
-import xml.etree.ElementTree as ET
 from typing import Iterator, Any
 from pathlib import Path
 from lxml import etree # type: ignore
@@ -10,6 +9,8 @@ from pyproj import Transformer
 #from shapely.geometry import LineString, Point as ShapelyPoint
 #from shapely.ops import substring
 from datetime import datetime
+from pprint import pprint
+
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
@@ -1826,8 +1827,170 @@ def netex_convert_stops_to_route_points(entities: list[dict[str, Any]]) -> etree
     # Return the routePoints container with all RoutePoint elements
     return route_points
 
-def netex_generate_route():
-    pass
+# -----------------------------------------------------
+# NeTEx <Route>
+# -----------------------------------------------------
+def netex_helper_get_route_id_and_name(gtfs_route_entities: list[dict[str, Any]]) -> dict[str, dict[str, str]]:
+
+    general_route_info = {}
+
+    for route_entity in gtfs_route_entities:
+
+        entity_type = route_entity["type"]
+        if entity_type != "GtfsRoute":
+            continue
+
+        route_id = route_entity["id"]
+        if not isinstance(route_id, str) or ":" not in route_id:
+            logger.error("Invalid or missing ID for GtfsRoute: %r", route_id)
+            continue
+        route_id_value = route_id.split(":")[-1]
+
+        route_short_name = route_entity.get("shortName", {}).get("value")
+        route_long_name = route_entity.get("name", {}).get("value")
+
+        route_names = {}
+
+        if route_short_name:
+            route_names["route_short_name"] = route_short_name
+
+        if route_long_name:
+            route_names["route_long_name"] = route_long_name
+
+        general_route_info[route_id_value] = route_names
+
+    return general_route_info
+
+def netex_helper_get_trip_direction(gtfs_trips_entites: list[dict[str, Any]]) -> dict[str, dict[str, str]]:
+
+    trip_info = {}
+
+    for trip_entity in gtfs_trips_entites:
+
+        entity_type = trip_entity["type"]
+        if entity_type != "GtfsTrip":
+            continue
+
+        trip_id = trip_entity["id"]
+        if not isinstance(trip_id, str) or ":" not in trip_id:
+            logger.error("Invalid or missing ID for GtfsTrip: %r", trip_id)
+            continue
+        trip_id_value = trip_id.split(":")[-1]
+
+        route_id = trip_entity["route"]["object"]
+        route_id_value = route_id.split(":")[-1]
+
+        direction_string = ""
+        direction_id = trip_entity.get("direction", {}).get("value")
+        if direction_id:
+            direction_string = "outbound" if direction_id == 0 else "inbound"
+
+        info = {}
+
+        info["route_id"] = route_id_value
+        if direction_id:
+            info["direction"] = direction_string
+
+        trip_info[trip_id_value] = info
+
+    return trip_info
+
+def netex_helper_group_trips_by_route_direction_and_sequence(route_id_and_direction: dict[str, dict[str, str]], stop_sequence: dict[str, list[str]]):
+
+    groups = {}
+
+    for trip_id in route_id_and_direction:
+
+        route_id = route_id_and_direction[trip_id]["route_id"]
+        direction = route_id_and_direction[trip_id].get("direction")
+
+        sequence = stop_sequence[trip_id]
+        if not sequence:
+            continue
+
+        key = (route_id, direction, tuple(sequence))
+
+        if key not in groups:
+            groups[key] = []
+
+        groups[key].append(trip_id)
+
+    return groups
+
+def netex_helper_create_route_structures(trip_groups: dict, route_names: dict[str, dict[str, str]]):
+    routes = []
+
+    for key, trip_ids in trip_groups.items():
+
+        route_id, direction, sequence = key
+
+        names = route_names.get(route_id, {})
+        route_short_name = names.get("route_short_name")
+        route_long_name = names.get("route_long_name")
+ 
+
+        route_data = {}
+
+        route_data["route_id"] = route_id
+        route_data["direction"] = direction
+        if route_short_name:
+            route_data["route_short_name"] = route_short_name
+
+        if route_long_name:
+            route_data["route_long_name"] = route_long_name
+
+        route_data["stop_sequence"] = list(sequence)
+        route_data["trip_ids"] = trip_ids
+
+        routes.append(route_data)
+
+    return routes
+
+def netex_generate_routes(routes_structures):
+
+    route_id_to_xml = {}
+
+    route_groups = {}
+    for route_structure in routes_structures:
+
+        route_id = route_structure["route_id"]
+        if route_id not in route_groups:
+            route_groups[route_id] = []
+
+        route_groups[route_id].append(route_structure)
+
+    for route_id, route_candidates in route_groups.items():
+
+        routes = etree.Element("routes")
+
+        for index, route_info in enumerate(route_candidates, start = 1):
+
+            route = etree.SubElement(routes, "Route", version = "1", id = f"{config.NETEX_AUTHORITY}:Route:{route_id}_{index}")
+            route_long_name = route_info.get("route_long_name")
+            if route_long_name:
+                etree.SubElement(route, "Name").text = route_long_name
+
+            route_short_name = route_info.get("route_short_name")
+            if route_short_name:
+                etree.SubElement(route, "ShortName").text = route_short_name
+
+            etree.SubElement(route, "LineRef", ref = f"{config.NETEX_AUTHORITY}:Line:{route_id}", version = "1")
+
+            direction = route_info["direction"]
+            if direction:
+                etree.SubElement(route, "DirectionType").text = direction
+
+            points_in_sequence = etree.SubElement(route, "pointsInSequence")
+            sequence = route_info["stop_sequence"]
+
+            for index, stop_id in enumerate(sequence, start = 1):
+                point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute", order = str(index), version = "1", 
+                                                id = f"{config.NETEX_AUTHORITY}:PointOnRoute:{stop_id}")
+                etree.SubElement(point_on_route, "RoutePointRef", ref = f"{config.NETEX_AUTHORITY}:RoutePoint:{stop_id}")
+
+        route_id_to_xml[route_id] = routes
+
+    return route_id_to_xml
 
 def netex_helper_process_and_group_stop_times(stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
@@ -1896,31 +2059,26 @@ def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grou
 if __name__ == "__main__":
     header = orion_ld_define_header("gtfs_static")
     stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
-    #trips = orion_ld_get_entities_by_type("GtfsTrip", header)
-    #routes = orion_ld_get_entities_by_type("GtfsRoute", header)
+    trips = orion_ld_get_entities_by_type("GtfsTrip", header)
+    routes = orion_ld_get_entities_by_type("GtfsRoute", header)
     
     stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+    route_names = netex_helper_get_route_id_and_name(routes)
+    trip_directions = netex_helper_get_trip_direction(trips)
+    groups = netex_helper_group_trips_by_route_direction_and_sequence(trip_directions, stops_per_trip)
+    route_data = netex_helper_create_route_structures(groups, route_names)
+    netex_routes =netex_generate_routes(route_data)
 
-    #route_per_trip = netex_helper_extract_routes_in_a_trip(trips)
+    #pprint(stops_per_trip)
+    #pprint(groups)
+    #pprint(netex_routes)
 
-    #route_type_per_route = netex_helper_get_gtfs_route_type_code(routes)
+    for route_id, routes_xml in netex_routes.items():
+        xml_str = etree.tostring(
+            routes_xml,
+            pretty_print=True,
+            encoding="unicode"
+        )
 
-    #transport_modes_per_stop = netex_helper_get_transport_modes_per_stop(
-    #stops_per_trip,
-    #route_per_trip,
-    #route_type_per_route
-    #)
-
-    # convert set -> list (JSON не поддържа set)
-    #data_to_save = {
-    #    stop: list(modes)
-    #    for stop, modes in transport_modes_per_stop.items()
-    #}
-
-    #with open("transport_modes_per_stop.json", "w", encoding="utf-8") as f:
-    #    json.dump(data_to_save, f, indent=4, ensure_ascii=False)
-
-    for key, values in stops_per_trip.items():
-        print(f"{key}:")
-        for v in values:
-            print(f"  - {v}")
+        print(f"--- Route group: {route_id} ---")
+        print(xml_str)
