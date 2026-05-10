@@ -19,7 +19,7 @@ def test_netex_helper_extract_stops_in_a_trip_with_single_trip_and_multiple_stop
 
     assert result == {"Trip1": ["Stop2", "Stop1"]}
 
-def test_netex_helper_extract_stops_in_a_trip_with__multiple_trips():
+def test_netex_helper_extract_stops_in_a_trip_with_multiple_trips():
     stop_times = [
         {
             "hasTrip": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1"},
