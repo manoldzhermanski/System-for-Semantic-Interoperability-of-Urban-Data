@@ -6,8 +6,8 @@ from typing import Iterator, Any
 from pathlib import Path
 from lxml import etree # type: ignore
 from pyproj import Transformer
-#from shapely.geometry import LineString, Point as ShapelyPoint
-#from shapely.ops import substring
+from shapely.geometry import LineString, Point as ShapelyPoint
+from shapely.ops import substring
 from datetime import datetime
 from pprint import pprint
 
@@ -316,31 +316,44 @@ def netex_build_networks(agencies: list[dict[str, Any]]) -> list[etree.Element]:
     # Return network_list
     return network_list
    
-    
+# -----------------------------------------------------
+# GtfsShape to <ServiceLink>
+# -----------------------------------------------------
+
 Point = tuple[float, float]
 
 wgs84_to_projected = Transformer.from_crs("EPSG:4326", "EPSG:7801", always_xy=True)
 projected_to_wgs84 = Transformer.from_crs("EPSG:7801", "EPSG:4326", always_xy=True)
 
-def netex_helper_transform_point_between_coordinate_systems(point: Point, to_epsg_7801: bool = True) -> Point:
+def netex_helper_transform_point(point: Point, from_crs: str = "EPSG:4326", to_crs: str = "EPSG:7801") -> Point:
     """
-    Convert point between EPSG:4326 (lon, lat) and EPSG:7801 projected CRS.
+    Convert point between EPSG:4326 and a projected CRS (EPSG:7801) and vice versa.
+    This function could be expanded in the future to support more CRSs if needed.
 
     Args:
         point: (x, y) coordinates in the source CRS
-        to_epsg_7801: If True, converts from WGS84 to projected CRS; if False, converts from projected CRS to WGS84
-        
+        from_crs: The source coordinate reference system
+        to_crs: The target coordinate reference system
+
     Returns:
         Point: (x, y) coordinates in the target CRS
     """
+    
+    # Determine the appropriate transformer based on the source and target CRS
+    if from_crs == "EPSG:4326" and to_crs == "EPSG:7801":
+        transformer = wgs84_to_projected
+    elif from_crs == "EPSG:7801" and to_crs == "EPSG:4326":
+        transformer = projected_to_wgs84
+    else:
+        raise ValueError("Unsupported CRS transformation")
 
-    x, y = point
-    transformer = wgs84_to_projected if to_epsg_7801 else projected_to_wgs84
-    return transformer.transform(x, y)
+    # Return the transformed point
+    return transformer.transform(*point)
 
 def netex_helper_transform_line_string_to_wgs84(polyline_projected: list[Point]) -> list[Point]:
     """
-    Transform a LineString from projected CRS (EPSG:7801) to WGS84 (EPSG:4326).
+    Transform a LineString from projected CRS (EPSG:7801) to WGS84 (EPSG:4326)
+    
     Args:
         polyline_projected (list[Point]): LineString represented as a list of (x, y) coordinates in projected CRS
 
@@ -348,18 +361,22 @@ def netex_helper_transform_line_string_to_wgs84(polyline_projected: list[Point])
         list[Point]: LineString represented as a list of (x, y) coordinates in WGS84 CRS
     """
 
+    # List to store the LineString points in WGS84 CRS
     polyline_wgs84 = []
 
+    # Traverse all points that make up the LineString geometry and transform them from projected CRS to WGS84 CRS
     for point in polyline_projected:
-        polyline_wgs84.append(netex_helper_transform_point_between_coordinate_systems(point, to_epsg_7801=False))
+        polyline_wgs84.append(netex_helper_transform_point(point, from_crs="EPSG:7801", to_crs="EPSG:4326"))
 
+    # Return the list of points that make up the LineString geometry in WGS84 CRS
     return polyline_wgs84
 
-def netex_helper_extract_stops_in_a_trip(stop_times: list[dict[str, Any]]) -> dict[str, list[str]]:
+def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str, Any]]) -> dict[str, list[str]]:
     """
-    Create a lookup of all stops in a trip, ordered by their stop sequence.
+    For every trip, extract the ordered list of stops that comprise the trip based on the stop times information
+    
     Args:
-        stop_times (list[dict[str, Any]]): A list of stop time dictionaries
+        stop_times (list[dict[str, Any]]): A list of GtfsStopTime entities
 
     Returns:
         dict[str, list[str]]: A dictionary mapping trip IDs to lists of stop IDs in order
@@ -369,8 +386,8 @@ def netex_helper_extract_stops_in_a_trip(stop_times: list[dict[str, Any]]) -> di
     stops_per_trip = {}
     
     # Traverse the retrieved stop times and populate the stops_per_trip dictionary
-    for stop in stop_times:
-
+    for stop in gtfs_stop_time_entities:
+        
         trip_id_value = None
         stop_id_value = None
         sequence = None
@@ -412,9 +429,10 @@ def netex_helper_extract_stops_in_a_trip(stop_times: list[dict[str, Any]]) -> di
     # Return the lookup of stops per trip
     return stops_per_trip
 
-def netex_helper_extract_stop_coordinates(stops: list[dict[str, Any]]) -> dict[str, Point]:
+def netex_helper_extract_stop_coordinates(gtfs_stop_entities: list[dict[str, Any]]) -> dict[str, Point]:
     """
     For every stop, extract its coordinates and transform them to the projected CRS (EPSG:7801).
+    
     Args:
         stops (list[dict[str, Any]]): A list of stop dictionaries
 
@@ -425,28 +443,39 @@ def netex_helper_extract_stop_coordinates(stops: list[dict[str, Any]]) -> dict[s
     stop_coordinates_projected = {}
 
     # Traverse the retrieved stops and populate the stop_coordinates_projected dictionary
-    for stop in stops:
-
-        # Get stop ID
-        stop_id = stop.get("id")
+    for stop in gtfs_stop_entities:
+        
+        entity_type = stop["type"]
+        if entity_type != "GtfsStop":
+            continue
+        
+        stop_id = stop["id"]
+        if not isinstance(stop_id, str) or ":" not in stop_id:
+            logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
+            continue
+        stop_id_value = stop_id.split(":")[-1]
 
         # Get stop coordinates
-        longitude, latitude = stop.get("location", {}).get("value", {}).get("coordinates")
+        coordinates = stop.get("location", {}).get("value", {}).get("coordinates")
 
         # Only consider stops that have valid stop ID and coordinates
-        if stop_id and longitude is not None and latitude is not None:
+        if not coordinates or len(coordinates) != 2:
+            logger.error("Missing or invalid coordinates for GtfsStop %s", stop_id)
+            continue
+        
+        longitude, latitude = coordinates
 
-            # Transform the stop coordinates from WGS84 to the projected CRS (EPSG:7801)
-            projected_point = netex_helper_transform_point_between_coordinate_systems((float(longitude), float(latitude)), \
-                                                                                        to_epsg_7801=True)
+        # Transform the stop coordinates from WGS84 to the projected CRS (EPSG:7801)
+        projected_point = netex_helper_transform_point((float(longitude), float(latitude)),
+                                                    from_crs="EPSG:4326", to_crs="EPSG:7801")
 
-            # Populate the stop_coordinates_projected dictionary with the stop ID and its projected coordinates
-            stop_coordinates_projected[stop_id] = projected_point
+        # Populate the stop_coordinates_projected dictionary with the stop ID and its projected coordinates
+        stop_coordinates_projected[stop_id_value] = projected_point
 
     # Return the lookup of stop IDs to their projected coordinates
     return stop_coordinates_projected
 
-def netex_helper_extract_shapes_linestrings(shapes: list[dict[str, Any]]) -> dict[str, list[Point]]:
+def netex_helper_extract_shape_linestrings(gtfs_shapes: list[dict[str, Any]]) -> dict[str, list[Point]]:
     """
     For every shape, extract its LineString geometry as a list of (x, y) coordinates in the projected CRS (EPSG:7801).
     
@@ -461,37 +490,58 @@ def netex_helper_extract_shapes_linestrings(shapes: list[dict[str, Any]]) -> dic
     shape_line_strings = {}
 
     # Traverse the retrieved shapes and populate the shape_line_strings dictionary
-    for shape in shapes:
+    for shape in gtfs_shapes:
+        
+        entity_type = shape["type"]
+        if entity_type != "GtfsShape":
+            continue
 
         # Get shape ID
-        shape_id = shape.get("id")
+        shape_id = shape["id"]
+        if not isinstance(shape_id, str) or ":" not in shape_id:
+            logger.error("Invalid or missing ID for GtfsShape: %r", shape_id)
+            continue
+        shape_id_value = shape_id.split(":")[-1]
 
         # Get shape points
         points = shape.get("location", {}).get("value", {}).get("coordinates", [])
+        if not isinstance(points, list):
+            logger.error("Missing or invalid coordinates for shape %s", shape_id)
+            continue
+        
+        # Check that at least 2 ponts are present
+        if (not isinstance(points, list) or len(points) < 2):
+            logger.error("Invalid or insufficient coordinates for shape %s", shape_id)
+            continue
+        
+        # Create a list to store the transformed points of the shape's LineString geometry
+        transformed_line_string = []
 
-        # Only consider shapes that have valid shape ID and points
-        if shape_id is not None and points is not None:
+        # Traverse each point from the LineString geometry
+        for point in points:
+            
+            if (not isinstance(point, list) or len(point) != 2):
+                logger.error("Invalid point in shape %s: %r", shape_id, point)
+                continue
+            
+            lon, lat = point
 
-            # Create a list to store the transformed points of the shape's LineString geometry
-            transformed_line_string = []
+            # Transform the point from WGS84 to the projected CRS (EPSG:7801)
+            projected_point = netex_helper_transform_point(
+                (float(lon), float(lat)),
+                from_crs="EPSG:4326",
+                to_crs="EPSG:7801")
 
-            # Traverse each point from the LineString geometry
-            for point in points:
-
-                # Transform the point from WGS84 to the projected CRS (EPSG:7801)
-                projected_point = netex_helper_transform_point_between_coordinate_systems(
-                    (float(point[0]), float(point[1])), to_epsg_7801=True)
-
-                # Append the transformed point
-                transformed_line_string.append(projected_point)
-
-            # Populate the shape_line_strings dictionary with the shape ID and its transformed LineString geometry
-            shape_line_strings[shape_id] = transformed_line_string
+            transformed_line_string.append(projected_point)
+                        
+        # Populate the shape_line_strings dictionary with the shape ID and its transformed LineString geometry
+        if len(transformed_line_string) >= 2:
+            shape_line_strings[shape_id_value] = transformed_line_string
 
     # Return the lookup of shape IDs to their LineString geometries in projected CRS
     return shape_line_strings
 
-def netex_helper_map_trips_to_shapes(trips: list[dict[str, Any]]) -> dict[str, str]:
+def netex_helper_map_trips_to_shapes(gtfs_trips: list[dict[str, Any]]) -> dict[str, str]:
     """
     For every trip, extract the associated shape ID
     
@@ -501,24 +551,34 @@ def netex_helper_map_trips_to_shapes(trips: list[dict[str, Any]]) -> dict[str, s
     Returns:
         dict[str, str]: A dictionary mapping trip IDs to their associated shape IDs.
     """
-    # Create a lookup of trip ID to its associated shape ID
+    # Create a dictionary that assiciates a trip ID with it's shape ID
     shapes_per_trip = {}
 
     # Traverse the retrieved trips and populate the shapes_per_trip dictionary
-    for trip in trips:
+    for trip in gtfs_trips:
+        
+        entity_type = trip["type"]
+        if entity_type != "GtfsTrip":
+            continue
+        
         # Get trip ID
-        trip_id = trip.get("id")
+        trip_id = trip["id"]
+        if not isinstance(trip_id, str) or ":" not in trip_id:
+            logger.error("Invalid or missing ID for GtfsTrip: %r", trip_id)
+            continue
+        trip_id_value = trip_id.split(":")[-1]
         
         # Get shape ID
         shape_id = trip.get("hasShape", {}).get("object")
-
-        # Only consider trips that have valid trip ID and shape ID
-        if trip_id and shape_id:
+        if not isinstance(shape_id, str) or ":" not in shape_id:
+            logger.error("Invalid or missing ID for GtfsShape: %r", shape_id)
+            continue
+        shape_id_value = shape_id.split(":")[-1]
             
-            # Populate the shapes_per_trip dictionary with the trip ID and its associated shape ID
-            shapes_per_trip[trip_id] = shape_id
+        # Populate the shapes_per_trip dictionary with the trip ID and its associated shape ID
+        shapes_per_trip[trip_id_value] = shape_id_value
 
-    # Return the lookup of trip IDs to their associated shape IDs
+    # Return the dictionary
     return shapes_per_trip
 
 def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[str]]) -> dict[str, list[tuple[str, str]]]:
@@ -532,7 +592,7 @@ def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[str]]) ->
         dict[str, list[tuple[str, str]]]: A dictionary mapping trip IDs to lists of stop pairs representing the segments between them.
     """
     # Create a dictionary to store the stop pairs for each trip
-    trip_stop_pairs = {}
+    stop_pairs_in_a_trip = {}
 
     # Traverse each trip and split its ordered list of stops into pairs of consecutive stops
     for trip, stops in stops_per_trip.items():
@@ -545,10 +605,10 @@ def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[str]]) ->
             pairs.append((stops[i], stops[i+1]))
 
         # Populate the trip_stop_pairs dictionary with the trip ID and its list of stop pairs
-        trip_stop_pairs[trip] = pairs
+        stop_pairs_in_a_trip[trip] = pairs
 
     # Return the dictionary mapping trip IDs to their lists of stop pairs
-    return trip_stop_pairs
+    return stop_pairs_in_a_trip
 
 def netex_helper_cut_shape_between_distances(gtfs_shape: list[Point], start_d: float, end_d: float) -> list[Point]:
     """
@@ -651,7 +711,7 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(stop_times: 
     stop_coordinates_lookup = netex_helper_extract_stop_coordinates(stops)
 
     # Extract all shape LineString geometries
-    shape_line_strings = netex_helper_extract_shapes_linestrings(shapes)
+    shape_line_strings = netex_helper_extract_shape_linestrings(shapes)
 
     # Create a trip ID - shape ID look up dictionary
     shape_per_trip = netex_helper_map_trips_to_shapes(trips)
@@ -738,7 +798,7 @@ def netex_helper_create_service_link_info(stop_times: list[dict[str, Any]], stop
     stop_pairs = netex_helper_split_stops_into_pairs(stops_per_trip)
 
     # Extract all LineString geometries of the shapes
-    shape_line_strings = netex_helper_extract_shapes_linestrings(shapes)
+    shape_line_strings = netex_helper_extract_shape_linestrings(shapes)
     
     # Extract all shape IDs associated with trips
     shape_per_trip = netex_helper_map_trips_to_shapes(trips)
@@ -1964,8 +2024,9 @@ def netex_generate_routes(routes_structures):
         routes = etree.Element("routes")
 
         for index, route_info in enumerate(route_candidates, start = 1):
+            sequence = route_info["stop_sequence"]
 
-            route = etree.SubElement(routes, "Route", version = "1", id = f"{config.NETEX_AUTHORITY}:Route:{route_id}_{index}")
+            route = etree.SubElement(routes, "Route", version = "1", id = f"{config.NETEX_AUTHORITY}:Route:{route_id}_{sequence[0]}_{sequence[-1]}")
             route_long_name = route_info.get("route_long_name")
             if route_long_name:
                 etree.SubElement(route, "Name").text = route_long_name
@@ -1981,7 +2042,6 @@ def netex_generate_routes(routes_structures):
                 etree.SubElement(route, "DirectionType").text = direction
 
             points_in_sequence = etree.SubElement(route, "pointsInSequence")
-            sequence = route_info["stop_sequence"]
 
             for index, stop_id in enumerate(sequence, start = 1):
                 point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute", order = str(index), version = "1", 
@@ -2057,28 +2117,30 @@ def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grou
     return service_journey
 
 if __name__ == "__main__":
-    header = orion_ld_define_header("gtfs_static")
-    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
-    trips = orion_ld_get_entities_by_type("GtfsTrip", header)
-    routes = orion_ld_get_entities_by_type("GtfsRoute", header)
+    #header = orion_ld_define_header("gtfs_static")
+    #stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
+    #trips = orion_ld_get_entities_by_type("GtfsTrip", header)
+    #routes = orion_ld_get_entities_by_type("GtfsRoute", header)
     
-    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
-    route_names = netex_helper_get_route_id_and_name(routes)
-    trip_directions = netex_helper_get_trip_direction(trips)
-    groups = netex_helper_group_trips_by_route_direction_and_sequence(trip_directions, stops_per_trip)
-    route_data = netex_helper_create_route_structures(groups, route_names)
-    netex_routes =netex_generate_routes(route_data)
+    #stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+    #route_names = netex_helper_get_route_id_and_name(routes)
+    #trip_directions = netex_helper_get_trip_direction(trips)
+    #groups = netex_helper_group_trips_by_route_direction_and_sequence(trip_directions, stops_per_trip)
+    #route_data = netex_helper_create_route_structures(groups, route_names)
+    #netex_routes =netex_generate_routes(route_data)
 
     #pprint(stops_per_trip)
     #pprint(groups)
-    #pprint(netex_routes)
+    #pprint(route_data)
 
-    for route_id, routes_xml in netex_routes.items():
-        xml_str = etree.tostring(
-            routes_xml,
-            pretty_print=True,
-            encoding="unicode"
-        )
+    #for route_id, routes_xml in netex_routes.items():
+    #    xml_str = etree.tostring(
+    #        routes_xml,
+    #        pretty_print=True,
+    #        encoding="unicode"
+    #    )
 
-        print(f"--- Route group: {route_id} ---")
-        print(xml_str)
+    #    print(f"--- Route group: {route_id} ---")
+    #    print(xml_str)
+
+    main()
