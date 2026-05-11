@@ -11,10 +11,11 @@ def test_map_stops_to_shape_distances_returns_dictionary():
     Test that the function returns a dictionary.
     """
 
-    stop_ids = ["STOP_1"]
+    stop_ids = ["STOP_1", "STOP_2"]
 
     stop_coordinates: dict[str, Point] = {
-        "STOP_1": (5.0, 0.0),
+        "STOP_1": (2.0, 0.0),
+        "STOP_2": (8.0, 0.0)
     }
 
     gtfs_shape: list[Point] = [
@@ -29,35 +30,11 @@ def test_map_stops_to_shape_distances_returns_dictionary():
     )
 
     assert isinstance(result, dict)
-
-
-def test_map_stops_to_shape_distances_calculates_correct_distances():
-    """
-    Test calculating distances for multiple stops.
-    """
-
-    stop_ids = ["STOP_1", "STOP_2"]
-
-    stop_coordinates: dict[str, Point] = {
-        "STOP_1": (2.0, 0.0),
-        "STOP_2": (8.0, 0.0),
-    }
-
-    gtfs_shape: list[Point] = [
-        (0.0, 0.0),
-        (10.0, 0.0),
-    ]
-
-    result = netex_helper_map_stops_to_shape_distances(
-        stop_ids,
-        stop_coordinates,
-        gtfs_shape,
-    )
-
     assert result == {
         "STOP_1": pytest.approx(2.0),
         "STOP_2": pytest.approx(8.0),
     }
+
 
 
 def test_map_stops_to_shape_distances_handles_multisegment_shape():
@@ -151,9 +128,7 @@ def test_map_stops_to_shape_distances_handles_empty_shape():
         [],
     )
 
-    assert result == {
-        "STOP_1": pytest.approx(0.0),
-    }
+    assert result == {}
 
 
 def test_map_stops_to_shape_distances_preserves_stop_order():

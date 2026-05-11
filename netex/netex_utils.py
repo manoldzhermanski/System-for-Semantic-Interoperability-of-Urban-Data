@@ -685,9 +685,14 @@ def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordina
             logger.error("Missing coordinates for stop %s", stop_id)
             continue
 
+        # Validate shape geometry
+        if not gtfs_shape:
+            logger.error("Cannot calculate stop distances: shape is empty")
+            return {}
+
         # Calculate stop distance along shape
         stop_distances[stop_id] = (
-            netex_helper_calculate_stop_distance_along_shape(coordinates,gtfs_shape)
+            netex_helper_calculate_stop_distance_along_shape(coordinates, gtfs_shape)
         )
 
     # Return dictionary with results
