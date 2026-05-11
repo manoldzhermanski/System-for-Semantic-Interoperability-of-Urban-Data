@@ -656,7 +656,7 @@ def netex_helper_calculate_stop_distance_along_shape(stop_coordinates: Point, gt
     # Project the point onto the LineString and get the distance along the line
     return line.project(point)
 
-def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordinates_lookup: dict[str, Point], \
+def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordinates: dict[str, Point], \
                             gtfs_shape: list[Point]) -> dict[str, float]:
     """
     For every stop in the trip, calculate the distance along the shape
@@ -664,7 +664,7 @@ def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordina
     
     Args:
     stop_ids: List of stop IDs in the trip
-    stop_coordinates_lookup: Dictionary mapping stop IDs to their (x, y) coordinates in projected CRS
+    stop_coordinates: Dictionary mapping stop IDs to their (x, y) coordinates in projected CRS
     gtfs_shape: List of (x, y) coordinates representing the shape's LineString in projected CRS
     
     Returns:
@@ -672,22 +672,26 @@ def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordina
     """
 
     # Create a dictionary to store the distance along the shape for each stop
-    stop_distances_along_shape = {}
+    stop_distances = {}
 
     # Traverse each stop in the trip and calculate its distance along the shape
     for stop_id in stop_ids:
 
-        # Get the stop coordinates from the lookup
-        stop_coordinates = stop_coordinates_lookup[stop_id]
+        # Get coordinates of a stop point
+        coordinates = stop_coordinates.get(stop_id)
 
-        # Calculate the distance along the shape for the stop by projecting it onto the shape's LineString
-        distance_along_shape = netex_helper_calculate_stop_distance_along_shape(stop_coordinates, gtfs_shape)
+        # Alert and skip if coordinates are missing
+        if coordinates is None:
+            logger.error("Missing coordinates for stop %s", stop_id)
+            continue
 
-        # Create a lookup of stop ID to distance along the shape
-        stop_distances_along_shape[stop_id] = distance_along_shape
+        # Calculate stop distance along shape
+        stop_distances[stop_id] = (
+            netex_helper_calculate_stop_distance_along_shape(coordinates,gtfs_shape)
+        )
 
-    # Return the lookup of stop IDs to their distance along the shape
-    return stop_distances_along_shape
+    # Return dictionary with results
+    return stop_distances
       
 def netex_helper_for_every_trip_compute_stop_distances_along_shapes(stop_times: list[dict[str, Any]], stops: list[dict[str, Any]], shapes:list[dict[str, Any]], trips: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
     """
