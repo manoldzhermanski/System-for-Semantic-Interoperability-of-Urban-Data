@@ -698,7 +698,10 @@ def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordina
     # Return dictionary with results
     return stop_distances
       
-def netex_helper_for_every_trip_compute_stop_distances_along_shapes(stop_times: list[dict[str, Any]], stops: list[dict[str, Any]], shapes:list[dict[str, Any]], trips: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+def netex_helper_for_every_trip_compute_stop_distances_along_shapes(stops_per_trip: dict[str, list[str]],
+                                                                    stop_coordinates: dict[str, Point], 
+                                                                    shape_line_strings: dict[str, list[Point]],
+                                                                    shape_per_trip: dict[str, str]) -> dict[str, dict[str, float]]:
     """
     For every trip, compute the distance along the shape for each stop in the trip 
     by projecting the stop coordinates onto the shape's LineString geometry.
@@ -712,19 +715,6 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(stop_times: 
     Returns:
     Dictionary mapping trip IDs to dictionaries that map stop IDs to their distance along the shape in meters
     """
-
-    # Extract the stops along side a trips
-    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
-
-    # Extract all the stop coordinates
-    stop_coordinates_lookup = netex_helper_extract_stop_coordinates(stops)
-
-    # Extract all shape LineString geometries
-    shape_line_strings = netex_helper_extract_shape_linestrings(shapes)
-
-    # Create a trip ID - shape ID look up dictionary
-    shape_per_trip = netex_helper_map_trips_to_shapes(trips)
-
     stop_projections_per_trip = {}
 
     # Traverse each trip and calculate the distance along the shape for each stop in the trip 
@@ -749,7 +739,7 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(stop_times: 
         # by projecting the stop coordinates onto the shape's LineString geometry
         stop_distances_along_shape = netex_helper_map_stops_to_shape_distances(
             stop_ids,
-            stop_coordinates_lookup,
+            stop_coordinates,
             shape_line_string
         )
 
@@ -783,8 +773,11 @@ def netex_helper_create_line_string_segments_between_stop_pairs(stop_pair: tuple
     # by cutting the shape's LineString geometry between the two distances
     return netex_helper_cut_shape_between_distances(gtfs_shape, start_distance, end_distance)
     
-def netex_helper_create_service_link_info(stop_times: list[dict[str, Any]], stops: list[dict[str, Any]],
-                        shapes: list[dict[str, Any]], trips: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    
+def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]],
+                                          stop_coordinates: dict[str, Point],
+                                          shape_line_strings: dict[str, list[Point]],
+                                          shape_per_trip: dict[str, str]) -> list[dict[str, Any]]:
     """
     Create a list that contains information for each ServiceLink.
     The function extracts all the needed trips, the stops that comprises the trip and the LineString geometry 
@@ -792,28 +785,36 @@ def netex_helper_create_service_link_info(stop_times: list[dict[str, Any]], stop
     Then, for every pair of consecutive stops in the trip, it calculates the segment of the shape's LineString geometry
     between them and its distance to be used as the ServiceLink geometry and distance respectively.
     Args:
-        stop_times (list[dict[str, Any]]): List of stop time dictionaries
-        stops (list[dict[str, Any]]): List of stop dictionaries
-        shapes (list[dict[str, Any]]): List of shape dictionaries
-        trips (list[dict[str, Any]]): List of trip dictionaries
+        stops_per_trip (dict[str, list[str]]): Dictionary mapping trip IDs to lists of stop IDs
+        stop_coordinates (dict[str, Point]): Dictionary mapping stop IDs to their coordinates
+        shape_line_strings (dict[str, list[Point]]): Dictionary mapping shape IDs to their LineString geometries
+        shape_per_trip (dict[str, str]): Dictionary mapping trip IDs to their associated shape IDs
 
     Returns:
         _type_: List of ServiceLink information dictionaries
     """
-    # Extract all stops in a trip
-    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
-    
+    if not stops_per_trip:
+        logger.error("Missing stops_per_trip data")
+        return []
+
+    if not stop_coordinates:
+        logger.error("Missing stop_coordinates data")
+        return []
+
+    if not shape_line_strings:
+        logger.error("Missing shape_line_strings data")
+        return []
+
+    if not shape_per_trip:
+        logger.error("Missing shape_per_trip data")
+        return []
+
     # Split the stops into pairs that form segments
     stop_pairs = netex_helper_split_stops_into_pairs(stops_per_trip)
-
-    # Extract all LineString geometries of the shapes
-    shape_line_strings = netex_helper_extract_shape_linestrings(shapes)
     
-    # Extract all shape IDs associated with trips
-    shape_per_trip = netex_helper_map_trips_to_shapes(trips)
-
     # For every trip, compute the distance along the shape for each stop in the trip
-    stop_projections_per_trip = netex_helper_for_every_trip_compute_stop_distances_along_shapes(stop_times, stops, shapes, trips)
+    stop_projections_per_trip = netex_helper_for_every_trip_compute_stop_distances_along_shapes(stops_per_trip, stop_coordinates,
+                                                                                                shape_line_strings, shape_per_trip)
 
     # Store the needed info to generate a ServiceLink
     service_links = []
@@ -873,8 +874,8 @@ def netex_helper_convert_line_string_to_string(gtfs_shape_line_string: list[Poin
     """
     return " ".join(f"{lon:.6f} {lat:.6f}" for lon, lat in gtfs_shape_line_string)
 
-def netex_helper_build_service_link(service_link_data: dict[str, Any], index: int) -> etree.Element:
-
+def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.Element:
+    
     geometry_projected = service_link_data["geometry"]
 
     gtfs_shape_line_string_geometry = netex_helper_transform_line_string_to_wgs84(geometry_projected)
@@ -882,93 +883,46 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any], index: in
     pos_list = netex_helper_convert_line_string_to_string(gtfs_shape_line_string_geometry)
 
     distance = service_link_data["distance"]
-
     from_stop = service_link_data["from_stop"]
-    from_stop = from_stop.split(":")[-1]
-    
     to_stop = service_link_data["to_stop"]
-    to_stop = to_stop.split(":")[-1]
 
-    service_link = etree.Element("ServiceLink")
-    service_link.set("id", f"{config.NETEX_AUTHORITY}:ServiceLink:{index}")
-    service_link.set("version", "1")
+    service_link = etree.Element("ServiceLink", id = f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}", version = "1")
     
-    link_distance = etree.SubElement(service_link, "Distance")
-    link_distance.text = f"{distance:.6f}"
+    etree.SubElement(service_link, "Distance").text = f"{distance:.6f}"
 
     projections = etree.SubElement(service_link, "projections")
-    link_sequence_projection = etree.SubElement(projections, "LinkSequenceProjection")
-    link_sequence_projection.set("id", f"{config.NETEX_AUTHORITY}:LinkSequenceProjection:{index}")
-    link_sequence_projection.set("version", "1")
+    link_sequence_projection = etree.SubElement(projections, "LinkSequenceProjection", id = f"{config.NETEX_AUTHORITY}:LinkSequenceProjection:{from_stop}_{to_stop}", version = "1")
     
-    line_string_info = etree.SubElement(link_sequence_projection, f"{{{GIS_NS}}}LineString")
-    line_string_info.set("srsName", "4326")
-    line_string_info.set("srsDimension", "2")
-    line_string_info.set(f"{{{GIS_NS}}}id", f"LS_{index}")
+    line_string_info = etree.SubElement(link_sequence_projection, f"{{{GIS_NS}}}LineString", srcName = "4326", srcDimension = "2")
+    line_string_info.set(f"{{{GIS_NS}}}id", f"LS_{from_stop}_{to_stop}")
 
-    line_string = etree.SubElement(line_string_info, f"{{{GIS_NS}}}posList")
-    line_string.set("count", str(len(gtfs_shape_line_string_geometry)))
-    line_string.set("srsDimension", "2")
-    line_string.text = pos_list
+    etree.SubElement(line_string_info, f"{{{GIS_NS}}}posList", count = str(len(gtfs_shape_line_string_geometry)), srcDimension = "2").text = pos_list
     
-    from_point_ref = etree.SubElement(service_link, "FromPointRef")
-    from_point_ref.set("ref", f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop}")
-    from_point_ref.set("version", "1")
+    etree.SubElement(service_link, "FromPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop}", version = "1")
+    etree.SubElement(service_link, "ToPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop}", version = "1")
 
-    to_point_ref = etree.SubElement(service_link, "ToPointRef")
-    to_point_ref.set("ref", f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop}")
-    to_point_ref.set("version", "1")
 
     return service_link
     
 def netex_convert_shapes_to_service_link(service_links: list[dict]) -> etree.Element:
-    
+
     root = etree.Element("serviceLinks", nsmap=NSMAP)
 
-    for index, service_link_data in enumerate(service_links, start=1):
+    BATCH_SIZE = 1000
 
-        service_link_xml = netex_helper_build_service_link(service_link_data, index)
+    for i, service_link_data in enumerate(service_links):
 
-        root.append(service_link_xml)
+        root.append(
+            netex_helper_build_service_link(service_link_data)
+        )
+
+        # optional memory pressure relief
+        if i % BATCH_SIZE == 0:
+            import gc
+            gc.collect()
 
     return root
-
-def main():
-
-    city = "Sofia"
-
-    print("Building ServiceLinks...")
     
-    header = orion_ld_define_header("gtfs_static")
-    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
-    stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
-    shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
-    trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
-
-    service_links = netex_helper_create_service_link_info(stop_times, stops, shapes, trips)
-
-    print(f"Generated {len(service_links)} service links")
-
-    print("Building XML...")
-
-    xml_tree = netex_convert_shapes_to_service_link(service_links)
-
-    print(etree.tostring(xml_tree, pretty_print=True, encoding="unicode"))
-
-def netex_helper_build_points_in_sequence_for_route(stops_per_trip: dict[str, list[str]], trip_id: str) -> etree.Element:
-    
-    points_in_sequence = etree.Element("pointsInSequence")
-
-    stops = stops_per_trip.get(trip_id, [])
-    
-    for index, stop in enumerate(stops, start=1):
-        point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute", order = str(index), version = "1", id = f"{config.NETEX_AUTHORITY}:PointOnRoute:{trip_id}_{index}")
-        
-        route_point_ref = etree.SubElement(point_on_route, "RoutePointRef")
-        route_point_ref.set("ref", f"{config.NETEX_AUTHORITY}:RoutePoint:{stop}")
-        
-    return points_in_sequence
-
 
 ##########################################################
 # GtfsCalendarRule and GtfsCalendarDateRule
@@ -1506,6 +1460,20 @@ def netex_convert_routes_to_lines(entity: dict[str, Any]) -> etree.Element:
             line_text_colour.text = route_text_colour
 
     return line
+
+def netex_helper_build_points_in_sequence_for_route(stops_per_trip: dict[str, list[str]], trip_id: str) -> etree.Element:
+    
+    points_in_sequence = etree.Element("pointsInSequence")
+
+    stops = stops_per_trip.get(trip_id, [])
+    
+    for index, stop in enumerate(stops, start=1):
+        point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute", order = str(index), version = "1", id = f"{config.NETEX_AUTHORITY}:PointOnRoute:{trip_id}_{index}")
+        
+        route_point_ref = etree.SubElement(point_on_route, "RoutePointRef")
+        route_point_ref.set("ref", f"{config.NETEX_AUTHORITY}:RoutePoint:{stop}")
+        
+    return points_in_sequence
 
 # Questions to ask:
 # Tips on ID creation
@@ -2126,12 +2094,23 @@ def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grou
     return service_journey
 
 if __name__ == "__main__":
-    #header = orion_ld_define_header("gtfs_static")
-    #stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
-    #trips = orion_ld_get_entities_by_type("GtfsTrip", header)
-    #routes = orion_ld_get_entities_by_type("GtfsRoute", header)
-    
-    #stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+
+    city = "Sofia"
+    header = orion_ld_define_header("gtfs_static")
+    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
+    stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
+    shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
+    trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
+
+    stop_coordinates = netex_helper_extract_stop_coordinates(stops)
+    shape_linestrings = netex_helper_extract_shape_linestrings(shapes)
+    shape_per_trip = netex_helper_map_trips_to_shapes(trips)
+    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+    service_links = netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
+
+    xml_tree = netex_convert_shapes_to_service_link(service_links)
+    print(etree.tostring(xml_tree, pretty_print=True, encoding="unicode"))
+
     #route_names = netex_helper_get_route_id_and_name(routes)
     #trip_directions = netex_helper_get_trip_direction(trips)
     #groups = netex_helper_group_trips_by_route_direction_and_sequence(trip_directions, stops_per_trip)
@@ -2152,4 +2131,3 @@ if __name__ == "__main__":
     #    print(f"--- Route group: {route_id} ---")
     #    print(xml_str)
 
-    main()
