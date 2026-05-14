@@ -7,6 +7,7 @@ from pathlib import Path
 from lxml import etree # type: ignore
 from pyproj import Transformer
 from shapely.geometry import LineString, Point as ShapelyPoint
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import substring
 from datetime import datetime
 from pprint import pprint
@@ -325,51 +326,46 @@ Point = tuple[float, float]
 wgs84_to_projected = Transformer.from_crs("EPSG:4326", "EPSG:7801", always_xy=True)
 projected_to_wgs84 = Transformer.from_crs("EPSG:7801", "EPSG:4326", always_xy=True)
 
-def netex_helper_transform_point(point: Point, from_crs: str = "EPSG:4326", to_crs: str = "EPSG:7801") -> Point:
+def netex_helper_transform_point_to_projected(point: Point) -> Point:
     """
-    Convert point between EPSG:4326 and a projected CRS (EPSG:7801) and vice versa.
-    This function could be expanded in the future to support more CRSs if needed.
+    Transforms a point from WGS84 (EPSG:4326) to the projected CRS (EPSG:7801)
 
     Args:
-        point: (x, y) coordinates in the source CRS
-        from_crs: The source coordinate reference system
-        to_crs: The target coordinate reference system
+        point (Point): A tuple representing the (longitude, latitude) coordinates of the point in WGS84 CRS
 
     Returns:
-        Point: (x, y) coordinates in the target CRS
+        Point: A tuple representing the (x, y) coordinates of the point in the projected CRS
     """
+    return wgs84_to_projected.transform(*point)
+
+def netex_helper_transform_point_to_wgs84(point: Point) -> Point:
+    """
+    Transforms a point from the projected CRS (EPSG:7801) to WGS84 (EPSG:4326)
     
-    # Determine the appropriate transformer based on the source and target CRS
-    if from_crs == "EPSG:4326" and to_crs == "EPSG:7801":
-        transformer = wgs84_to_projected
-    elif from_crs == "EPSG:7801" and to_crs == "EPSG:4326":
-        transformer = projected_to_wgs84
-    else:
-        raise ValueError("Unsupported CRS transformation")
+    Args:
+        point (Point): A tuple representing the (x, y) coordinates of the point in the projected CRS
 
-    # Return the transformed point
-    return transformer.transform(*point)
+    Returns:
+        Point: A tuple representing the (longitude, latitude) coordinates of the point in WGS84 CRS
+    """
+    return projected_to_wgs84.transform(*point)
 
-def netex_helper_transform_line_string_to_wgs84(polyline_projected: list[Point]) -> list[Point]:
+def netex_helper_transform_line_string_to_wgs84(polyline_projected: LineString) -> LineString:
     """
     Transform a LineString from projected CRS (EPSG:7801) to WGS84 (EPSG:4326)
     
     Args:
-        polyline_projected (list[Point]): LineString represented as a list of (x, y) coordinates in projected CRS
+        polyline_projected (LineString): LineString represented as a list of (x, y) coordinates in projected CRS
 
     Returns:
-        list[Point]: LineString represented as a list of (x, y) coordinates in WGS84 CRS
+        LineString: LineString represented as a list of (x, y) coordinates in WGS84 CRS
     """
+    # Extract x and y coordinates from the input LineString
+    xs, ys = polyline_projected.xy
 
-    # List to store the LineString points in WGS84 CRS
-    polyline_wgs84 = []
+    tx, ty = projected_to_wgs84.transform(xs, ys)
 
-    # Traverse all points that make up the LineString geometry and transform them from projected CRS to WGS84 CRS
-    for point in polyline_projected:
-        polyline_wgs84.append(netex_helper_transform_point(point, from_crs="EPSG:7801", to_crs="EPSG:4326"))
-
-    # Return the list of points that make up the LineString geometry in WGS84 CRS
-    return polyline_wgs84
+    return LineString(zip(tx, ty))
 
 def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str, Any]]) -> dict[str, list[str]]:
     """
@@ -466,8 +462,7 @@ def netex_helper_extract_stop_coordinates(gtfs_stop_entities: list[dict[str, Any
         longitude, latitude = coordinates
 
         # Transform the stop coordinates from WGS84 to the projected CRS (EPSG:7801)
-        projected_point = netex_helper_transform_point((float(longitude), float(latitude)),
-                                                    from_crs="EPSG:4326", to_crs="EPSG:7801")
+        projected_point = netex_helper_transform_point_to_projected((float(longitude), float(latitude)))
 
         # Populate the stop_coordinates_projected dictionary with the stop ID and its projected coordinates
         stop_coordinates_projected[stop_id_value] = projected_point
@@ -475,7 +470,7 @@ def netex_helper_extract_stop_coordinates(gtfs_stop_entities: list[dict[str, Any
     # Return the lookup of stop IDs to their projected coordinates
     return stop_coordinates_projected
 
-def netex_helper_extract_shape_linestrings(gtfs_shapes: list[dict[str, Any]]) -> dict[str, list[Point]]:
+def netex_helper_extract_shape_linestrings(gtfs_shapes: list[dict[str, Any]]) -> dict[str, LineString]:
     """
     For every shape, extract its LineString geometry as a list of (x, y) coordinates in the projected CRS (EPSG:7801).
     
@@ -483,11 +478,11 @@ def netex_helper_extract_shape_linestrings(gtfs_shapes: list[dict[str, Any]]) ->
         shapes (list[dict[str, Any]]): A list of shape dictionaries
 
     Returns:
-        dict[str, list[Point]]: A dictionary mapping shape IDs to their projected line strings.
+        dict[str, LineString]: A dictionary mapping shape IDs to their projected line strings.
     """
     
     # Create a lookup of shape ID to its LineString geometry in projected CRS
-    shape_line_strings = {}
+    shape_geometries = {}
 
     # Traverse the retrieved shapes and populate the shape_line_strings dictionary
     for shape in gtfs_shapes:
@@ -509,37 +504,36 @@ def netex_helper_extract_shape_linestrings(gtfs_shapes: list[dict[str, Any]]) ->
             logger.error("Missing or invalid coordinates for shape %s", shape_id)
             continue
         
-        # Check that at least 2 ponts are present
+        # Check that at least 2 points are present
         if (not isinstance(points, list) or len(points) < 2):
             logger.error("Invalid or insufficient coordinates for shape %s", shape_id)
             continue
         
-        # Create a list to store the transformed points of the shape's LineString geometry
-        transformed_line_string = []
+        # Keep only valid points
+        valid_points = [
+            point
+            for point in points
+            if isinstance(point, (list, tuple))
+            and len(point) == 2
+        ]
 
-        # Traverse each point from the LineString geometry
-        for point in points:
-            
-            if (not isinstance(point, list) or len(point) != 2):
-                logger.error("Invalid point in shape %s: %r", shape_id, point)
-                continue
-            
-            lon, lat = point
+        if len(valid_points) < 2:
+            logger.error("Shape %s contains fewer than 2 valid points", shape_id)
+            continue
 
-            # Transform the point from WGS84 to the projected CRS (EPSG:7801)
-            projected_point = netex_helper_transform_point(
-                (float(lon), float(lat)),
-                from_crs="EPSG:4326",
-                to_crs="EPSG:7801")
+        try:
+            # Vectorized coordinate transformation
+            lons, lats = zip(*valid_points)
 
-            transformed_line_string.append(projected_point)
-                        
-        # Populate the shape_line_strings dictionary with the shape ID and its transformed LineString geometry
-        if len(transformed_line_string) >= 2:
-            shape_line_strings[shape_id_value] = transformed_line_string
+            xs, ys = wgs84_to_projected.transform(lons, lats)
 
-    # Return the lookup of shape IDs to their LineString geometries in projected CRS
-    return shape_line_strings
+            # Create geometry once
+            shape_geometries[shape_id_value] = LineString(zip(xs, ys))
+
+        except (TypeError, ValueError) as exc:
+            logger.error("Failed to transform shape %s: %s", shape_id, exc)
+
+    return shape_geometries
 
 def netex_helper_map_trips_to_shapes(gtfs_trips: list[dict[str, Any]]) -> dict[str, str]:
     """
@@ -610,269 +604,225 @@ def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[str]]) ->
     # Return the dictionary mapping trip IDs to their lists of stop pairs
     return stop_pairs_in_a_trip
 
-def netex_helper_cut_shape_between_distances(gtfs_shape: list[Point], start_d: float, end_d: float) -> list[Point]:
+def netex_helper_cut_shape_between_distances(shape_geometry: LineString, start_d: float, end_d: float) -> ShapelyPoint | LineString:
     """
     Cuts a LineString shape between two distances (in meters) along the shape.
 
     Args:
-        gtfs_shape (list[Point]): List of (x, y) coordinates representing the shape's LineString in projected CRS
+        shape_geometry (LineString): Precomputed LineString geometry in projected CRS.
         start_d (float): Starting distance along the shape in meters
         end_d (float): Ending distance along the shape in meters
 
     Returns:
-        list[Point]: List of (x, y) coordinates representing the cut shape's LineString in projected CRS
+        ShapelyPoint | LineString: The cut shape's geometry in projected CRS
     """
     
     # If the end distance is less than or equal to the start distance, return an empty list
     if end_d <= start_d:
         return []
 
-    # Create a LineString object from the GTFS shape coordinates
-    line = LineString(gtfs_shape)
-
-    # Use the substring function to cut the LineString between the specified distances
-    subline = substring(line, start_d, end_d)
-
-    # Convert the resulting subline back to a list of (x, y) coordinates
-    return [(x, y) for x, y in subline.coords]
+    # Return the segment of the shape's LineString geometry between the two distances
+    return substring(shape_geometry, start_d, end_d)
  
-def netex_helper_calculate_stop_distance_along_shape(stop_coordinates: Point, gtfs_shape: list[Point]) -> float:
+def netex_helper_calculate_stop_distance_along_shape(stop_coordinates: Point, shape_geometry: LineString) -> float:
     """
-    Calculates the distance along the shape for a given stop coordinate by projecting it onto the shape's LineString.
+    Calculate the distance along a shape for a stop coordinate.
 
     Args:
-        stop_coordinates (Point): (x, y) coordinates of the stop in projected CRS
-        gtfs_shape (list[Point]): LineString represented as a list of (x, y) coordinates in projected CRS
+        stop_coordinates:
+            Stop coordinates in projected CRS.
+
+        shape_geometry:
+            Precomputed LineString geometry.
 
     Returns:
-        float: The distance along the shape for the given stop coordinate
+        Distance along the shape in meters.
     """
-    # Create a LineString object from the GTFS shape coordinates
-    line = LineString(gtfs_shape)
-    
-    # Create a Point object from the stop coordinates
+
     point = ShapelyPoint(stop_coordinates)
 
-    # Project the point onto the LineString and get the distance along the line
-    return line.project(point)
+    return shape_geometry.project(point)
 
-def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordinates: dict[str, Point], \
-                            gtfs_shape: list[Point]) -> dict[str, float]:
+def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordinates: dict[str, Point], shape_geometry: LineString) -> dict[str, float]:
     """
-    For every stop in the trip, calculate the distance along the shape
-    by projecting the stop coordinates onto the shape's LineString.
-    
+    Calculate stop distances along a shape geometry.
+
     Args:
-    stop_ids: List of stop IDs in the trip
-    stop_coordinates: Dictionary mapping stop IDs to their (x, y) coordinates in projected CRS
-    gtfs_shape: List of (x, y) coordinates representing the shape's LineString in projected CRS
-    
+    stop_ids (list[str]):
+        List of stop IDs to calculate distances for.
+    stop_coordinates (dict[str, Point]):
+        Dictionary mapping stop IDs to their coordinates in projected CRS.
+    shape_geometry (LineString):
+        Precomputed LineString geometry of the shape in projected CRS.
+
     Returns:
-    Dictionary mapping stop IDs to their distance along the shape in meters
+    Dictionary mapping stop IDs to their distance along the shape in meters.
     """
 
-    # Create a dictionary to store the distance along the shape for each stop
-    stop_distances = {}
+    if shape_geometry.is_empty:
+        logger.error("Cannot calculate stop distances: shape is empty")
+        return {}
 
-    # Traverse each stop in the trip and calculate its distance along the shape
+    stop_distances: dict[str, float] = {}
+
     for stop_id in stop_ids:
 
-        # Get coordinates of a stop point
         coordinates = stop_coordinates.get(stop_id)
 
-        # Alert and skip if coordinates are missing
         if coordinates is None:
-            logger.error("Missing coordinates for stop %s", stop_id)
+            logger.error(
+                "Missing coordinates for stop %s",
+                stop_id,
+            )
             continue
 
-        # Validate shape geometry
-        if not gtfs_shape:
-            logger.error("Cannot calculate stop distances: shape is empty")
-            return {}
-
-        # Calculate stop distance along shape
         stop_distances[stop_id] = (
-            netex_helper_calculate_stop_distance_along_shape(coordinates, gtfs_shape)
+            netex_helper_calculate_stop_distance_along_shape(
+                coordinates,
+                shape_geometry,
+            )
         )
 
-    # Return dictionary with results
     return stop_distances
       
-def netex_helper_for_every_trip_compute_stop_distances_along_shapes(stops_per_trip: dict[str, list[str]],
-                                                                    stop_coordinates: dict[str, Point], 
-                                                                    shape_line_strings: dict[str, list[Point]],
-                                                                    shape_per_trip: dict[str, str]) -> dict[str, dict[str, float]]:
+def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+    stops_per_trip: dict[str, list[str]],
+    stop_coordinates: dict[str, Point],
+    shape_geometries: dict[str, LineString],
+    shape_per_trip: dict[str, str],
+) -> dict[str, dict[str, float]]:
     """
-    For every trip, compute the distance along the shape for each stop in the trip 
-    by projecting the stop coordinates onto the shape's LineString geometry.
-    
-    Args:
-    stop_times (list[dict[str, Any]]): List of stop time dictionaries
-    stops (list[dict[str, Any]]): List of stop dictionaries
-    shapes (list[dict[str, Any]]): List of shape dictionaries
-    trips (list[dict[str, Any]]): List of trip dictionaries
-    
-    Returns:
-    Dictionary mapping trip IDs to dictionaries that map stop IDs to their distance along the shape in meters
+    Compute stop distances along shapes for every trip.
     """
-    stop_projections_per_trip = {}
 
-    # Traverse each trip and calculate the distance along the shape for each stop in the trip 
-    # by projecting the stop coordinates onto the shape's LineString geometry
+    stop_projections_per_trip: dict[str, dict[str, float]] = {}
+
     for trip_id, stop_ids in stops_per_trip.items():
 
-        # Get the shape ID associated with the trip from the lookup
         shape_id = shape_per_trip.get(trip_id)
 
-        # Only consider trips that have an associated shape ID and a LineString geometry for the shape
         if not shape_id:
             continue
 
-        # Get the LineString geometry for the shape ID
-        shape_line_string = shape_line_strings.get(shape_id)
+        shape_geometry = shape_geometries.get(shape_id)
 
-        # Only consider valid LineString geometries
-        if not shape_line_string:
+        if shape_geometry is None or shape_geometry.is_empty:
             continue
 
-        # For every stop in the trip, calculate the distance along the shape 
-        # by projecting the stop coordinates onto the shape's LineString geometry
-        stop_distances_along_shape = netex_helper_map_stops_to_shape_distances(
-            stop_ids,
-            stop_coordinates,
-            shape_line_string
+        stop_projections_per_trip[trip_id] = (
+            netex_helper_map_stops_to_shape_distances(
+                stop_ids,
+                stop_coordinates,
+                shape_geometry,
+            )
         )
 
-        # Associate the calculated stop distances along the shape with the trip ID in the stop_projections_per_trip dictionary
-        stop_projections_per_trip[trip_id] = stop_distances_along_shape
+    return stop_projections_per_trip   
 
-    # Return the dictionary mapping trip IDs to their stops and corresponding distances along the shape
-    return stop_projections_per_trip    
+def netex_helper_create_line_string_segments_between_stop_pairs(
+    stop_pair: tuple[str, str],
+    stop_distances_along_shape: dict[str, float],
+    shape_geometry: LineString,
+) -> BaseGeometry:
+    """
+    Build ServiceLink geometry between two stops.
+    """
 
-def netex_helper_create_line_string_segments_between_stop_pairs(stop_pair: tuple[str, str],\
-    stop_distances_along_shape: dict[str, float], gtfs_shape: list[Point]) -> list[Point]:
-    """
-    Build the geometry of a ServiceLink between two stops
-    
-    Args:
-    stop_pair tuple[str, str]: A tuple containing the IDs of the from and to stops
-    stop_distances_along_shape dict[str, float]: A dictionary mapping stop IDs to their distance along the shape in meters
-    gtfs_shape list[Point]: List of (x, y) coordinates representing the shape's LineString in projected CRS
-    
-    Returns:
-    list[Point]: A LineString segment between the two stops represented as a list of (x, y) coordinates in projected CRS
-    """
-    # Extract the stop IDs that form a pair
     from_stop, to_stop = stop_pair
 
-    # Get the distance along the shape for each stop in the pair from the lookup
     start_distance = stop_distances_along_shape[from_stop]
     end_distance = stop_distances_along_shape[to_stop]
 
-    # Return the LineString segment formed between the stop pair
-    # by cutting the shape's LineString geometry between the two distances
-    return netex_helper_cut_shape_between_distances(gtfs_shape, start_distance, end_distance)
+    return netex_helper_cut_shape_between_distances(
+        shape_geometry,
+        start_distance,
+        end_distance,
+    )
     
     
-def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]],
-                                          stop_coordinates: dict[str, Point],
-                                          shape_line_strings: dict[str, list[Point]],
-                                          shape_per_trip: dict[str, str]) -> list[dict[str, Any]]:
+def netex_helper_create_service_link_info(
+    stops_per_trip: dict[str, list[str]],
+    stop_coordinates: dict[str, Point],
+    shape_geometries: dict[str, LineString],
+    shape_per_trip: dict[str, str],
+):
     """
-    Create a list that contains information for each ServiceLink.
-    The function extracts all the needed trips, the stops that comprises the trip and the LineString geometry 
-    of the shape associated with the trip.
-    Then, for every pair of consecutive stops in the trip, it calculates the segment of the shape's LineString geometry
-    between them and its distance to be used as the ServiceLink geometry and distance respectively.
-    Args:
-        stops_per_trip (dict[str, list[str]]): Dictionary mapping trip IDs to lists of stop IDs
-        stop_coordinates (dict[str, Point]): Dictionary mapping stop IDs to their coordinates
-        shape_line_strings (dict[str, list[Point]]): Dictionary mapping shape IDs to their LineString geometries
-        shape_per_trip (dict[str, str]): Dictionary mapping trip IDs to their associated shape IDs
-
-    Returns:
-        _type_: List of ServiceLink information dictionaries
+    Yield ServiceLink information objects.
     """
-    if not stops_per_trip:
-        logger.error("Missing stops_per_trip data")
-        return []
 
-    if not stop_coordinates:
-        logger.error("Missing stop_coordinates data")
-        return []
+    if (
+        not stops_per_trip
+        or not stop_coordinates
+        or not shape_geometries
+        or not shape_per_trip
+    ):
+        logger.error("Missing required input data")
+        return
 
-    if not shape_line_strings:
-        logger.error("Missing shape_line_strings data")
-        return []
+    stop_pairs_per_trip = (
+        netex_helper_split_stops_into_pairs(
+            stops_per_trip
+        )
+    )
 
-    if not shape_per_trip:
-        logger.error("Missing shape_per_trip data")
-        return []
+    stop_projections_per_trip = (
+        netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+            stops_per_trip,
+            stop_coordinates,
+            shape_geometries,
+            shape_per_trip,
+        )
+    )
 
-    # Split the stops into pairs that form segments
-    stop_pairs = netex_helper_split_stops_into_pairs(stops_per_trip)
-    
-    # For every trip, compute the distance along the shape for each stop in the trip
-    stop_projections_per_trip = netex_helper_for_every_trip_compute_stop_distances_along_shapes(stops_per_trip, stop_coordinates,
-                                                                                                shape_line_strings, shape_per_trip)
+    for trip_id, stop_pairs in stop_pairs_per_trip.items():
 
-    # Store the needed info to generate a ServiceLink
-    service_links = []
-
-    # Traverse each trip and for every pair of stops in the trip, build the geometry of the ServiceLink segment between them
-    for trip_id, stop_pairs in stop_pairs.items():
-
-        # Get shape ID associated with the trip ID
         shape_id = shape_per_trip.get(trip_id)
 
         if not shape_id:
             continue
 
-        # Get the LineString geometry for the shape ID
-        shape_line_string = shape_line_strings.get(shape_id)
+        shape_geometry = shape_geometries.get(shape_id)
 
-        # Get the stop distances for every stop in the trip
-        stop_distances = stop_projections_per_trip.get(trip_id)
+        stop_distances = (
+            stop_projections_per_trip.get(trip_id)
+        )
 
-        if not shape_line_string or not stop_distances:
+        if (
+            shape_geometry is None
+            or shape_geometry.is_empty
+            or not stop_distances
+        ):
             continue
 
-        # Traverse every stop pair in the trip and create a LineString geometry segment between them
         for pair in stop_pairs:
 
-            # Get the 2 stops that form a pair
             from_stop, to_stop = pair
 
-            # Create the LineString geometry segment between them
-            geometry = netex_helper_create_line_string_segments_between_stop_pairs(pair, stop_distances, shape_line_string)
+            geometry = (
+                netex_helper_create_line_string_segments_between_stop_pairs(
+                    pair,
+                    stop_distances,
+                    shape_geometry,
+                )
+            )
 
-            # Calculate the distance of the LineString segment
-            distance = stop_distances[to_stop] - stop_distances[from_stop]
-
-            # Append the generated ServiceLink info to the service_links list
-            service_links.append(
-                {
+            yield {
                 "trip_id": trip_id,
                 "from_stop": from_stop,
                 "to_stop": to_stop,
-                "distance": distance,
-                "geometry": geometry
-                }
-            )
-
-    # Return the ServiceLink info
-    return service_links
+                "distance": (
+                    stop_distances[to_stop]
+                    - stop_distances[from_stop]
+                ),
+                "geometry": geometry,
+            }
     
-def netex_helper_convert_line_string_to_string(gtfs_shape_line_string: list[Point]) -> str:
+def netex_helper_convert_line_string_to_string(line: LineString) -> str:
     """
-    Convert a LineString from WGS84 (EPSG:4326) to a string representation.
-    Args:
-        gtfs_shape_line_string (list[Point]): LineString represented as a list of (x, y) coordinates in WGS84 CRS
+    Convert LineString geometry to GML posList string.
+    """
 
-    Returns:
-        str: String representation of the LineString
-    """
-    return " ".join(f"{lon:.6f} {lat:.6f}" for lon, lat in gtfs_shape_line_string)
+    return " ".join(f"{x:.6f} {y:.6f}" for x, y in line.coords)
 
 def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.Element:
     
@@ -896,7 +846,7 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.
     line_string_info = etree.SubElement(link_sequence_projection, f"{{{GIS_NS}}}LineString", srcName = "4326", srcDimension = "2")
     line_string_info.set(f"{{{GIS_NS}}}id", f"LS_{from_stop}_{to_stop}")
 
-    etree.SubElement(line_string_info, f"{{{GIS_NS}}}posList", count = str(len(gtfs_shape_line_string_geometry)), srcDimension = "2").text = pos_list
+    etree.SubElement(line_string_info, f"{{{GIS_NS}}}posList", count = str(len(gtfs_shape_line_string_geometry.coords)), srcDimension = "2").text = pos_list
     
     etree.SubElement(service_link, "FromPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop}", version = "1")
     etree.SubElement(service_link, "ToPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop}", version = "1")
