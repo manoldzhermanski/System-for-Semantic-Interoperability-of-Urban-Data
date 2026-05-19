@@ -26,9 +26,15 @@ from orion_ld.orion_ld_crud_operations import (
 
 logger = logging.getLogger("NeTEx_Converter")
 
-NS = "http://www.netex.org.uk/netex"
+NETEX_NS = "http://www.netex.org.uk/netex"
 GIS_NS = "http://www.opengis.net/gml/3.2"
-NSMAP = {None: NS, "gis": GIS_NS}
+SIRI_NS = "http://www.siri.org.uk/siri"
+
+NSMAP = {
+    None: NETEX_NS,
+    "gis": GIS_NS,
+    "siri": SIRI_NS
+}
 
 # -----------------------------------------------------
 # Set NeTEx Authority for ID Generation
@@ -109,7 +115,7 @@ def netex_build_frame_defaults(agency: dict[str, Any]) -> etree.Element:
 # We already discussed that we will map GTFS Agency also to Operator but this begs the question - In general where does the Operator data come from if not observed in the GTFS files ?
 # Plus thete are multiple operators and 1 authority that combines them
 
-def netex_convert_agency_to_authority(entities: list[dict[str, Any]]) -> list[etree.Element]:
+def netex_convert_agency_to_authority(entities: list[dict[str, Any]] | dict[str, Any]) -> list[etree.Element]:
     """
     Converts a list of GtfsAgency entities into NeTEx Nordic <Authority> elements.
 
@@ -120,6 +126,9 @@ def netex_convert_agency_to_authority(entities: list[dict[str, Any]]) -> list[et
         A list of lxml.etree.Element objects, where each element is a fully
         formed NeTEx <Authority> element.
     """
+    if isinstance(entities, dict):
+        entities = [entities]
+
     # List to store Authority elements
     authority_list = []
 
@@ -187,6 +196,8 @@ def netex_convert_agency_to_operator(entities: list[dict[str, Any]]) -> list[etr
         A list of lxml.etree.Element objects, where each element is a fully
         formed NeTEx <Operator> element
     """
+    if isinstance(entities, dict):
+        entities = [entities]
     # List to store Operator elements
     operator_list = []
 
@@ -836,7 +847,7 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.
     from_stop = service_link_data["from_stop"]
     to_stop = service_link_data["to_stop"]
 
-    service_link = etree.Element("ServiceLink", id = f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}", version = "1")
+    service_link = etree.Element("ServiceLink", id = f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}", version = "1", nsmap=NSMAP)
     
     etree.SubElement(service_link, "Distance").text = f"{distance:.6f}"
 
@@ -856,22 +867,18 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.
     
 def netex_convert_shapes_to_service_link(service_links: list[dict]) -> etree.Element:
 
-    root = etree.Element("serviceLinks", nsmap=NSMAP)
+    for service_link_data in service_links:
 
-    BATCH_SIZE = 1000
-
-    for i, service_link_data in enumerate(service_links):
-
-        root.append(
-            netex_helper_build_service_link(service_link_data)
+        xml_element = netex_helper_build_service_link(
+            service_link_data
         )
 
-        # optional memory pressure relief
-        if i % BATCH_SIZE == 0:
-            import gc
-            gc.collect()
+        xml_string = etree.tostring(
+            xml_element,
+            encoding="unicode",
+        )
 
-    return root
+        yield xml_string
     
 
 ##########################################################
@@ -2043,41 +2050,105 @@ def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grou
     
     return service_journey
 
+
+def create_shared_data_xml(agency: dict[str, Any]):
+    
+    with etree.xmlfile(f"_{config.NETEX_AUTHORITY}_shared_data.xml", encoding="utf-8") as xml_file:
+        xml_file.write_declaration()
+
+        with xml_file.element(f"{{{NETEX_NS}}}PublicationDelivery", nsmap=NSMAP, version="1"):
+            xml_file.write(b"\n")
+            with xml_file.element("dataObjects"):
+                xml_file.write(b"\n")
+                frame = netex_build_frame_defaults(agency)
+                xml_file.write(frame, pretty_print=True)
+                with xml_file.element("frames"):
+                    resource_frame = netex_build_resource_frame(agency)
+                    xml_file.write(resource_frame, pretty_print=True)
+                    pass
+    
+
 if __name__ == "__main__":
 
     city = "Sofia"
     header = orion_ld_define_header("gtfs_static")
-    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
-    stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
-    shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
-    trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
+    agencies = orion_ld_get_entities_by_type("GtfsAgency", header, city)
 
-    stop_coordinates = netex_helper_extract_stop_coordinates(stops)
-    shape_linestrings = netex_helper_extract_shape_linestrings(shapes)
-    shape_per_trip = netex_helper_map_trips_to_shapes(trips)
-    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
-    service_links = netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
+    for agency in agencies:
+        netex_helper_set_netex_authority(agency)
+        create_shared_data_xml(agency)
 
-    xml_tree = netex_convert_shapes_to_service_link(service_links)
-    print(etree.tostring(xml_tree, pretty_print=True, encoding="unicode"))
+    # stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
+    # stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
+    # shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
+    # trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
+    # routes = orion_ld_get_entities_by_type("GtfsRoute", header, city)
 
-    #route_names = netex_helper_get_route_id_and_name(routes)
-    #trip_directions = netex_helper_get_trip_direction(trips)
-    #groups = netex_helper_group_trips_by_route_direction_and_sequence(trip_directions, stops_per_trip)
-    #route_data = netex_helper_create_route_structures(groups, route_names)
-    #netex_routes =netex_generate_routes(route_data)
+    # stop_coordinates = netex_helper_extract_stop_coordinates(stops)
+    # shape_linestrings = netex_helper_extract_shape_linestrings(shapes)
+    # shape_per_trip = netex_helper_map_trips_to_shapes(trips)
+    # stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+    # #service_links = netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
 
-    #pprint(stops_per_trip)
-    #pprint(groups)
-    #pprint(route_data)
+    # #xml_tree = netex_convert_shapes_to_service_link(service_links)
+    # #print(etree.tostring(xml_tree, pretty_print=True, encoding="unicode"))
 
-    #for route_id, routes_xml in netex_routes.items():
-    #    xml_str = etree.tostring(
-    #        routes_xml,
-    #        pretty_print=True,
-    #        encoding="unicode"
-    #    )
+    # service_links = (
+    #     netex_helper_create_service_link_info(
+    #         stops_per_trip,
+    #         stop_coordinates,
+    #         shape_linestrings,
+    #         shape_per_trip,
+    #     )
+    # )
+    
+    # seen = set()
 
-    #    print(f"--- Route group: {route_id} ---")
-    #    print(xml_str)
+    # for i, service_link_data in enumerate(service_links):
+
+    #     key = (
+    #     service_link_data["from_stop"],
+    #     service_link_data["to_stop"],
+    #     round(service_link_data["distance"], 6)
+    # )
+
+    #     if key in seen:
+    #         continue
+
+    #     seen.add(key)
+
+    #     xml_element = netex_helper_build_service_link(
+    #         service_link_data
+    #     )
+
+    #     xml_string = etree.tostring(
+    #         xml_element,
+    #         pretty_print=True,
+    #         encoding="unicode",
+    #     )
+
+    #     print(f"\n--- SERVICE LINK {i} ---")
+    #     print(xml_string)
+
+
+    # print(len(seen))
+    # # route_names = netex_helper_get_route_id_and_name(routes)
+    # # trip_directions = netex_helper_get_trip_direction(trips)
+    # # groups = netex_helper_group_trips_by_route_direction_and_sequence(trip_directions, stops_per_trip)
+    # # route_data = netex_helper_create_route_structures(groups, route_names)
+    # # netex_routes =netex_generate_routes(route_data)
+
+    # # #pprint(stops_per_trip)
+    # # #pprint(groups)
+    # # pprint(route_data)
+
+    # #for route_id, routes_xml in netex_routes.items():
+    # #    xml_str = etree.tostring(
+    # #        routes_xml,
+    # #        pretty_print=True,
+    # #        encoding="unicode"
+    # #    )
+
+    # #    print(f"--- Route group: {route_id} ---")
+    # #    print(xml_str)
 
