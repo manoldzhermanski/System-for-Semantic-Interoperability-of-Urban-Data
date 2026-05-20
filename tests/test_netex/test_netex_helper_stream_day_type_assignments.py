@@ -7,11 +7,7 @@ from netex.netex_utils import netex_helper_stream_day_type_assignments
 
 @pytest.fixture(autouse=True)
 def set_netex_authority(monkeypatch):
-    monkeypatch.setattr(
-        "netex.netex_utils.config.NETEX_AUTHORITY",
-        "TEST"
-    )
-
+    monkeypatch.setattr("netex.netex_utils.config.NETEX_AUTHORITY", "TEST")
 
 def parse_streamed_xml(output: BytesIO) -> etree._Element:
     """
@@ -108,7 +104,7 @@ def test_stream_day_type_assignments_logs_info(caplog):
 
     entities = [
         {
-        "id": "urn:ngsi-ld:GtfsCalendarRule:TestCity:WeekdayId",
+        "id": "urn:ngsi-ld:GtfsCalendarRule:TEST:WeekdayId",
         "type": "GtfsCalendarRule",  
         "hasService": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsService:TestCity:WeekdayId"},
         "monday": {"type": "Property", "value": 1},

@@ -288,49 +288,66 @@ def netex_build_resource_frame(agency: list[dict[str, Any]]) -> etree.Element:
 # -----------------------------------------------------
 # Generate <Network>
 # -----------------------------------------------------
-
-def netex_build_networks(agencies: list[dict[str, Any]]) -> list[etree.Element]:
+def netex_helper_build_network(agency: dict[str, Any]) -> etree.Element | None:
     """
-    Builds a list of NeTEx <Network> elements from GtfsAgency entities.
+    Builds a single NeTEx <Network> element.
 
     Args:
+        agency (dict[str, Any]): A GtfsAgency entity from which the Network information is extracted
+
+    Returns:
+        etree.Element | None
+    """
+
+    network_id = agency["id"]
+    entity_type = agency["type"]
+
+    if entity_type != "GtfsAgency":
+        logger.error("Unsupported entity type for Network conversion: %s", entity_type)
+        return None
+    
+    if not isinstance(network_id, str) or ":" not in network_id:
+        logger.error("Invalid or missing ID for GtfsAgency: %r", network_id)
+        return None
+    
+    parts = network_id.split(":")
+
+    if len(parts) != 5:
+            logger.error("Invalid ID for GtfsAgency: %r", network_id)
+            return None
+
+    network_id_value = network_id.split(":")[-1]
+    agency_name = agency.get("agency_name", {}).get("value")
+
+    network = etree.Element("Network", version="1", id=f"{config.NETEX_AUTHORITY}:Network:{network_id_value}Nett")
+
+    etree.SubElement(network, "Name").text = agency_name
+
+    etree.SubElement(network, "AuthorityRef", ref = f"{config.NETEX_AUTHORITY}:Authority:{network_id_value}_ID", version="1")
+
+    return network
+
+def netex_helper_stream_networks(xml_file, agency: dict[str, Any]) -> None:
+    """
+    Streams Network elements into XML.
+
+    Args:
+        xml_file: An instance of the XML file writer
         agencies: A list of GtfsAgency entities
 
     Returns:
-        A list of lxml.etree.Element objects, where each element is a fully
-        formed NeTEx <Network> element
+        None
     """
-    if isinstance(agencies, dict):
-        agencies = [agencies]
+    # Build <Network> element
+    network = netex_helper_build_network(agency)
 
-    # List to store the Network elements
-    network_list = []
+    # Return if unsuccessful
+    if network is None:
+        return
 
-    # Traverse through all agencies
-    for agency in agencies:
+    # Stream the <Network> element into the XML file
+    xml_file.write(network, pretty_print=True)
 
-        # Get network id value
-        network_id = agency.get("id")
-        if not isinstance(network_id, str) or ":" not in network_id:
-            logger.error("Invalid or missing ID for GtfsAgency: %r", network_id)
-            continue
-        network_id_value = network_id.split(":")[-1]
-
-        # Get network name
-        agency_name = agency.get("agency_name",{}).get("value")
-
-        network = etree.Element("Network", version = "1", id = f"{config.NETEX_AUTHORITY}:Network:{network_id_value}Nett")
-        etree.SubElement(network, "Name").text = agency_name
-
-        # Make authority reference
-        etree.SubElement(network, "AuthorityRef", ref = f"{config.NETEX_AUTHORITY}:Authority:{network_id_value}_ID", version = "1")
-
-        # Append network
-        network_list.append(network)
-
-    # Return network_list
-    return network_list
-   
 # -----------------------------------------------------
 # GtfsShape to <ServiceLink>
 # -----------------------------------------------------
@@ -1264,8 +1281,7 @@ def netex_helper_stream_day_type_assignments(xml_file, entities: list[dict[str, 
     """
     logger.info("Streaming DayTypeAssignments")
 
-    seen_ids = set()
-
+    written_count = 0
     # Create container for <DayTypeAssignment> elements
     with xml_file.element("dayTypeAssignments"):
 
@@ -1280,8 +1296,9 @@ def netex_helper_stream_day_type_assignments(xml_file, entities: list[dict[str, 
 
             # Stream the <DayTypeAssignment> element into the XML file
             xml_file.write(day_type_assignment, pretty_print=True)
+            written_count += 1
 
-    logger.info("Finished streaming %d DayTypeAssignments", len(seen_ids))
+    logger.info("Finished streaming %d DayTypeAssignments", written_count)
 
 # -------------------------------------------------------------
 # NeTEx <ServiceCalendarFrame> containing <DayType>, <OperatingPeriod> and <DayTypeAssignment>
@@ -2127,42 +2144,40 @@ def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grou
     
     return service_journey
 
-def netex_build_service_frame(agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip):
+def netex_build_service_frame(xml_file, agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip):
     # Create ServiceFrame element and add it's subelements
-    service_frame = etree.Element("ServiceFrame", version = "1", id = f"{config.NETEX_AUTHORITY}:ServiceFrame:1")
-    networks = netex_build_networks(agency)
-    for network in networks:
-        service_frame.append(network)
+    with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceCalendarFrame:1"):
+        netex_helper_stream_networks(xml_file, agency)
 
-    route_points = netex_convert_stops_to_route_points(stops)
-    service_frame.append(route_points)
+    # route_points = netex_convert_stops_to_route_points(stops)
+    # service_frame.append(route_points)
 
-    scheduled_stop_points = netex_convert_stops_to_scheduled_stop_points(stops)
-    service_frame.append(scheduled_stop_points)
+    # scheduled_stop_points = netex_convert_stops_to_scheduled_stop_points(stops)
+    # service_frame.append(scheduled_stop_points)
 
-    service_links = etree.SubElement(service_frame, f"{{{NETEX_NS}}}serviceLinks")
+    # service_links = etree.SubElement(service_frame, f"{{{NETEX_NS}}}serviceLinks")
 
-    service_links_data = netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
+    # service_links_data = netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
 
-    seen = set()
+    # seen = set()
 
-    for service_link_data in service_links_data:
+    # for service_link_data in service_links_data:
 
-        key = (service_link_data["from_stop"], service_link_data["to_stop"], round(service_link_data["distance"], 6))
+    #     key = (service_link_data["from_stop"], service_link_data["to_stop"], round(service_link_data["distance"], 6))
 
-        if key in seen:
-            continue
+    #     if key in seen:
+    #         continue
 
-        seen.add(key)
+    #     seen.add(key)
 
-        service_link = netex_helper_build_service_link(service_link_data)
+    #     service_link = netex_helper_build_service_link(service_link_data)
 
-        service_links.append(service_link)
+    #     service_links.append(service_link)
 
-    passenger_stop_assignment = netex_convert_stops_to_passenger_stop_assignment(stops)
-    service_frame.append(passenger_stop_assignment)
+    # passenger_stop_assignment = netex_convert_stops_to_passenger_stop_assignment(stops)
+    # service_frame.append(passenger_stop_assignment)
 
-    return service_frame
+    # return service_frame
 
 
 def netex_create_shared_data_xml(
@@ -2187,7 +2202,7 @@ def netex_create_shared_data_xml(
                 with xml_file.element("frames"):
                     resource_frame = netex_build_resource_frame(agency)
                     xml_file.write(resource_frame, pretty_print=True)
-                    service_frame = netex_build_service_frame(agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip)
+                    service_frame = netex_build_service_frame(xml_file, agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip)
                     xml_file.write(service_frame, pretty_print=True)
                     
                     stream_service_calendar_frame(xml_file, calendar, calendar_dates)
