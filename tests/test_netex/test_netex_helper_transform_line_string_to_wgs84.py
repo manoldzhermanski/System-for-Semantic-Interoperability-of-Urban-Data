@@ -1,62 +1,70 @@
-# import pytest
-# from netex.netex_utils import netex_helper_transform_line_string_to_wgs84
+from unittest import result
 
-# Point = tuple[float, float]
+import pytest
+from shapely.geometry import LineString
+from netex.netex_utils import netex_helper_transform_line_string_to_wgs84
 
-# def test_transform_line_string_returns_list():
-#     """
-#     Test that the function returns a list of transformed points.
-#     """
+Point = tuple[float, float]
 
-#     polyline_projected: list[Point] = [
-#         (4840000.0, 8500000.0),
-#         (4840100.0, 8500100.0),
-#     ]
+def test_transform_line_string_returns_list():
+    """
+    Test that the function returns a list of transformed points.
+    """
 
-#     result = netex_helper_transform_line_string_to_wgs84(polyline_projected)
+    line = LineString([
+        (4840000.0, 8500000.0),
+        (4840100.0, 8500100.0),
+    ])
 
-#     assert isinstance(result, list)
-#     assert len(result) == 2
+    result = netex_helper_transform_line_string_to_wgs84(line)
 
-
-# def test_transform_line_string_point_structure():
-#     """
-#     Test that each transformed point is a tuple of two floats.
-#     """
-
-#     polyline_projected: list[Point] = [
-#         (4840000.0, 8500000.0),
-#         (4840100.0, 8500100.0),
-#     ]
-
-#     result = netex_helper_transform_line_string_to_wgs84(polyline_projected)
-
-#     for point in result:
-#         assert isinstance(point, tuple)
-#         assert len(point) == 2
-#         assert all(isinstance(coord, float) for coord in point)
-
-# def test_transform_empty_line_string():
-#     """
-#     Test transforming an empty LineString.
-#     """
-
-#     polyline_projected: list[Point] = []
-
-#     result = netex_helper_transform_line_string_to_wgs84(polyline_projected)
-
-#     assert result == []
+    assert isinstance(result, LineString)
+    assert len(result.coords) == 2
 
 
-# def test_transformed_coordinates_are_different():
-#     """
-#     Test that transformed coordinates differ from projected coordinates.
-#     """
+def test_transform_line_string_point_structure():
+    """
+    Test that each transformed point is a tuple of two floats.
+    """
 
-#     polyline_projected: list[Point] = [
-#         (4840000.0, 8500000.0),
-#     ]
+    line = LineString([
+        (4840000.0, 8500000.0),
+        (4840100.0, 8500100.0),
+    ])
 
-#     result = netex_helper_transform_line_string_to_wgs84(polyline_projected)
+    result = netex_helper_transform_line_string_to_wgs84(line)
 
-#     assert result[0] != polyline_projected[0]
+    for point in result.coords:
+        assert isinstance(point, tuple)
+        assert len(point) == 2
+        assert all(isinstance(coord, float) for coord in point)
+
+def test_transform_empty_line_string():
+    """
+    Test transforming an empty LineString.
+    """
+
+    line = LineString([])
+
+    result = netex_helper_transform_line_string_to_wgs84(line)
+
+    assert isinstance(result, LineString)
+    assert result.is_empty
+
+
+def test_transform_line_string_to_wgs84_changes_coordinates():
+    """
+    Test that coordinates are actually transformed.
+    """
+
+    line = LineString([
+        (4730000, 8500000),
+        (4730100, 8500100)
+    ])
+
+    result = netex_helper_transform_line_string_to_wgs84(line)
+
+    original_coords = list(line.coords)
+    transformed_coords = list(result.coords)
+
+    assert transformed_coords != original_coords

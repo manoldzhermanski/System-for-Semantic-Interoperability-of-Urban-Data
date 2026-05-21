@@ -394,8 +394,10 @@ def netex_helper_transform_line_string_to_wgs84(polyline_projected: LineString) 
     # Extract x and y coordinates from the input LineString
     xs, ys = polyline_projected.xy
 
+    # Transform the coordinates from projected CRS to WGS84
     tx, ty = projected_to_wgs84.transform(xs, ys)
 
+    # Return a new LineString with the transformed coordinates
     return LineString(zip(tx, ty))
 
 def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str, Any]]) -> dict[str, list[str]]:
