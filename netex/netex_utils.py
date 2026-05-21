@@ -415,28 +415,28 @@ def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str,
     stops_per_trip = {}
     
     # Traverse the retrieved stop times and populate the stops_per_trip dictionary
-    for stop in gtfs_stop_time_entities:
+    for stop_time in gtfs_stop_time_entities:
         
         trip_id_value = None
         stop_id_value = None
         sequence = None
 
         # Get trip 
-        trip_id = stop.get("hasTrip", {}).get("object")
+        trip_id = stop_time.get("hasTrip", {}).get("object")
 
         # Extractr trip ID value
         if trip_id:
             trip_id_value = trip_id.split(":")[-1]
         
         # Get stop
-        stop_id = stop.get("hasStop", {}).get("object")
+        stop_id = stop_time.get("hasStop", {}).get("object")
         
         # Extract stop ID value
         if stop_id:
             stop_id_value = stop_id.split(":")[-1]
         
         # Get stop sequence number
-        sequence = stop.get("stopSequence", {}).get("value")
+        sequence = stop_time.get("stopSequence", {}).get("value")
         
         # Only consider stop times that have valid trip ID, stop ID, and stop sequence
         if trip_id_value and stop_id_value and sequence is not None:
