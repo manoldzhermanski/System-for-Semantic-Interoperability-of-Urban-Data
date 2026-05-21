@@ -490,13 +490,21 @@ def netex_helper_extract_stop_coordinates(gtfs_stop_entities: list[dict[str, Any
         
         entity_type = stop["type"]
         if entity_type != "GtfsStop":
+            logger.error("Unsupported entity type, expected GtfsStop: %s", entity_type)
             continue
         
         stop_id = stop["id"]
         if not isinstance(stop_id, str) or ":" not in stop_id:
             logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
             continue
-        stop_id_value = stop_id.split(":")[-1]
+
+        stop_id_parts = stop_id.split(":")
+
+        if len(stop_id_parts) != 5:
+            logger.error("Invalid ID for GtfsStop: %r", stop_id)
+            continue
+        
+        stop_id_value = stop_id_parts[-1]
 
         # Get stop coordinates
         coordinates = stop.get("location", {}).get("value", {}).get("coordinates")
@@ -536,6 +544,7 @@ def netex_helper_extract_shape_linestrings(gtfs_shapes: list[dict[str, Any]]) ->
         
         entity_type = shape["type"]
         if entity_type != "GtfsShape":
+            logger.error("Unsupported entity type, expected GtfsShape: %s", entity_type)
             continue
 
         # Get shape ID
