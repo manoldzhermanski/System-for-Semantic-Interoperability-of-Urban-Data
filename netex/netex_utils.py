@@ -1561,48 +1561,89 @@ def netex_convert_trips_to_journey_patterns(entity: dict[str, Any], stops_per_tr
 # -----------------------------------------------------
 # GtfsStop to NeTEx <ScheduledStopPoint>
 # ----------------------------------------------------- 
-def netex_convert_stops_to_scheduled_stop_points(entities: list[dict[str, Any]]) -> etree.Element:
+def netex_helper_build_scheduled_stop_point(entity: dict[str, Any]) -> etree.Element | None:
     """
-    Create <ScheduledStopPoint> elements from a list of GtfsStop entities and store them in a <scheduledStopPoints> container.
+    Builds a NeTEx <ScheduledStopPoint> element from a GtfsStop entity.
 
     Args:
-        entities (list[dict[str, Any]]): List of GtfsStop entities
+        entity: A single GtfsStop entity
 
     Returns:
-        etree.Element: <scheduledStopPoints> container with <ScheduledStopPoint> elements
+        etree.Element | None
     """
-    # Used to store unique ScheduledStopPoint XML elements
-    scheduled_stop_point_dict = {}
-    
-    # Iterate through the list of GtfsStop entities
-    for entity in entities:
-        
-        # Check if entity is of proper type
-        entity_type = entity["type"]
-        if entity_type != "GtfsStop":
-            continue
-        
-        # Extract stop_id
-        stop_id = entity["id"]
-        if not isinstance(stop_id, str) or ":" not in stop_id:
-            logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
-            continue
-        stop_id_value = stop_id.split(":")[-1]
-        
-        scheduled_stop_point = etree.Element("ScheduledStopPoint", version = "1",
-                                             id = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}")
-        
-        # If the XML element is unique, add it to the dict so we remove duplicates
-        if stop_id not in scheduled_stop_point_dict:
-            scheduled_stop_point_dict[stop_id] = scheduled_stop_point
-            
-    # Create scheduledStopPoints container and populate it with the ScheduledStopPoint XML elements
-    scheduled_stop_points = etree.Element("scheduledStopPoints")
-    for stop in scheduled_stop_point_dict.values():
-        scheduled_stop_points.append(stop)
-         
-    # Return the scheduledStopPoints container with all ScheduledStopPoint elements
-    return scheduled_stop_points
+
+    # Get entity type and ID
+    entity_type = entity.get("type")
+    stop_id = entity.get("id")
+
+    # If unsupported entity type, log an error and return None
+    if entity_type != "GtfsStop":
+        logger.error("Unsupported entity type: %s", entity_type)
+        return None
+
+    # If not correctly formatted, log an error and return None
+    if not isinstance(stop_id, str) or ":" not in stop_id:
+        logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
+        return None
+
+    stop_id_value = stop_id.split(":")[-1]
+
+    # Extract stop name if available
+    stop_name = entity.get("stop_name", {}).get("value")
+
+    # Build and return the <ScheduledStopPoint> element with the extracted ID value, name and location reference
+    scheduled_stop_point = etree.Element("ScheduledStopPoint", version="1", 
+                                         id=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}")
+
+    if stop_name:
+        etree.SubElement(scheduled_stop_point,"Name").text = stop_name
+
+    etree.SubElement(scheduled_stop_point,"LocationRef", ref=f"{config.NETEX_AUTHORITY}:StopPlace:{stop_id_value}", version="1")
+
+    return scheduled_stop_point
+
+def netex_helper_stream_scheduled_stop_points(xml_file, entities: list[dict[str, Any]]) -> None:
+    """
+    Streams ScheduledStopPoint elements into a <scheduledStopPoints> container.
+
+    Args:
+        xml_file: Streaming XML writer
+        entities: List of GtfsStop entities
+
+    Returns:
+        None
+    """
+
+    logger.info("Streaming ScheduledStopPoints")
+
+    seen_ids = set()
+
+    # Create container for <ScheduledStopPoint> elements
+    with xml_file.element("scheduledStopPoints"):
+
+        for entity in entities:
+
+            # Build <ScheduledStopPoint> element
+            scheduled_stop_point = netex_helper_build_scheduled_stop_point(entity)
+
+            # Continue when unsuccessful
+            if scheduled_stop_point is None:
+                continue
+
+            # Get <ScheduledStopPoint> element's ID
+            scheduled_stop_point_id = scheduled_stop_point.get("id")
+
+            # If encountered already, skip
+            if scheduled_stop_point_id in seen_ids:
+                continue
+
+            # Add ID to seen IDs set
+            seen_ids.add(scheduled_stop_point_id)
+
+            # Stream the <ScheduledStopPoint> element into the XML file
+            xml_file.write(scheduled_stop_point,pretty_print=True)
+
+    logger.info("Finished streaming %d ScheduledStopPoints", len(seen_ids))
 
 # -----------------------------------------------------
 # GtfsStop to NeTEx <StopPlace>
@@ -2174,9 +2215,7 @@ def netex_build_service_frame(xml_file, agency, stops, stop_coordinates, shape_l
 
         netex_helper_stream_route_points(xml_file, stops)
 
-
-    # scheduled_stop_points = netex_convert_stops_to_scheduled_stop_points(stops)
-    # service_frame.append(scheduled_stop_points)
+        netex_helper_stream_scheduled_stop_points(xml_file, stops)
 
     # service_links = etree.SubElement(service_frame, f"{{{NETEX_NS}}}serviceLinks")
 
