@@ -1,165 +1,111 @@
-# import pytest
-# from netex.netex_utils import netex_helper_cut_shape_between_distances
-
-# Point = tuple[float, float]
-
-
-# def test_cut_shape_between_distances_returns_list():
-#     """
-#     Test that the function returns a list.
-#     """
-
-#     shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
-
-#     result = netex_helper_cut_shape_between_distances(
-#         shape,
-#         start_d=0.0,
-#         end_d=5.0,
-#     )
-
-#     assert isinstance(result, list)
+import pytest
+from shapely.geometry import LineString, Point as ShapelyPoint
+from netex.netex_utils import netex_helper_cut_shape_between_distances
 
 
-# def test_cut_shape_between_distances_returns_empty_when_end_less_than_start():
-#     """
-#     Test that an empty list is returned when end distance is less than start distance.
-#     """
+def test_cut_shape_between_valid_distances_returns_linestring():
+    """
+    Test that a valid segment is returned as a LineString.
+    """
 
-#     shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    shape = LineString([(0, 0), (10, 0)])
 
-#     result = netex_helper_cut_shape_between_distances(
-#         shape,
-#         start_d=10.0,
-#         end_d=5.0,
-#     )
+    result = netex_helper_cut_shape_between_distances(shape, 2, 8)
 
-#     assert result == []
+    assert isinstance(result, LineString)
+    assert list(result.coords) == [(2.0, 0.0), (8.0, 0.0)]
 
 
-# def test_cut_shape_between_distances_returns_empty_when_end_equals_start():
-#     """
-#     Test that an empty list is returned when end distance equals start distance.
-#     """
+def test_cut_shape_returns_empty_when_end_distance_equals_start_distance():
+    """
+    Test that an empty list is returned when end_d == start_d.
+    """
 
-#     shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    shape = LineString([(0, 0), (10, 0)])
 
-#     result = netex_helper_cut_shape_between_distances(
-#         shape,
-#         start_d=5.0,
-#         end_d=5.0,
-#     )
+    result = netex_helper_cut_shape_between_distances(shape, 5, 5)
 
-#     assert result == []
+    assert result == []
 
 
-# def test_cut_shape_between_distances_cuts_correct_segment():
-#     """
-#     Test cutting a LineString between two distances.
-#     """
+def test_cut_shape_returns_empty_when_end_distance_less_than_start_distance():
+    """
+    Test that an empty list is returned when end_d < start_d.
+    """
 
-#     shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    shape = LineString([(0, 0), (10, 0)])
 
-#     result = netex_helper_cut_shape_between_distances(
-#         shape,
-#         start_d=2.0,
-#         end_d=8.0,
-#     )
+    result = netex_helper_cut_shape_between_distances(shape, 8, 2)
 
-#     assert result == [
-#         (2.0, 0.0),
-#         (8.0, 0.0),
-#     ]
+    assert result == []
 
 
-# def test_cut_shape_between_distances_handles_multisegment_linestring():
-#     """
-#     Test cutting a multi-segment LineString.
-#     """
+def test_cut_shape_with_full_length_returns_original_geometry():
+    """
+    Test cutting the entire LineString length.
+    """
 
-#     shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#         (10.0, 10.0),
-#     ]
+    shape = LineString([(0, 0), (10, 0)])
 
-#     result = netex_helper_cut_shape_between_distances(
-#         shape,
-#         start_d=5.0,
-#         end_d=15.0,
-#     )
+    result = netex_helper_cut_shape_between_distances(shape, 0, 10)
 
-#     assert result == [
-#         (5.0, 0.0),
-#         (10.0, 0.0),
-#         (10.0, 5.0),
-#     ]
+    assert isinstance(result, LineString)
+    assert list(result.coords) == [(0.0, 0.0), (10.0, 0.0)]
 
 
-# def test_cut_shape_between_distances_returns_full_shape():
-#     """
-#     Test cutting the entire LineString.
-#     """
+def test_cut_shape_on_multisegment_line():
+    """
+    Test cutting a LineString with multiple segments.
+    """
 
-#     shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    shape = LineString([
+        (0, 0),
+        (10, 0),
+        (10, 10)
+    ])
 
-#     result = netex_helper_cut_shape_between_distances(
-#         shape,
-#         start_d=0.0,
-#         end_d=10.0,
-#     )
+    result = netex_helper_cut_shape_between_distances(shape, 5, 15)
 
-#     assert result == [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    assert isinstance(result, LineString)
 
+    coords = list(result.coords)
 
-# def test_cut_shape_between_distances_handles_distances_beyond_shape_length():
-#     """
-#     Test cutting with an end distance greater than the LineString length.
-#     """
-
-#     shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
-
-#     result = netex_helper_cut_shape_between_distances(
-#         shape,
-#         start_d=5.0,
-#         end_d=20.0,
-#     )
-
-#     assert result == [
-#         (5.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    assert coords[0] == (5.0, 0.0)
+    assert coords[-1] == (10.0, 5.0)
 
 
-# def test_cut_shape_between_distances_handles_empty_shape():
-#     """
-#     Test cutting an empty LineString.
-#     """
+def test_cut_shape_returns_point_when_start_and_end_are_very_close():
+    """
+    Test behavior for extremely small segments.
+    """
 
-#     result = netex_helper_cut_shape_between_distances(
-#         [],
-#         start_d=0.0,
-#         end_d=10.0,
-#     )
+    shape = LineString([(0, 0), (10, 0)])
 
-#     assert result == []
+    result = netex_helper_cut_shape_between_distances(shape, 5, 5.0000001)
+
+    assert isinstance(result, (LineString, ShapelyPoint))
+
+
+def test_cut_shape_with_distances_outside_geometry_bounds():
+    """
+    Test that distances outside the LineString bounds are clamped by substring().
+    """
+
+    shape = LineString([(0, 0), (10, 0)])
+
+    result = netex_helper_cut_shape_between_distances(shape, -5, 20)
+
+    assert isinstance(result, LineString)
+    assert list(result.coords) == [(5.0, 0.0), (10.0, 0.0)]
+
+
+def test_cut_shape_with_empty_linestring():
+    """
+    Test behavior with an empty LineString.
+    """
+
+    shape = LineString([])
+
+    result = netex_helper_cut_shape_between_distances(shape, 0, 5)
+
+    assert result.is_empty
