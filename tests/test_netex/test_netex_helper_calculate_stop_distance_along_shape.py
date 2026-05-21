@@ -1,165 +1,93 @@
-# import pytest
-# from netex.netex_utils import netex_helper_calculate_stop_distance_along_shape
+import pytest
+from shapely.geometry import LineString, Point as ShapelyPoint
 
-# Point = tuple[float, float]
-
-# def test_calculate_stop_distance_along_shape_returns_float():
-#     """
-#     Test that the function returns a float.
-#     """
-
-#     stop_coordinates: Point = (5.0, 0.0)
-
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
-
-#     result = netex_helper_calculate_stop_distance_along_shape(
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert isinstance(result, float)
+from netex.netex_utils import netex_helper_calculate_stop_distance_along_shape
 
 
-# def test_calculate_stop_distance_along_shape_on_straight_line():
-#     """
-#     Test calculating distance along a straight LineString.
-#     """
+def test_calculate_distance_on_simple_horizontal_line():
+    """
+    Point lies exactly on a straight horizontal line.
+    """
 
-#     stop_coordinates: Point = (5.0, 0.0)
+    shape = LineString([(0, 0), (10, 0)])
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    result = netex_helper_calculate_stop_distance_along_shape((5, 0), shape)
 
-#     result = netex_helper_calculate_stop_distance_along_shape(
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert result == pytest.approx(5.0)
+    assert result == 5.0
 
 
-# def test_calculate_stop_distance_along_shape_at_line_start():
-#     """
-#     Test calculating distance for a point at the start of the LineString.
-#     """
+def test_calculate_distance_at_start_of_line():
+    """
+    Start point should return 0.
+    """
 
-#     stop_coordinates: Point = (0.0, 0.0)
+    shape = LineString([(0, 0), (10, 0)])
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    result = netex_helper_calculate_stop_distance_along_shape((0, 0), shape)
 
-#     result = netex_helper_calculate_stop_distance_along_shape(
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert result == pytest.approx(0.0)
+    assert result == 0.0
 
 
-# def test_calculate_stop_distance_along_shape_at_line_end():
-#     """
-#     Test calculating distance for a point at the end of the LineString.
-#     """
+def test_calculate_distance_at_end_of_line():
+    """
+    End point should return full length.
+    """
 
-#     stop_coordinates: Point = (10.0, 0.0)
+    shape = LineString([(0, 0), (10, 0)])
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    result = netex_helper_calculate_stop_distance_along_shape((10, 0), shape)
 
-#     result = netex_helper_calculate_stop_distance_along_shape(
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert result == pytest.approx(10.0)
+    assert result == 10.0
 
 
-# def test_calculate_stop_distance_along_shape_multisegment_linestring():
-#     """
-#     Test calculating distance along a multi-segment LineString.
-#     """
+def test_calculate_distance_on_diagonal_line():
+    """
+    Distance on a 45-degree line.
+    """
 
-#     stop_coordinates: Point = (10.0, 5.0)
+    shape = LineString([(0, 0), (3, 4)])  # length = 5
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#         (10.0, 10.0),
-#     ]
+    result = netex_helper_calculate_stop_distance_along_shape((3, 4), shape)
 
-#     result = netex_helper_calculate_stop_distance_along_shape(
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert result == pytest.approx(15.0)
+    assert result == 5.0
 
 
-# def test_calculate_stop_distance_along_shape_projects_point_onto_line():
-#     """
-#     Test projecting a point that is not exactly on the LineString.
-#     """
+def test_calculate_distance_on_multisegment_line():
+    """
+    Ensure projection works on polyline.
+    """
 
-#     stop_coordinates: Point = (5.0, 3.0)
+    shape = LineString([
+        (0, 0),
+        (10, 0),
+        (10, 10)
+    ])
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    # Point on second segment
+    result = netex_helper_calculate_stop_distance_along_shape((10, 5), shape)
 
-#     result = netex_helper_calculate_stop_distance_along_shape(
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     # The point projects orthogonally onto (5, 0)
-#     assert result == pytest.approx(5.0)
+    assert result == 15.0
 
 
-# def test_calculate_stop_distance_along_shape_handles_point_before_start():
-#     """
-#     Test projecting a point before the start of the LineString.
-#     """
+def test_calculate_distance_when_point_is_not_exactly_on_line():
+    """
+    Projection should still return closest distance along line.
+    """
 
-#     stop_coordinates: Point = (-5.0, 0.0)
+    shape = LineString([(0, 0), (10, 0)])
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    result = netex_helper_calculate_stop_distance_along_shape((5, 5), shape)
 
-#     result = netex_helper_calculate_stop_distance_along_shape(
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert result == pytest.approx(0.0)
+    assert result == 5.0
 
 
-# def test_calculate_stop_distance_along_shape_handles_point_after_end():
-#     """
-#     Test projecting a point after the end of the LineString.
-#     """
+def test_calculate_distance_with_shapely_point_input():
+    """
+    Ensure function works even if input is already a Point-like tuple.
+    """
 
-#     stop_coordinates: Point = (20.0, 0.0)
+    shape = LineString([(0, 0), (10, 0)])
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    result = netex_helper_calculate_stop_distance_along_shape((7, 0), shape)
 
-#     result = netex_helper_calculate_stop_distance_along_shape(
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert result == pytest.approx(10.0)
+    assert result == 7.0
