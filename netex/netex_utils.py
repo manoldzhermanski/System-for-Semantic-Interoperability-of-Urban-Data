@@ -609,6 +609,7 @@ def netex_helper_map_trips_to_shapes(gtfs_trips: list[dict[str, Any]]) -> dict[s
         
         entity_type = trip["type"]
         if entity_type != "GtfsTrip":
+            logger.error("Unsupported entity type, expected GtfsTrip: %s", entity_type)
             continue
         
         # Get trip ID
