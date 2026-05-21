@@ -1858,62 +1858,85 @@ def netex_convert_stops_to_passenger_stop_assignment(entities: list[dict[str, An
 # -----------------------------------------------------
 # GtfsStop to NeTex <RoutePoint> and <PointProjection>
 # -----------------------------------------------------
-def netex_convert_stops_to_route_points(entities: list[dict[str, Any]]) -> etree.Element:
+def netex_helper_build_route_point(entity: dict[str, Any]) -> etree.Element | None:
     """
-    Create <RoutePoint> elements from a list of GtfsStop entities and store them in a <routePoints> container.
+    Builds a NeTEx <RoutePoint> element from a single GtfsStop entity.
 
     Args:
-        entities (list[dict[str, Any]]): List of GtfsStop entities
+        entity: A single GtfsStop entity
 
     Returns:
-        etree.Element: <routePoints> container with <RoutePoint> elements
+        etree.Element | None
     """
-    # Used to store unique RoutePoint XML elements
-    route_points_dict = {}
-        
-    # Iterate through the list of GtfsStop entities
-    for  entity in entities:
-        
-        # Check if entity is of proper type
-        entity_type = entity["type"]
-        if entity_type != "GtfsStop":
-            continue
-        
-        # Extract stop_id
-        stop_id = entity["id"]
-        if not isinstance(stop_id, str) or ":" not in stop_id:
-            logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
-            continue
-        stop_id_value = stop_id.split(":")[-1]
-    
-        # Create RoutePoint element
-        route_point = etree.Element("RoutePoint", version = "1", 
-                                                id = f"{config.NETEX_AUTHORITY}:RoutePoint:{stop_id_value}")
+    # Get entity type and ID
+    entity_type = entity.get("type")
+    stop_id = entity.get("id")
 
-        # Add <projections> container
-        projections = etree.SubElement(route_point, "projections")
-        
-        # Add <PointProjection> element
-        point_projection = etree.SubElement(projections, "PointProjection", version = "1", 
-                                            id = f"{config.NETEX_AUTHORITY}:PointProjection:{stop_id_value}")
-        
-        # Add <ProjectToPointRef> to <PointProjection>
-        etree.SubElement(point_projection, "ProjectToPointRef",
-                         ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}")
-        
-        # If the XML element is unique, add it to the dict so we remove duplicates
-        if stop_id not in route_points_dict:
-            route_points_dict[stop_id] = route_point
-            
-    # Create routePoints container
-    route_points = etree.Element("routePoints")
-    
-    # Append unique RoutePoint elements to the routePoints container
-    for stop_id in route_points_dict.values():
-        route_points.append(stop_id)
+    # If not supprted type, log an error and return None
+    if entity_type != "GtfsStop":
+        logger.error("Unsupported entity type: %s", entity_type)
+        return None
 
-    # Return the routePoints container with all RoutePoint elements
-    return route_points
+    # If not correctly formatted ID, log an error and return None
+    if not isinstance(stop_id, str) or ":" not in stop_id:
+        logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
+        return None
+
+    stop_id_value = stop_id.split(":")[-1]
+
+    # Build <RoutePoint> and <PointProjection> elements with the extracted ID value
+    route_point = etree.Element("RoutePoint", version="1", id=f"{config.NETEX_AUTHORITY}:RoutePoint:{stop_id_value}")
+
+    projections = etree.SubElement(route_point, "projections")
+
+    point_projection = etree.SubElement( projections, "PointProjection", version="1", id=f"{config.NETEX_AUTHORITY}:PointProjection:{stop_id_value}")
+
+    etree.SubElement(point_projection, "ProjectToPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}")
+
+    return route_point
+
+def netex_helper_stream_route_points(xml_file, entities: list[dict[str, Any]]) -> None:
+    """
+    Streams RoutePoint elements into a <routePoints> container.
+
+    Args:
+        xml_file: Streaming XML writer
+        entities: List of GtfsStop entities
+
+    Returns:
+        None
+    """
+
+    logger.info("Streaming RoutePoints")
+
+    seen_ids = set()
+
+    # Create container for <RoutePoint> elements
+    with xml_file.element("routePoints"):
+
+        for entity in entities:
+
+            # Build <RoutePoint> element
+            route_point = netex_helper_build_route_point(entity)
+
+            # Continue when unsuccessful
+            if route_point is None:
+                continue
+
+            # Get the ID of the RoutePoint to check for duplicates
+            route_point_id = route_point.get("id")
+
+            # If we've already seen this ID, skip it to avoid duplicates
+            if route_point_id in seen_ids:
+                continue
+
+            # Add the ID to the set of seen IDs
+            seen_ids.add(route_point_id)
+
+            # Stream the <RoutePoint> element into the XML file
+            xml_file.write(route_point, pretty_print=True)
+
+    logger.info("Finished streaming %d RoutePoints", len(seen_ids))
 
 # -----------------------------------------------------
 # NeTEx <Route>
@@ -2149,8 +2172,8 @@ def netex_build_service_frame(xml_file, agency, stops, stop_coordinates, shape_l
     with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceCalendarFrame:1"):
         netex_helper_stream_networks(xml_file, agency)
 
-    # route_points = netex_convert_stops_to_route_points(stops)
-    # service_frame.append(route_points)
+        netex_helper_stream_route_points(xml_file, stops)
+
 
     # scheduled_stop_points = netex_convert_stops_to_scheduled_stop_points(stops)
     # service_frame.append(scheduled_stop_points)

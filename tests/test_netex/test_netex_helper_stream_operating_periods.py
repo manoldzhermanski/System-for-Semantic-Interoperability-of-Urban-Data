@@ -22,7 +22,7 @@ def parse_streamed_xml(output: BytesIO) -> etree._Element:
     return etree.fromstring(output.getvalue(), parser=parser)
 
 
-def test_stream_operating_periods_writes_day_types():
+def test_stream_operating_periods_writes_operating_periods():
     """
     Test that valid OperatingPeriod XML elements are written.
     """
@@ -62,7 +62,7 @@ def test_stream_operating_periods_writes_day_types():
 
 def test_stream_operating_periods_removes_duplicates():
     """
-    Test that duplicate DayTypes are streamed only once.
+    Test that duplicate OperatingPeriods are streamed only once.
     """
 
     entities = [
