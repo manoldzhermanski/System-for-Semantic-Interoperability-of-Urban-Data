@@ -2,9 +2,7 @@ import pytest
 from shapely.geometry import LineString
 from netex.netex_utils import netex_helper_extract_shape_linestrings
 
-
 Point = tuple[float, float]
-
 
 def test_extract_shape_linestrings_returns_proper_structure():
 
@@ -40,8 +38,6 @@ def test_extract_shape_linestrings_returns_proper_structure():
         assert len(point) == 2
         assert all(isinstance(coord, float) for coord in point)
     
-
-
 def test_extract_shape_linestrings_skips_invalid_entities():
 
     shapes = [
@@ -116,7 +112,6 @@ def test_extract_shape_linestrings_skips_invalid_entities():
     result = netex_helper_extract_shape_linestrings(shapes)
 
     assert result == {}
-
 
 def test_extract_shape_linestrings_handles_multiple_shapes():
     """
