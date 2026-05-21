@@ -416,37 +416,51 @@ def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str,
     
     # Traverse the retrieved stop times and populate the stops_per_trip dictionary
     for stop_time in gtfs_stop_time_entities:
-        
-        trip_id_value = None
-        stop_id_value = None
-        sequence = None
 
-        # Get trip 
+        entity_type = stop_time["type"]
+        if entity_type != "GtfsStopTime":
+            logger.error("Unsupported entity type, expected GtfsStopTime: %s", entity_type)
+            continue
+        
+        # Get trip id, stop id and sequence
         trip_id = stop_time.get("hasTrip", {}).get("object")
-
-        # Extractr trip ID value
-        if trip_id:
-            trip_id_value = trip_id.split(":")[-1]
-        
-        # Get stop
         stop_id = stop_time.get("hasStop", {}).get("object")
-        
-        # Extract stop ID value
-        if stop_id:
-            stop_id_value = stop_id.split(":")[-1]
-        
-        # Get stop sequence number
         sequence = stop_time.get("stopSequence", {}).get("value")
+
+        if not isinstance(trip_id, str) or ":" not in trip_id:
+            logger.error("Invalid or missing ID for GtfsTrip: %r", trip_id)
+            continue
+
+        trip_id_parts = trip_id.split(":")
+
+        if len(trip_id_parts) != 5:
+            logger.error("Invalid ID for GtfsTrip: %r", trip_id)
+            continue
+
+        trip_id_value = trip_id_parts[-1]
+
+        if not isinstance(stop_id, str) or ":" not in stop_id:
+            logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
+            continue
         
-        # Only consider stop times that have valid trip ID, stop ID, and stop sequence
-        if trip_id_value and stop_id_value and sequence is not None:
-            
-            # If the trip ID is not already in the stops_per_trip dictionary, initialize it with an empty list
-            if trip_id_value not in stops_per_trip:
-                stops_per_trip[trip_id_value] = []
+        stop_id_parts = stop_id.split(":")
+
+        if len(stop_id_parts) != 5:
+            logger.error("Invalid ID for GtfsStop: %r", stop_id)
+            continue
+        
+        stop_id_value = stop_id_parts[-1]
+        
+        if not isinstance(sequence, int):
+            logger.error("Invalid or missing stop sequence: %r", sequence)
+            continue
                 
-            # Append the stop ID and its sequence to the list of stops for the corresponding trip ID
-            stops_per_trip[trip_id_value].append((stop_id_value, sequence))
+        # If the trip ID is not already in the stops_per_trip dictionary, initialize it with an empty list
+        if trip_id_value not in stops_per_trip:
+            stops_per_trip[trip_id_value] = []
+            
+        # Append the stop ID and its sequence to the list of stops for the corresponding trip ID
+        stops_per_trip[trip_id_value].append((stop_id_value, sequence))
             
     # After populating the stops_per_trip dictionary, sort the stops for each trip by their stop sequence
     for trip in stops_per_trip:
