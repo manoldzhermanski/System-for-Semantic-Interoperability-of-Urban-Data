@@ -798,21 +798,43 @@ def netex_helper_create_line_string_segments_between_stop_pairs(
     stop_pair: tuple[str, str],
     stop_distances_along_shape: dict[str, float],
     shape_geometry: LineString,
-) -> BaseGeometry:
+) -> LineString | ShapelyPoint | None:
     """
     Build ServiceLink geometry between two stops.
-    """
 
+    Args:
+        stop_pair (tuple[str, str]): A tuple containing the IDs of the two stops.
+        stop_distances_along_shape (dict[str, float]): A dictionary mapping stop IDs to their distance along the shape in meters.
+        shape_geometry (LineString): The geometry of the shape in projected CRS.
+
+    Returns:
+        LineString | ShapelyPoint | None: The geometry segment between the two stops, which can be a LineString or a Point
+    """
+    
+    # If stop_pair is not valid, log an error and return None
+    if stop_pair is None or len(stop_pair) != 2:
+        logger.error("Invalid stop pair: %r", stop_pair)
+        return None
+
+    # Unpack the stop pair into from_stop and to_stop
     from_stop, to_stop = stop_pair
 
+    # If the stop distances along shape are missing, log an error and return None
+    if not stop_distances_along_shape:
+        logger.error("Missing stop distances along shape")
+        return None
+
+    # Get the distances along the shape for the from and to stops
     start_distance = stop_distances_along_shape[from_stop]
     end_distance = stop_distances_along_shape[to_stop]
 
-    return netex_helper_cut_shape_between_distances(
-        shape_geometry,
-        start_distance,
-        end_distance,
-    )
+    # If the shape geometry is empty, log an error and return None
+    if shape_geometry.is_empty:
+        logger.error("Cannot create line string segment: shape geometry is empty")
+        return None
+    
+    # Return the segment of the shape geometry between the two stops
+    return netex_helper_cut_shape_between_distances(shape_geometry, start_distance, end_distance)
     
     
 def netex_helper_create_service_link_info(
