@@ -696,8 +696,10 @@ def netex_helper_calculate_stop_distance_along_shape(stop_coordinates: Point, sh
         Distance along the shape in meters.
     """
 
+    # Convert the stop coordinates to a Shapely Point
     point = ShapelyPoint(stop_coordinates)
 
+    # Calculate and return the distance along the shape geometry for the stop coordinate
     return shape_geometry.project(point)
 
 def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordinates: dict[str, Point], shape_geometry: LineString) -> dict[str, float]:
@@ -715,24 +717,29 @@ def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordina
     Dictionary mapping stop IDs to their distance along the shape in meters.
     """
 
+    # If the shape geometry is empty, log an error and return an empty dictionary
     if shape_geometry.is_empty:
         logger.error("Cannot calculate stop distances: shape is empty")
         return {}
 
     stop_distances: dict[str, float] = {}
 
+    # If the list of stop IDs is empty, log an error and return an empty dictionary
     if not stop_ids:
         logger.error("Missing stop IDs")
         return {}
 
     for stop_id in stop_ids:
 
+        # Get the coordinates for the current stop ID
         coordinates = stop_coordinates.get(stop_id)
 
+        # If the coordinates are missing for the current stop ID, log an error and skip to the next stop ID
         if coordinates is None:
             logger.error("Missing coordinates for stop %s", stop_id)
             continue
 
+        # Calculate the distance along the shape for the current stop and populate the stop_distances dictionary
         stop_distances[stop_id] = netex_helper_calculate_stop_distance_along_shape(coordinates, shape_geometry)
 
     return stop_distances
@@ -745,29 +752,45 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
 ) -> dict[str, dict[str, float]]:
     """
     Compute stop distances along shapes for every trip.
+
+    Args:
+        stops_per_trip (dict[str, list[str]]): A dictionary mapping trip IDs to lists of stop IDs in order.
+        stop_coordinates (dict[str, Point]): A dictionary mapping stop IDs to their coordinates in projected CRS.
+        shape_geometries (dict[str, LineString]): A dictionary mapping shape IDs to their geometries in projected CRS.
+        shape_per_trip (dict[str, str]): A dictionary mapping trip IDs to shape IDs.
+
+    Returns:
+        A dictionary mapping trip IDs to dictionaries that map stop IDs to their distance along the shape in meters.
     """
 
     stop_projections_per_trip: dict[str, dict[str, float]] = {}
 
+    # Validate that all required input data is present before processing
+    if not stops_per_trip or not stop_coordinates or not shape_geometries or not shape_per_trip:
+        logger.error("Missing required input data for computing stop distances along shapes")
+        return {}
+
+    # Go through each trip and it's stops
     for trip_id, stop_ids in stops_per_trip.items():
 
+        # Get the shape ID for the current trip
         shape_id = shape_per_trip.get(trip_id)
 
+        # If the shape ID is missing for the current trip, log an error and skip to the next trip
         if not shape_id:
+            logger.error("Missing shape ID for trip %s", trip_id)
             continue
 
+        # Get the shape geometry for the current trip's shape ID
         shape_geometry = shape_geometries.get(shape_id)
 
+        # If the shape geometry is missing or empty for the current trip, log an error and skip to the next trip
         if shape_geometry is None or shape_geometry.is_empty:
+            logger.error("Invalid shape geometry for trip %s", trip_id)
             continue
 
-        stop_projections_per_trip[trip_id] = (
-            netex_helper_map_stops_to_shape_distances(
-                stop_ids,
-                stop_coordinates,
-                shape_geometry,
-            )
-        )
+        # For every stop in the current trip, calculate its distance along the shape and populate the stop_projections_per_trip dictionary
+        stop_projections_per_trip[trip_id] = netex_helper_map_stops_to_shape_distances(stop_ids, stop_coordinates, shape_geometry)
 
     return stop_projections_per_trip   
 

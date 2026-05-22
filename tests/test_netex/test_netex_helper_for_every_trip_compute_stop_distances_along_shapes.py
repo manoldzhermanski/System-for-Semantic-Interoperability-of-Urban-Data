@@ -1,250 +1,251 @@
-# import pytest
-# from netex.netex_utils import netex_helper_for_every_trip_compute_stop_distances_along_shapes
-
-# Point = tuple[float, float]
-
-# def test_compute_stop_distances_along_shapes_returns_dictionary():
-#     """
-#     Test that the function returns a dictionary.
-#     """
-
-#     result = (
-#         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-#             stops_per_trip={},
-#             stop_coordinates={},
-#             shape_line_strings={},
-#             shape_per_trip={},
-#         )
-#     )
-
-#     assert isinstance(result, dict)
+import logging
+import pytest
+from shapely.geometry import LineString
+from netex.netex_utils import netex_helper_for_every_trip_compute_stop_distances_along_shapes
 
 
-# def test_compute_stop_distances_along_shapes_single_trip():
-#     """
-#     Test computing stop distances for a single trip.
-#     """
+def test_compute_stop_distances_for_single_trip():
+    """
+    Test successful computation for a single trip.
+    """
 
-#     stops_per_trip = {
-#         "TRIP_1": ["STOP_1", "STOP_2"],
-#     }
+    stops_per_trip = {
+        "TRIP1": ["STOP1", "STOP2"]
+    }
 
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_1": (2.0, 0.0),
-#         "STOP_2": (8.0, 0.0),
-#     }
+    stop_coordinates = {
+        "STOP1": (2.0, 0.0),
+        "STOP2": (7.0, 0.0),
+    }
 
-#     shape_line_strings = {
-#         "SHAPE_1": [
-#             (0.0, 0.0),
-#             (10.0, 0.0),
-#         ]
-#     }
+    shape_geometries = {
+        "SHAPE1": LineString([
+            (0, 0),
+            (10, 0)
+        ])
+    }
 
-#     shape_per_trip = {
-#         "TRIP_1": "SHAPE_1"
-#     }
+    shape_per_trip = {
+        "TRIP1": "SHAPE1"
+    }
 
-#     result = (
-#         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-#             stops_per_trip,
-#             stop_coordinates,
-#             shape_line_strings,
-#             shape_per_trip,
-#         )
-#     )
+    result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+        stops_per_trip,
+        stop_coordinates,
+        shape_geometries,
+        shape_per_trip
+    )
 
-#     assert result == {
-#         "TRIP_1": {
-#             "STOP_1": pytest.approx(2.0),
-#             "STOP_2": pytest.approx(8.0),
-#         }
-#     }
+    assert result == {
+        "TRIP1": {
+            "STOP1": 2.0,
+            "STOP2": 7.0,
+        }
+    }
 
 
-# def test_compute_stop_distances_along_shapes_multiple_trips():
-#     """
-#     Test computing stop distances for multiple trips.
-#     """
+def test_compute_stop_distances_for_multiple_trips():
+    """
+    Test successful computation for multiple trips.
+    """
 
-#     stops_per_trip = {
-#         "TRIP_1": ["STOP_1"],
-#         "TRIP_2": ["STOP_2"],
-#     }
+    stops_per_trip = {
+        "TRIP1": ["STOP1"],
+        "TRIP2": ["STOP2"]
+    }
 
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_1": (2.0, 0.0),
-#         "STOP_2": (7.0, 0.0),
-#     }
+    stop_coordinates = {
+        "STOP1": (2.0, 0.0),
+        "STOP2": (5.0, 0.0),
+    }
 
-#     shape_line_strings = {
-#         "SHAPE_1": [
-#             (0.0, 0.0),
-#             (10.0, 0.0),
-#         ],
-#         "SHAPE_2": [
-#             (0.0, 0.0),
-#             (20.0, 0.0),
-#         ],
-#     }
+    shape_geometries = {
+        "SHAPE1": LineString([(0, 0), (10, 0)]),
+        "SHAPE2": LineString([(0, 0), (20, 0)]),
+    }
 
-#     shape_per_trip = {
-#         "TRIP_1": "SHAPE_1",
-#         "TRIP_2": "SHAPE_2",
-#     }
+    shape_per_trip = {
+        "TRIP1": "SHAPE1",
+        "TRIP2": "SHAPE2",
+    }
 
-#     result = (
-#         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-#             stops_per_trip,
-#             stop_coordinates,
-#             shape_line_strings,
-#             shape_per_trip,
-#         )
-#     )
+    result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+        stops_per_trip,
+        stop_coordinates,
+        shape_geometries,
+        shape_per_trip
+    )
 
-#     assert result == {
-#         "TRIP_1": {
-#             "STOP_1": pytest.approx(2.0),
-#         },
-#         "TRIP_2": {
-#             "STOP_2": pytest.approx(7.0),
-#         },
-#     }
+    assert result == {
+        "TRIP1": {
+            "STOP1": 2.0
+        },
+        "TRIP2": {
+            "STOP2": 5.0
+        }
+    }
 
 
-# def test_compute_stop_distances_along_shapes_skips_trip_without_shape_mapping():
-#     """
-#     Test that trips without a shape mapping are skipped.
-#     """
+def test_returns_empty_when_required_input_missing(caplog):
+    """
+    Test that missing required input data returns empty dictionary.
+    """
 
-#     stops_per_trip = {
-#         "TRIP_1": ["STOP_1"],
-#     }
+    with caplog.at_level(logging.ERROR):
 
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_1": (5.0, 0.0),
-#     }
+        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+            {},
+            {},
+            {},
+            {}
+        )
 
-#     result = (
-#         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-#             stops_per_trip,
-#             stop_coordinates,
-#             shape_line_strings={},
-#             shape_per_trip={},
-#         )
-#     )
+    assert result == {}
 
-#     assert result == {}
+    assert "Missing required input data for computing stop distances along shapes" in caplog.text
 
 
-# def test_compute_stop_distances_along_shapes_skips_missing_shape_geometry():
-#     """
-#     Test that trips with missing shape geometries are skipped.
-#     """
+def test_skips_trip_when_shape_id_missing(caplog):
+    """
+    Test that trips with missing shape IDs are skipped.
+    """
 
-#     stops_per_trip = {
-#         "TRIP_1": ["STOP_1"],
-#     }
+    stops_per_trip = {
+        "TRIP1": ["STOP1"]
+    }
 
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_1": (5.0, 0.0),
-#     }
+    stop_coordinates = {
+        "STOP1": (2.0, 0.0)
+    }
 
-#     shape_per_trip = {
-#         "TRIP_1": "SHAPE_1"
-#     }
+    shape_geometries = {
+        "SHAPE1": LineString([(0, 0), (10, 0)])
+    }
 
-#     result = (
-#         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-#             stops_per_trip,
-#             stop_coordinates,
-#             shape_line_strings={},
-#             shape_per_trip=shape_per_trip,
-#         )
-#     )
+    shape_per_trip = {
+        "TRIP2": "SHAPE2",
+    }
 
-#     assert result == {}
+    with caplog.at_level(logging.ERROR):
 
+        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+            stops_per_trip,
+            stop_coordinates,
+            shape_geometries,
+            shape_per_trip
+        )
 
-# def test_compute_stop_distances_along_shapes_skips_empty_shape_geometry():
-#     """
-#     Test that trips with empty shape geometries are skipped.
-#     """
+    assert result == {}
 
-#     stops_per_trip = {
-#         "TRIP_1": ["STOP_1"],
-#     }
-
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_1": (5.0, 0.0),
-#     }
-
-#     shape_line_strings = {
-#         "SHAPE_1": []
-#     }
-
-#     shape_per_trip = {
-#         "TRIP_1": "SHAPE_1"
-#     }
-
-#     result = (
-#         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-#             stops_per_trip,
-#             stop_coordinates,
-#             shape_line_strings,
-#             shape_per_trip,
-#         )
-#     )
-
-#     assert result == {}
+    assert "Missing shape ID for trip TRIP1" in caplog.text
 
 
-# def test_compute_stop_distances_along_shapes_skips_missing_stop_coordinates():
-#     """
-#     Test that stops with missing coordinates are skipped.
-#     """
+def test_skips_trip_when_shape_geometry_missing(caplog):
+    """
+    Test that trips with missing shape geometries are skipped.
+    """
 
-#     stops_per_trip = {
-#         "TRIP_1": ["STOP_1"],
-#     }
+    stops_per_trip = {
+        "TRIP1": ["STOP1"]
+    }
 
-#     shape_line_strings = {
-#         "SHAPE_1": [
-#             (0.0, 0.0),
-#             (10.0, 0.0),
-#         ]
-#     }
+    stop_coordinates = {
+        "STOP1": (2.0, 0.0)
+    }
 
-#     shape_per_trip = {
-#         "TRIP_1": "SHAPE_1"
-#     }
+    shape_geometries = {
+        "SHAPE2": LineString([(0, 0), (10, 0)])
+    }
 
-#     result = (
-#         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-#             stops_per_trip,
-#             stop_coordinates={},
-#             shape_line_strings=shape_line_strings,
-#             shape_per_trip=shape_per_trip,
-#         )
-#     )
+    shape_per_trip = {
+        "TRIP1": "SHAPE1"
+    }
 
-#     assert result == {
-#         "TRIP_1": {}
-#     }
+    with caplog.at_level(logging.ERROR):
+
+        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+            stops_per_trip,
+            stop_coordinates,
+            shape_geometries,
+            shape_per_trip
+        )
+
+    assert result == {}
+
+    assert "Invalid shape geometry for trip TRIP1" in caplog.text
 
 
-# def test_compute_stop_distances_along_shapes_handles_empty_input():
-#     """
-#     Test that empty input returns an empty dictionary.
-#     """
+def test_skips_trip_when_shape_geometry_is_empty(caplog):
+    """
+    Test that trips with empty shape geometries are skipped.
+    """
 
-#     result = (
-#         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-#             stops_per_trip={},
-#             stop_coordinates={},
-#             shape_line_strings={},
-#             shape_per_trip={},
-#         )
-#     )
+    stops_per_trip = {
+        "TRIP1": ["STOP1"]
+    }
 
-#     assert result == {}
+    stop_coordinates = {
+        "STOP1": (2.0, 0.0)
+    }
+
+    shape_geometries = {
+        "SHAPE1": LineString([])
+    }
+
+    shape_per_trip = {
+        "TRIP1": "SHAPE1"
+    }
+
+    with caplog.at_level(logging.ERROR):
+
+        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+            stops_per_trip,
+            stop_coordinates,
+            shape_geometries,
+            shape_per_trip
+        )
+
+    assert result == {}
+
+    assert "Invalid shape geometry for trip TRIP1" in caplog.text
+
+
+def test_partial_success_when_one_trip_fails(caplog):
+    """
+    Test that valid trips are still processed when another trip fails.
+    """
+
+    stops_per_trip = {
+        "TRIP1": ["STOP1"],
+        "TRIP2": ["STOP2"]
+    }
+
+    stop_coordinates = {
+        "STOP1": (2.0, 0.0),
+        "STOP2": (5.0, 0.0),
+    }
+
+    shape_geometries = {
+        "SHAPE1": LineString([(0, 0), (10, 0)])
+    }
+
+    shape_per_trip = {
+        "TRIP1": "SHAPE1"
+    }
+
+    with caplog.at_level(logging.ERROR):
+
+        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+            stops_per_trip,
+            stop_coordinates,
+            shape_geometries,
+            shape_per_trip
+        )
+
+    assert result == {
+        "TRIP1": {
+            "STOP1": 2.0
+        }
+    }
+
+    assert "Missing shape ID for trip TRIP2" in caplog.text
