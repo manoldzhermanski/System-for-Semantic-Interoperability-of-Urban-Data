@@ -836,38 +836,34 @@ def netex_helper_create_line_string_segments_between_stop_pairs(
     # Return the segment of the shape geometry between the two stops
     return netex_helper_cut_shape_between_distances(shape_geometry, start_distance, end_distance)
     
-    
-def netex_helper_create_service_link_info(
-    stops_per_trip: dict[str, list[str]],
-    stop_coordinates: dict[str, Point],
-    shape_geometries: dict[str, LineString],
-    shape_per_trip: dict[str, str],
-):
+def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]], stop_coordinates: dict[str, Point],
+                                          shape_geometries: dict[str, LineString], shape_per_trip: dict[str, str]):
     """
     Yield ServiceLink information objects.
+
+    Args:
+        stops_per_trip (dict[str, list[str]]): A dictionary mapping trip IDs to lists of stop IDs.
+        stop_coordinates (dict[str, Point]): A dictionary mapping stop IDs to their coordinates.
+        shape_geometries (dict[str, LineString]): A dictionary mapping shape IDs to their geometries.
+        shape_per_trip (dict[str, str]): A dictionary mapping trip IDs to shape IDs.
+
+    Returns:
+        None
     """
 
-    if (
-        not stops_per_trip
-        or not stop_coordinates
-        or not shape_geometries
-        or not shape_per_trip
-    ):
+    if not(stops_per_trip and stop_coordinates and shape_geometries and shape_per_trip):
         logger.error("Missing required input data")
         return
 
-    stop_pairs_per_trip = (
-        netex_helper_split_stops_into_pairs(
-            stops_per_trip
-        )
-    )
+    
+    stop_pairs_per_trip = netex_helper_split_stops_into_pairs(stops_per_trip)
 
     stop_projections_per_trip = (
         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
             stops_per_trip,
             stop_coordinates,
             shape_geometries,
-            shape_per_trip,
+            shape_per_trip
         )
     )
 
@@ -875,42 +871,31 @@ def netex_helper_create_service_link_info(
 
         shape_id = shape_per_trip.get(trip_id)
 
-        if not shape_id:
+        if not shape_id or shape_id not in shape_geometries:
+            logger.error("Missing shape ID for trip %s", trip_id)
             continue
+
+        shape_geometry = shape_geometries[shape_id]
 
         shape_geometry = shape_geometries.get(shape_id)
 
-        stop_distances = (
-            stop_projections_per_trip.get(trip_id)
-        )
+        stop_distances = stop_projections_per_trip.get(trip_id)
 
-        if (
-            shape_geometry is None
-            or shape_geometry.is_empty
-            or not stop_distances
-        ):
+        if shape_geometry is None or shape_geometry.is_empty or not stop_distances:
+            logger.error("Missing or invalid shape geometry for trip %s", trip_id)
             continue
 
         for pair in stop_pairs:
 
             from_stop, to_stop = pair
 
-            geometry = (
-                netex_helper_create_line_string_segments_between_stop_pairs(
-                    pair,
-                    stop_distances,
-                    shape_geometry,
-                )
-            )
+            geometry = netex_helper_create_line_string_segments_between_stop_pairs(pair, stop_distances, shape_geometry)
 
             yield {
                 "trip_id": trip_id,
                 "from_stop": from_stop,
                 "to_stop": to_stop,
-                "distance": (
-                    stop_distances[to_stop]
-                    - stop_distances[from_stop]
-                ),
+                "distance": (stop_distances[to_stop] - stop_distances[from_stop]),
                 "geometry": geometry,
             }
     
