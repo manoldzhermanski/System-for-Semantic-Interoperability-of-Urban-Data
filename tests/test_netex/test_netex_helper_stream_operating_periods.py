@@ -7,11 +7,7 @@ from netex.netex_utils import netex_helper_stream_operating_periods
 
 @pytest.fixture(autouse=True)
 def set_netex_authority(monkeypatch):
-    monkeypatch.setattr(
-        "netex.netex_utils.config.NETEX_AUTHORITY",
-        "TEST"
-    )
-
+    monkeypatch.setattr("netex.netex_utils.config.NETEX_AUTHORITY", "TEST")
 
 def parse_streamed_xml(output: BytesIO) -> etree._Element:
     """
@@ -53,11 +49,11 @@ def test_stream_operating_periods_writes_operating_periods():
 
     assert root.tag == "operatingPeriods"
 
-    day_types = root.findall("OperatingPeriod")
+    operating_periods = root.findall("OperatingPeriod")
 
-    assert len(day_types) == 1
+    assert len(operating_periods) == 1
 
-    assert day_types[0].get("id") == "TEST:OperatingPeriod:WeekdayId"
+    assert operating_periods[0].get("id") == "TEST:OperatingPeriod:WeekdayId"
 
 
 def test_stream_operating_periods_removes_duplicates():
@@ -127,9 +123,9 @@ def test_stream_operating_periods_skips_invalid_entities():
 
     root = parse_streamed_xml(output)
 
-    day_types = root.findall("OperatingPeriod")
+    operating_periods = root.findall("OperatingPeriod")
 
-    assert len(day_types) == 0
+    assert len(operating_periods) == 0
 
 
 def test_stream_operating_periods_empty_input():

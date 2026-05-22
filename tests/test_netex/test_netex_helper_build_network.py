@@ -64,18 +64,3 @@ def test_netex_helper_build_network_returns_none_if_id_format_is_not_correct(cap
 
     assert result_xml is None
     assert "Invalid or missing ID" in caplog.text
-
-def test_netex_helper_build_network_non_proper_split_elements_returns_none(caplog):
-    """
-    Test that if the `id` field does not have enough slit elements, None is returned
-    """
-    entity = {
-        "id": "urn:ngsi-ld:GtfsAgency:AGENCY1",
-        "type": "GtfsAgency",
-        "agency_name": {"type": "Property","value": "Mainline Transit"},
-    }
-
-    result_xml = netex_helper_build_network(entity)
-
-    assert result_xml is None
-    assert "Invalid ID" in caplog.text

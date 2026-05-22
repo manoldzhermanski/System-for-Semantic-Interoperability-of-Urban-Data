@@ -310,12 +310,6 @@ def netex_helper_build_network(agency: dict[str, Any]) -> etree.Element | None:
         logger.error("Invalid or missing ID for GtfsAgency: %r", network_id)
         return None
     
-    parts = network_id.split(":")
-
-    if len(parts) != 5:
-            logger.error("Invalid ID for GtfsAgency: %r", network_id)
-            return None
-
     network_id_value = network_id.split(":")[-1]
     agency_name = agency.get("agency_name", {}).get("value")
 
@@ -431,25 +425,13 @@ def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str,
             logger.error("Invalid or missing ID for GtfsTrip: %r", trip_id)
             continue
 
-        trip_id_parts = trip_id.split(":")
-
-        if len(trip_id_parts) != 5:
-            logger.error("Invalid ID for GtfsTrip: %r", trip_id)
-            continue
-
-        trip_id_value = trip_id_parts[-1]
+        trip_id_value = trip_id.split(":")[-1]
 
         if not isinstance(stop_id, str) or ":" not in stop_id:
             logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
             continue
-        
-        stop_id_parts = stop_id.split(":")
 
-        if len(stop_id_parts) != 5:
-            logger.error("Invalid ID for GtfsStop: %r", stop_id)
-            continue
-        
-        stop_id_value = stop_id_parts[-1]
+        stop_id_value = stop_id.split(":")[-1]
         
         if not isinstance(sequence, int):
             logger.error("Invalid or missing stop sequence: %r", sequence)
@@ -498,13 +480,7 @@ def netex_helper_extract_stop_coordinates(gtfs_stop_entities: list[dict[str, Any
             logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
             continue
 
-        stop_id_parts = stop_id.split(":")
-
-        if len(stop_id_parts) != 5:
-            logger.error("Invalid ID for GtfsStop: %r", stop_id)
-            continue
-        
-        stop_id_value = stop_id_parts[-1]
+        stop_id_value = stop_id.split(":")[-1]
 
         # Get stop coordinates
         coordinates = stop.get("location", {}).get("value", {}).get("coordinates")
@@ -1102,12 +1078,6 @@ def netex_helper_build_day_type(entity: dict[str, Any]) -> etree.Element | None:
     # ----------------------------------------
     if entity_type == "GtfsCalendarRule":
 
-        parts = day_type_id.split(":")
-
-        if len(parts) != 5:
-            logger.error("Invalid ID for GtfsCalendarRule: %r", day_type_id)
-            return None
-
         # Extract value fron NGSI-LD URN
         day_type_id_value = day_type_id.split(":")[-1]
 
@@ -1127,14 +1097,7 @@ def netex_helper_build_day_type(entity: dict[str, Any]) -> etree.Element | None:
     # ----------------------------------------
     elif entity_type == "GtfsCalendarDateRule":
 
-        # Split the ID and extract value from NGSI-LD URN
-        parts = day_type_id.split(":")
-
-        if len(parts) != 6:
-            logger.error("Invalid ID for GtfsCalendarDateRule: %r", day_type_id)
-            return None
-
-        day_type_id_value = parts[-2]
+        day_type_id_value = day_type_id.split(":")[-2]
 
         # Build DayType element with the extracted ID value
         day_type = etree.Element("DayType", version="1", id=f"{config.NETEX_AUTHORITY}:DayType:{day_type_id_value}")
@@ -1214,13 +1177,8 @@ def netex_helper_build_operating_period(entity: dict[str, Any]) -> etree.Element
         logger.error("Invalid ID for GtfsCalendarRule: %r", period_id)
         return None
 
-    parts = period_id.split(":")
-    if len(parts) != 5:
-        logger.error("Invalid ID for GtfsCalendarRule: %r", period_id)
-        return None
-
     # Extract value from NGSI-LD URN
-    period_id_value = parts[-1]
+    period_id_value = period_id.split(":")[-1]
 
     # Get and convert start and end dates to ISO format
     from_date = entity.get("startDate", {}).get("value")
@@ -1314,10 +1272,6 @@ def netex_helper_build_day_type_assignment(entity: dict[str, Any], index: int) -
 
         parts = day_type_assignment_id.split(":")
 
-        if len(parts) != 6:
-            logger.error("Invalid ID for GtfsCalendarRule: %r", day_type_assignment_id)
-            return None
-
         day_type_id_value = parts[-2]
         raw_date = parts[-1]
 
@@ -1342,12 +1296,7 @@ def netex_helper_build_day_type_assignment(entity: dict[str, Any], index: int) -
     # ----------------------------------------
     elif entity_type == "GtfsCalendarRule":
 
-        parts = day_type_assignment_id.split(":")
-        if len(parts) != 5:
-            logger.error("Invalid ID for GtfsCalendarRule: %r", day_type_assignment_id)
-            return None
-
-        day_type_id_value = parts[-1]
+        day_type_id_value = day_type_assignment_id.split(":")[-1]
 
         # Build DayTypeAssignment element with the extracted ID value, operating period reference and day type reference
         day_type_assignment = etree.Element("DayTypeAssignment", order=str(index), version="1", id=f"{config.NETEX_AUTHORITY}:DayTypeAssignment:{day_type_id_value}-{index}")
@@ -1933,8 +1882,85 @@ def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_
 
 # -----------------------------------------------------
 # GtfsStop to NeTex <PassengerStopAssignment>
-# Note: Have to ask if this is the correct way to add order
 # -----------------------------------------------------
+def netex_helper_build_passenger_stop_assignment(entity: dict[str, Any], index: int) -> etree.Element | None:
+    """
+    Build a single <PassengerStopAssignment> element.
+
+    Args:
+        entity (dict[str, Any]): A single GtfsStop entity
+        index (int): Index used for ordering
+
+    Returns:
+        etree.Element | None: A NeTEx <PassengerStopAssignment> element or None
+    """
+
+    entity_type = entity.get("type")
+    if entity_type != "GtfsStop":
+        logger.error("Unsupported entity type: %s", entity_type)
+        return None
+
+    stop_id = entity.get("id")
+    if not isinstance(stop_id, str) or ":" not in stop_id:
+        logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
+        return None
+
+    stop_id_value = stop_id.split(":")[-1]
+
+    passenger_stop_assignment = etree.Element("PassengerStopAssignment", order=str(index), version="1",
+                                              id=f"{config.NETEX_AUTHORITY}:PassengerStopAssignment:{stop_id_value}")
+
+    etree.SubElement(passenger_stop_assignment, "ScheduledStopPointRef",
+                     ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}", versionRef="1")
+
+    etree.SubElement(passenger_stop_assignment, "QuayRef", 
+                     ref=f"{config.NETEX_AUTHORITY}:Quay:{stop_id_value}", version="1")
+
+    return passenger_stop_assignment
+
+def netex_helper_stream_passenger_stop_assignments(xml_file, entities: list[dict[str, Any]]) -> None:
+    """
+    Stream <PassengerStopAssignment> elements.
+
+    Args:
+        xml_file: Streaming XML writer
+        entities: List of GtfsStop entities
+
+    Returns:
+        None
+    """
+
+    logger.info("Streaming PassengerStopAssignments")
+
+    seen = set()
+
+    # Create container for <PassengerStopAssignment> elements
+    with xml_file.element("stopAssignments"):
+
+        for index, entity in enumerate(entities, start=1):
+
+            # Build <PassengerStopAssignment> element
+            passenger_stop_assignment = netex_helper_build_passenger_stop_assignment(entity, index)
+
+            # Continue when unsuccessful
+            if passenger_stop_assignment is None:
+                continue
+
+            # Get the ID of the PassengerStopAssignment
+            passenger_stop_assignment_id = passenger_stop_assignment.get("id")
+
+            # If we've already seen this ID, skip it to avoid duplicates
+            if passenger_stop_assignment_id in seen:
+                continue
+
+            # Add the ID to the set of seen IDs
+            seen.add(passenger_stop_assignment_id)
+
+            # Stream the <PassengerStopAssignment> element into the XML file
+            xml_file.write(passenger_stop_assignment, pretty_print=True)
+
+    logger.info("Finished streaming %d PassengerStopAssignments", len(seen))
+
 def netex_convert_stops_to_passenger_stop_assignment(entities: list[dict[str, Any]])  -> etree.Element:
     """
     Create <PassengerStopAssignment> elements from a list of GtfsStop entities and store them in a <stopAssignments> container.
