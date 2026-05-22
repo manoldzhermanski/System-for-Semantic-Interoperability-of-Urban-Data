@@ -902,55 +902,97 @@ def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]], 
 def netex_helper_convert_line_string_to_string(line: LineString) -> str:
     """
     Convert LineString geometry to GML posList string.
+
+    Args:
+        line (LineString): The LineString geometry to convert.
+
+    Returns:
+        str: A string representation of the LineString in GML posList format
     """
 
     return " ".join(f"{x:.6f} {y:.6f}" for x, y in line.coords)
 
 def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.Element:
-    
+    """
+    Build a NeTEx <ServiceLink> element from the provided service link data.
+
+    Args:
+        service_link_data (dict[str, Any]): A dictionary containing the necessary information to build a <ServiceLink> element
+
+    Returns:
+        etree.Element: An lxml.etree.Element object representing the <ServiceLink> element
+    """
+    # Get geometry in projected CRS
     geometry_projected = service_link_data["geometry"]
 
-    gtfs_shape_line_string_geometry = netex_helper_transform_line_string_to_wgs84(geometry_projected)
+    # Transform geometry to WGS84 and convert it to a GML posList string
+    geometry_wgs84 = netex_helper_transform_line_string_to_wgs84(geometry_projected)
 
-    pos_list = netex_helper_convert_line_string_to_string(gtfs_shape_line_string_geometry)
+    # Convert the LineString geometry to a GML posList string
+    pos_list = netex_helper_convert_line_string_to_string(geometry_wgs84)
 
+    # Get distance and stop IDs for <ServiceLink> 
     distance = service_link_data["distance"]
     from_stop = service_link_data["from_stop"]
     to_stop = service_link_data["to_stop"]
 
-    service_link = etree.Element("ServiceLink", id = f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}", version = "1", nsmap=NSMAP)
+    # Build the <ServiceLink> element
+    service_link = etree.Element("ServiceLink", id=f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}", version="1")
     
     etree.SubElement(service_link, "Distance").text = f"{distance:.6f}"
 
     projections = etree.SubElement(service_link, "projections")
-    link_sequence_projection = etree.SubElement(projections, "LinkSequenceProjection", id = f"{config.NETEX_AUTHORITY}:LinkSequenceProjection:{from_stop}_{to_stop}", version = "1")
-    
-    line_string_info = etree.SubElement(link_sequence_projection, f"{{{GIS_NS}}}LineString", srcName = "4326", srcDimension = "2")
-    line_string_info.set(f"{{{GIS_NS}}}id", f"LS_{from_stop}_{to_stop}")
+    link_seq = etree.SubElement(projections, "LinkSequenceProjection",
+                                id=f"{config.NETEX_AUTHORITY}:LinkSequenceProjection:{from_stop}_{to_stop}", version="1")
 
-    etree.SubElement(line_string_info, f"{{{GIS_NS}}}posList", count = str(len(gtfs_shape_line_string_geometry.coords)), srcDimension = "2").text = pos_list
-    
-    etree.SubElement(service_link, "FromPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop}", version = "1")
-    etree.SubElement(service_link, "ToPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop}", version = "1")
+    line_string = etree.SubElement(link_seq, f"{{{GIS_NS}}}LineString", srsName="4326", srsDimension="2")
+    line_string.set(f"{{{GIS_NS}}}id", f"LS_{from_stop}_{to_stop}")
 
+    etree.SubElement(line_string, f"{{{GIS_NS}}}posList", count=str(len(geometry_wgs84.coords)), srsDimension="2").text = pos_list
+
+    etree.SubElement(service_link, "FromPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop}", version="1")
+
+    etree.SubElement(service_link, "ToPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop}", version="1")
 
     return service_link
+
+def netex_stream_service_links(xml_file, service_links_data: list[dict]) -> None:
+    """
+    Stream <ServiceLink> elements into XML.
+    Args:       
+        xml_file: An instance of the XML file writer
+        service_links_data: A list of dictionaries containing the necessary information to build <ServiceLink> elements
+
+    Returns:
+        None
+        """
     
-def netex_convert_shapes_to_service_link(service_links: list[dict]) -> etree.Element:
+    # Used to avoid duplicates
+    seen = set()
 
-    for service_link_data in service_links:
+    with xml_file.element(f"{{{NETEX_NS}}}serviceLinks"):
 
-        xml_element = netex_helper_build_service_link(
-            service_link_data
-        )
+        for data in service_links_data:
 
-        xml_string = etree.tostring(
-            xml_element,
-            encoding="unicode",
-        )
+            # Create a unique key for the stop pair and distance to avoid duplicates
+            key = (
+                data["from_stop"],
+                data["to_stop"],
+                round(data["distance"], 6),
+            )
 
-        yield xml_string
-    
+            # If seen, skip
+            if key in seen:
+                continue
+
+            # Add the key to the seen set
+            seen.add(key)
+
+            # Build the <ServiceLink> element
+            service_link = netex_helper_build_service_link(data)
+
+            # Stream <ServiceLink> into the XML file
+            xml_file.write(service_link, pretty_print=True)
 
 ##########################################################
 # GtfsCalendarRule and GtfsCalendarDateRule
@@ -2268,24 +2310,9 @@ def netex_build_service_frame(xml_file, agency, stops, stop_coordinates, shape_l
 
         netex_helper_stream_scheduled_stop_points(xml_file, stops)
 
-    # service_links = etree.SubElement(service_frame, f"{{{NETEX_NS}}}serviceLinks")
+        service_links_data = netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
 
-    # service_links_data = netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
-
-    # seen = set()
-
-    # for service_link_data in service_links_data:
-
-    #     key = (service_link_data["from_stop"], service_link_data["to_stop"], round(service_link_data["distance"], 6))
-
-    #     if key in seen:
-    #         continue
-
-    #     seen.add(key)
-
-    #     service_link = netex_helper_build_service_link(service_link_data)
-
-    #     service_links.append(service_link)
+        netex_stream_service_links(xml_file, service_links_data)
 
     # passenger_stop_assignment = netex_convert_stops_to_passenger_stop_assignment(stops)
     # service_frame.append(passenger_stop_assignment)
