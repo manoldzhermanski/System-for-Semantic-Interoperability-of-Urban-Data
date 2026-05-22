@@ -705,12 +705,11 @@ def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordina
     Calculate stop distances along a shape geometry.
 
     Args:
-    stop_ids (list[str]):
-        List of stop IDs to calculate distances for.
-    stop_coordinates (dict[str, Point]):
-        Dictionary mapping stop IDs to their coordinates in projected CRS.
-    shape_geometry (LineString):
-        Precomputed LineString geometry of the shape in projected CRS.
+    stop_ids (list[str]): List of stop IDs to calculate distances for.
+
+    stop_coordinates (dict[str, Point]): Dictionary mapping stop IDs to their coordinates in projected CRS.
+
+    shape_geometry (LineString): Precomputed LineString geometry of the shape in projected CRS.
 
     Returns:
     Dictionary mapping stop IDs to their distance along the shape in meters.
@@ -722,23 +721,19 @@ def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordina
 
     stop_distances: dict[str, float] = {}
 
+    if not stop_ids:
+        logger.error("Missing stop IDs")
+        return {}
+
     for stop_id in stop_ids:
 
         coordinates = stop_coordinates.get(stop_id)
 
         if coordinates is None:
-            logger.error(
-                "Missing coordinates for stop %s",
-                stop_id,
-            )
+            logger.error("Missing coordinates for stop %s", stop_id)
             continue
 
-        stop_distances[stop_id] = (
-            netex_helper_calculate_stop_distance_along_shape(
-                coordinates,
-                shape_geometry,
-            )
-        )
+        stop_distances[stop_id] = netex_helper_calculate_stop_distance_along_shape(coordinates, shape_geometry)
 
     return stop_distances
       

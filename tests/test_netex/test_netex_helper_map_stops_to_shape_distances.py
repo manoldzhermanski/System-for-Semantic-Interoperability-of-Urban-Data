@@ -1,158 +1,148 @@
-# import pytest
+import logging
+import pytest
+from shapely.geometry import LineString
 
-# from netex.netex_utils import netex_helper_map_stops_to_shape_distances
-
-
-# Point = tuple[float, float]
-
-
-# def test_map_stops_to_shape_distances_returns_dictionary():
-#     """
-#     Test that the function returns a dictionary.
-#     """
-
-#     stop_ids = ["STOP_1", "STOP_2"]
-
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_1": (2.0, 0.0),
-#         "STOP_2": (8.0, 0.0)
-#     }
-
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
-
-#     result = netex_helper_map_stops_to_shape_distances(
-#         stop_ids,
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert isinstance(result, dict)
-#     assert result == {
-#         "STOP_1": pytest.approx(2.0),
-#         "STOP_2": pytest.approx(8.0),
-#     }
+from netex.netex_utils import netex_helper_map_stops_to_shape_distances
 
 
+def test_map_stops_to_shape_distances_with_valid_input():
+    """
+    Test successful calculation of stop distances.
+    """
 
-# def test_map_stops_to_shape_distances_handles_multisegment_shape():
-#     """
-#     Test calculating distances on a multi-segment LineString.
-#     """
+    stop_ids = ["STOP1", "STOP2"]
 
-#     stop_ids = ["STOP_1"]
+    stop_coordinates = {
+        "STOP1": (2.0, 0.0),
+        "STOP2": (7.0, 0.0),
+    }
 
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_1": (10.0, 5.0),
-#     }
+    shape_geometry = LineString([
+        (0, 0),
+        (10, 0)
+    ])
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#         (10.0, 10.0),
-#     ]
+    result = netex_helper_map_stops_to_shape_distances(
+        stop_ids,
+        stop_coordinates,
+        shape_geometry
+    )
 
-#     result = netex_helper_map_stops_to_shape_distances(
-#         stop_ids,
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert result == {
-#         "STOP_1": pytest.approx(15.0),
-#     }
-
-
-# def test_map_stops_to_shape_distances_skips_missing_stop_coordinates():
-#     """
-#     Test that stops without coordinates are skipped.
-#     """
-
-#     stop_ids = ["STOP_1"]
-
-#     stop_coordinates: dict[str, Point] = {}
-
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
-
-#     result = netex_helper_map_stops_to_shape_distances(
-#         stop_ids,
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
-
-#     assert result == {}
+    assert result == {
+        "STOP1": 2.0,
+        "STOP2": 7.0,
+    }
 
 
-# def test_map_stops_to_shape_distances_handles_empty_stop_ids():
-#     """
-#     Test that empty stop IDs return an empty dictionary.
-#     """
+def test_map_stops_to_shape_distances_skips_missing_coordinates(caplog):
+    """
+    Test that stops without coordinates are skipped and logged.
+    """
 
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_1": (5.0, 0.0),
-#     }
+    stop_ids = ["STOP1", "STOP2"]
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    stop_coordinates = {
+        "STOP1": (3.0, 0.0),
+    }
 
-#     result = netex_helper_map_stops_to_shape_distances(
-#         [],
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
+    shape_geometry = LineString([
+        (0, 0),
+        (10, 0)
+    ])
 
-#     assert result == {}
+    with caplog.at_level(logging.ERROR):
 
+        result = netex_helper_map_stops_to_shape_distances(
+            stop_ids,
+            stop_coordinates,
+            shape_geometry
+        )
 
-# def test_map_stops_to_shape_distances_handles_empty_shape():
-#     """
-#     Test handling an empty shape.
-#     """
+    assert result == {
+        "STOP1": 3.0
+    }
 
-#     stop_ids = ["STOP_1"]
-
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_1": (5.0, 0.0),
-#     }
-
-#     result = netex_helper_map_stops_to_shape_distances(
-#         stop_ids,
-#         stop_coordinates,
-#         [],
-#     )
-
-#     assert result == {}
+    assert "Missing coordinates for stop STOP2" in caplog.text
 
 
-# def test_map_stops_to_shape_distances_preserves_stop_order():
-#     """
-#     Test that stop IDs are processed in the provided order.
-#     """
+def test_map_stops_to_shape_distances_returns_empty_when_shape_is_empty(caplog):
+    """
+    Test that empty shapes return an empty dictionary.
+    """
 
-#     stop_ids = ["STOP_A", "STOP_B", "STOP_C"]
+    stop_ids = ["STOP1"]
 
-#     stop_coordinates: dict[str, Point] = {
-#         "STOP_A": (1.0, 0.0),
-#         "STOP_B": (5.0, 0.0),
-#         "STOP_C": (9.0, 0.0),
-#     }
+    stop_coordinates = {
+        "STOP1": (1.0, 1.0),
+    }
 
-#     gtfs_shape: list[Point] = [
-#         (0.0, 0.0),
-#         (10.0, 0.0),
-#     ]
+    shape_geometry = LineString([])
 
-#     result = netex_helper_map_stops_to_shape_distances(
-#         stop_ids,
-#         stop_coordinates,
-#         gtfs_shape,
-#     )
+    with caplog.at_level(logging.ERROR):
 
-#     assert list(result.keys()) == stop_ids
+        result = netex_helper_map_stops_to_shape_distances(
+            stop_ids,
+            stop_coordinates,
+            shape_geometry
+        )
+
+    assert result == {}
+
+    assert "Cannot calculate stop distances: shape is empty" in caplog.text
+
+
+def test_map_stops_to_shape_distances_returns_empty_when_stop_ids_missing(caplog):
+    """
+    Test that missing stop IDs return an empty dictionary and log an error.
+    """
+
+    stop_ids = []
+
+    stop_coordinates = {
+        "STOP1": (1.0, 1.0),
+    }
+
+    shape_geometry = LineString([
+        (0, 0),
+        (10, 0)
+    ])
+
+    with caplog.at_level(logging.ERROR):
+
+        result = netex_helper_map_stops_to_shape_distances(
+            stop_ids,
+            stop_coordinates,
+            shape_geometry
+        )
+
+    assert result == {}
+
+    assert "Missing stop IDs" in caplog.text
+
+
+def test_map_stops_to_shape_distances_on_multisegment_shape():
+    """
+    Test distance calculation on a polyline.
+    """
+
+    stop_ids = ["STOP1"]
+
+    stop_coordinates = {
+        "STOP1": (10.0, 5.0),
+    }
+
+    shape_geometry = LineString([
+        (0, 0),
+        (10, 0),
+        (10, 10)
+    ])
+
+    result = netex_helper_map_stops_to_shape_distances(
+        stop_ids,
+        stop_coordinates,
+        shape_geometry
+    )
+
+    assert result == {
+        "STOP1": 15.0
+    }
