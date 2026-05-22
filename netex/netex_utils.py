@@ -1345,7 +1345,7 @@ def netex_helper_stream_day_type_assignments(xml_file, entities: list[dict[str, 
 # -------------------------------------------------------------
 # NeTEx <ServiceCalendarFrame> containing <DayType>, <OperatingPeriod> and <DayTypeAssignment>
 # -------------------------------------------------------------
-def stream_service_calendar_frame(xml_file, calendars, calendar_dates) -> None:
+def netex_stream_service_calendar_frame(xml_file, calendars, calendar_dates) -> None:
     """
     Streams a NeTEx <ServiceCalendarFrame> element containing <DayType>, <OperatingPeriod> and <DayTypeAssignment> elements.
     Args:
@@ -2327,7 +2327,7 @@ def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grou
     
     return service_journey
 
-def netex_build_service_frame(xml_file, agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip):
+def netex_stream_service_frame(xml_file, agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip):
     # Create ServiceFrame element and add it's subelements
     with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceCalendarFrame:1"):
         netex_helper_stream_networks(xml_file, agency)
@@ -2340,8 +2340,7 @@ def netex_build_service_frame(xml_file, agency, stops, stop_coordinates, shape_l
 
         netex_stream_service_links(xml_file, service_links_data)
 
-    # passenger_stop_assignment = netex_convert_stops_to_passenger_stop_assignment(stops)
-    # service_frame.append(passenger_stop_assignment)
+        netex_helper_stream_passenger_stop_assignments(xml_file, stops)
 
     # return service_frame
 
@@ -2368,10 +2367,10 @@ def netex_create_shared_data_xml(
                 with xml_file.element("frames"):
                     resource_frame = netex_build_resource_frame(agency)
                     xml_file.write(resource_frame, pretty_print=True)
-                    service_frame = netex_build_service_frame(xml_file, agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip)
-                    xml_file.write(service_frame, pretty_print=True)
                     
-                    stream_service_calendar_frame(xml_file, calendar, calendar_dates)
+                    netex_stream_service_frame(xml_file, agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip)
+                    
+                    netex_stream_service_calendar_frame(xml_file, calendar, calendar_dates)
 
 if __name__ == "__main__":
 
