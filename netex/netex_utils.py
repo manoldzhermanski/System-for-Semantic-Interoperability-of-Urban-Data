@@ -71,7 +71,6 @@ def netex_helper_set_operating_city(city: str) -> None:
     
     # Set the parameter
     config.NETEX_OPERATING_CITY = city
-    
 
 def netex_get_all_gtfs_agencies_to_turn_to_authorities() -> list[dict[str, Any]]:
     """
@@ -90,7 +89,22 @@ def netex_get_all_gtfs_agencies_to_turn_to_authorities() -> list[dict[str, Any]]
     
     return orion_ld_get_entities_by_type("GtfsAgency", header, config.NETEX_OPERATING_CITY)
     
+def netex_get_all_gtfs_routes_of_an_agency_to_turn_to_lines(agency_id: str) -> list[dict[str, Any]]:
+    """
+    Get all GtfsRoute entities of a GtfsAgency which are used to create NeTEx <Line>
 
+    Args:
+        agency_id (str): ID of the GtfsAgency for which we want to get the routes
+
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsRoute entities of the specified GtfsAgency that are used to create NeTEx <Line>
+    """
+    header = orion_ld_define_header("gtfs_static")
+
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_query_expression("GtfsRoute", header, f'operatedBy=="{agency_id}"')
 # -----------------------------------------------------
 # Set NeTEx Authority for ID Generation
 # -----------------------------------------------------
@@ -169,180 +183,213 @@ def netex_build_frame_defaults(agency: dict[str, Any]) -> etree.Element:
 # Observing the Netur Dataset we see a mapping of GTFS Agency to NeTEx Authority.
 # We already discussed that we will map GTFS Agency also to Operator but this begs the question - In general where does the Operator data come from if not observed in the GTFS files ?
 # Plus thete are multiple operators and 1 authority that combines them
-
-def netex_convert_agency_to_authority(entities: list[dict[str, Any]] | dict[str, Any]) -> list[etree.Element]:
+def netex_helper_build_authority(gtfs_agency: dict[str, Any], company_number: int) -> etree.Element | None:
     """
-    Converts a list of GtfsAgency entities into NeTEx Nordic <Authority> elements.
+    Builds a single NeTEx <Authority> element.
 
     Args:
-        entities (list[dict[str, Any]]): A list of GtfsAgency entities
-        
+        entity (dict[str, Any]): A GtfsAgency entity
+        company_number (int): Index of the entity in the input stream
+
     Returns:
-        A list of lxml.etree.Element objects, where each element is a fully
-        formed NeTEx <Authority> element.
+        etree.Element | None
     """
-    if isinstance(entities, dict):
-        entities = [entities]
 
-    # List to store Authority elements
-    authority_list = []
+    # Get entity type and ID
+    entity_type = gtfs_agency.get("type")
+    agency_id = gtfs_agency.get("id")
 
-    # Iterate through all agencies
-    for index, entity in enumerate(entities, start = 1):
+    # If not the correct entity type, return None
+    if entity_type != "GtfsAgency":
+        logger.error("Unsupported entity type for Authority conversion: %s", entity_type)
+        return None
 
-        # Get the agency id value
-        agency_id = entity["id"]
-        if not isinstance(agency_id, str) or ":" not in agency_id:
-            logger.error("Invalid or missing ID for GtfsAgency: %r", agency_id)
-            continue
-        agency_id_value = agency_id.split(":")[-1]
+    # If not in the correct format, log an error and return None
+    if not isinstance(agency_id, str) or ":" not in agency_id:
+        logger.error("Invalid or missing ID for GtfsAgency: %r", agency_id)
+        return None
 
-        # Get agency name
-        agency_name = entity.get("agency_name", {}).get("value")
+    agency_id_value = agency_id.split(":")[-1]
+    agency_name = gtfs_agency.get("agency_name", {}).get("value")
 
-        # Build Authority XML element
-        authority = etree.Element("Authority", version = "1", id = f"{config.NETEX_AUTHORITY}:Authority:{agency_id_value}_ID")
+    # Build <Authority> element with it's info
+    authority = etree.Element("Authority", version="1", id=f"{config.NETEX_AUTHORITY}:Authority:{agency_id_value}_ID")
 
-        # Set mandatory company number to index at which the element is at the input list
-        etree.SubElement(authority, "CompanyNumber").text = str(index)
+    etree.SubElement(authority, "CompanyNumber").text = str(company_number)
+    etree.SubElement(authority, "Name").text = agency_name
+    etree.SubElement(authority, "LegalName").text = agency_name
 
-        # Set Name element
-        etree.SubElement(authority, "Name").text = agency_name
-        
-        # Set LegalName element
-        etree.SubElement(authority, "LegalName").text = agency_name
+    agency_phone = gtfs_agency.get("agency_phone", {}).get("value")
+    agency_fare_url = gtfs_agency.get("agency_fare_url", {}).get("value")
+    agency_email = gtfs_agency.get("agency_email", {}).get("value")
 
-        # Get agency_fare_url (mandatory field), agency_phone (optional field) and agency_email (optional field)
-        agency_phone = entity.get("agency_phone", {}).get("value")
-        agency_fare_url = entity.get("agency_fare_url", {}).get("value")
-        agency_email = entity.get("agency_email", {}).get("value")
+    contact = etree.SubElement(authority, "ContactDetails")
 
-        # Set ContactDetails element
-        authority_contact_details = etree.SubElement(authority, "ContactDetails")
+    if agency_email:
+        etree.SubElement(contact, "Email").text = agency_email
 
-        # Set authority email if provided
-        if agency_email:
-            etree.SubElement(authority_contact_details, "Email").text = agency_email
+    if agency_phone:
+        etree.SubElement(contact, "Phone").text = agency_phone
 
-        # Set authority phone if provided
-        if agency_phone:
-            etree.SubElement(authority_contact_details, "Phone").text = agency_phone
+    etree.SubElement(contact, "Url").text = agency_fare_url
 
-        # Set authority url
-        etree.SubElement(authority_contact_details, "Url").text = agency_fare_url
-        
+    etree.SubElement(authority, "OrganisationType").text = "authority"
 
-        # Set OrganisationType to authority
-        etree.SubElement(authority, "OrganisationType").text = "authority"
+    return authority
 
-        # Append authority
-        authority_list.append(authority)
-   
-    # Return authority_list
-    return authority_list
-
-def netex_convert_agency_to_operator(entities: list[dict[str, Any]]) -> list[etree.Element]:
+def netex_helper_stream_authorities(xml_file, agencies: list[dict[str, Any]]) -> None:
     """
-    Converts a list of GtfsAgency entities into NeTEx Nordic <Operator> elements.
+    Streams Authority elements into XML.
 
     Args:
-        entities (list[dict[str, Any]]): A list of GtfsAgency entities
+        xml_file: XML writer instance
+        agencies (list[dict[str, Any]]): List of GtfsAgency entities
+
     Returns:
-        A list of lxml.etree.Element objects, where each element is a fully
-        formed NeTEx <Operator> element
+        None
     """
-    if isinstance(entities, dict):
-        entities = [entities]
-    # List to store Operator elements
-    operator_list = []
+    # Set used to not introduce duplicates
+    seen_ids = set()
 
-    # Iterate through all agencies
-    for index, entity in enumerate(entities, start = 1):
+    for index, entity in enumerate(agencies, start=1):
 
-        # Get the agency id value
-        agency_id = entity.get("id")
-        if not isinstance(agency_id, str) or ":" not in agency_id:
-            logger.error("Invalid or missing ID for GtfsAgency: %r", agency_id)
+        # Build <Authority> element
+        authority = netex_helper_build_authority(entity, index)
+
+        # Skip when unsuccessful
+        if authority is None:
             continue
-        agency_id_value = agency_id.split(":")[-1]
 
-        # Get agency name
-        agency_name = entity.get("agency_name", {}).get("value")
+        # Get <Authority> element's ID
+        authority_id = authority.get("id")
 
-        # Build Operator XML element
-        operator = etree.Element("Operator", version = "1", id = f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}")
+        # If encountered already, skip
+        if authority_id in seen_ids:
+            continue
 
-        # Set mandatory company number to index at which the element is at the input list
-        etree.SubElement(operator, "CompanyNumber").text = str(index)
+        # Add ID to seen IDs set
+        seen_ids.add(authority_id)
 
-        # Set Name element
-        etree.SubElement(operator, "Name").text = agency_name
+        # Stream <Authority> element in XML file
+        xml_file.write(authority, pretty_print=True)
 
-        # Set LegalName element
-        etree.SubElement(operator, "LegalName").text = agency_name
+def netex_helper_build_operator(entity: dict[str, Any], company_number: int) -> etree.Element | None:
+    """
+    Builds a single NeTEx <Operator> element.
 
-        # Get agency_fare_url (mandatory field), agency_phone (optional field) and agency_email (optional field)
-        agency_phone = entity.get("agency_phone", {}).get("value")
-        agency_fare_url = entity.get("agency_fare_url", {}).get("value")
-        agency_email = entity.get("agency_email", {}).get("value")
+    Args:
+        entity (dict[str, Any]): A GtfsAgency entity
+        company_number (int): Index of the entity in the input stream
 
-        # Set ContactDetails element
-        operator_contact_details = etree.SubElement(operator, "ContactDetails")
+    Returns:
+        etree.Element | None
+    """
+    # Get entity type and ID
+    entity_type = entity.get("type")
+    agency_id = entity.get("id")
 
-        # Set authority email if provided
-        if agency_email:
-            etree.SubElement(operator_contact_details, "Email").text = agency_email
+    # If not the correct entity type, return None
+    if entity_type != "GtfsAgency":
+        logger.error("Unsupported entity type for Operator conversion: %s", entity_type)
+        return None
 
-        # Set authority phone if provided
-        if agency_phone:
-            etree.SubElement(operator_contact_details, "Phone").text = agency_phone
+    # If not in the correct format, log an error and return None
+    if not isinstance(agency_id, str) or ":" not in agency_id:
+        logger.error("Invalid or missing ID for GtfsAgency: %r", agency_id)
+        return None
 
-        # Set authority url
-        etree.SubElement(operator_contact_details, "Url").text = agency_fare_url
+    agency_id_value = agency_id.split(":")[-1]
+    agency_name = entity.get("agency_name", {}).get("value")
 
-        # Set OrganisationType to operator
-        etree.SubElement(operator, "OrganisationType").text = "operator"
+    # Build <Operator> element with it's info
+    operator = etree.Element("Operator", version="1", id=f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}")
 
-        # Append operator
-        operator_list.append(operator)
+    etree.SubElement(operator, "CompanyNumber").text = str(company_number)
+    etree.SubElement(operator, "Name").text = agency_name
+    etree.SubElement(operator, "LegalName").text = agency_name
 
-    # Return operator_list
-    return operator_list
+    agency_phone = entity.get("agency_phone", {}).get("value")
+    agency_fare_url = entity.get("agency_fare_url", {}).get("value")
+    agency_email = entity.get("agency_email", {}).get("value")
 
+    contact = etree.SubElement(operator, "ContactDetails")
+
+    if agency_email:
+        etree.SubElement(contact, "Email").text = agency_email
+
+    if agency_phone:
+        etree.SubElement(contact, "Phone").text = agency_phone
+
+    etree.SubElement(contact, "Url").text = agency_fare_url
+
+    etree.SubElement(operator, "OrganisationType").text = "operator"
+
+    return operator
+
+def netex_helper_stream_operators(xml_file, agencies: list[dict[str, Any]]) -> None:
+    """
+    Streams Operator elements into XML.
+
+    Args:
+        xml_file: XML writer instance
+        agencies (list[dict[str, Any]]): List of GtfsAgency entities
+
+    Returns:
+        None
+    """
+    # Set used to not introduce duplicates
+    seen_ids = set()
+
+    for index, entity in enumerate(agencies, start=1):
+
+        # Build <Operator> element
+        operator = netex_helper_build_operator(entity, index)
+
+        # Skip when unsuccessful
+        if operator is None:
+            continue
+     
+        # Get <Operator> element's ID
+        operator_id = operator.get("id")
+
+        # If encountered already, skip
+        if operator_id in seen_ids:
+            continue
+
+        # Add ID to seen IDs set
+        seen_ids.add(operator_id)
+
+        # Stream <Operator> element in XML file
+        xml_file.write(operator, pretty_print=True)
 # -----------------------------------------------------
 # Generate <ResourceFrame>
 # -----------------------------------------------------
 
-def netex_build_resource_frame(agency: list[dict[str, Any]]) -> etree.Element:
+def netex_stream_resource_frame(xml_file, agencies: list[dict[str, Any]]) -> None:
     """
-    Builds the NeTEx <ResourceFrame> element which contains all <Authority> and <Operator> elements
+    Streams NeTEx <ResourceFrame> into XML.
 
     Args:
-        agency (list[dict[str, Any]]): A list of GtfsAgency entities
-        
+        xml_file: XML writer instance
+        agencies (list[dict[str, Any]]): GtfsAgency entities
+
     Returns:
-        An lxml.etree.Element object representing the complete <ResourceFrame>.
+        None
     """
-    # Create ResourceFrame element and add it's organisations sub-element
-    resource_frame = etree.Element("ResourceFrame", version = "1", id = f"{config.NETEX_AUTHORITY}:ResourceFrame:1")
-    organisations = etree.SubElement(resource_frame, "organisations")
 
-    # Append all authorites to organisations
-    authorities = netex_convert_agency_to_authority(agency)
-    for authority in authorities:
-        organisations.append(authority)
+    with xml_file.element("ResourceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ResourceFrame:1"):
+        with xml_file.element("organisations"):
 
-    # Append all operators to organisations
-    operators = netex_convert_agency_to_operator(agency)
-    for operator in operators:
-        organisations.append(operator)
+            # Stream Authorities
+            netex_helper_stream_authorities(xml_file, agencies)
 
-    # Return ResourceFrame
-    return resource_frame
+            # Stream Operators
+            netex_helper_stream_operators(xml_file, agencies)
 
 # -----------------------------------------------------
 # Generate <Network>
 # -----------------------------------------------------
+# TO-DO: ADD COMMENTS
 def netex_helper_build_network(agency: dict[str, Any]) -> etree.Element | None:
     """
     Builds a single NeTEx <Network> element.
@@ -376,6 +423,7 @@ def netex_helper_build_network(agency: dict[str, Any]) -> etree.Element | None:
 
     return network
 
+# TO-DO: ADD COMMENTS
 def netex_helper_stream_networks(xml_file, agency: dict[str, Any]) -> None:
     """
     Streams Network elements into XML.
@@ -2423,8 +2471,7 @@ def netex_create_shared_data_xml(
                 frame = netex_build_frame_defaults(agency)
                 xml_file.write(frame, pretty_print=True)
                 with xml_file.element("frames"):
-                    resource_frame = netex_build_resource_frame(agency)
-                    xml_file.write(resource_frame, pretty_print=True)
+                    netex_stream_resource_frame(xml_file, agency)
                     
                     netex_stream_service_frame(xml_file, agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip)
                     
@@ -2432,27 +2479,31 @@ def netex_create_shared_data_xml(
 
 if __name__ == "__main__":
 
+    # netex_helper_set_operating_city("Sofia")
+    # authorities = netex_get_all_gtfs_agencies_to_turn_to_authorities()
+    # for autority in authorities:
+    #     routes = netex_get_all_gtfs_routes_of_an_agency_to_turn_to_lines(autority["id"])
+    #     print(json.dumps(routes, indent=2, ensure_ascii=False))
+
     city = "Sofia"
     header = orion_ld_define_header("gtfs_static")
     agencies = orion_ld_get_entities_by_type("GtfsAgency", header, city)
-    # stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
-    # stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
-    # shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
-    # trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
-    # routes = orion_ld_get_entities_by_type("GtfsRoute", header, city)
-    # calendar = orion_ld_get_entities_by_type("GtfsCalendarRule", header, city)
-    # calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header, city)
+    stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
+    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
+    shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
+    trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
+    routes = orion_ld_get_entities_by_type("GtfsRoute", header, city)
+    calendar = orion_ld_get_entities_by_type("GtfsCalendarRule", header, city)
+    calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header, city)
 
-    # stop_coordinates = netex_helper_extract_stop_coordinates(stops)
-    # shape_linestrings = netex_helper_extract_shape_linestrings(shapes)
-    # shape_per_trip = netex_helper_map_trips_to_shapes(trips)
-    # stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+    stop_coordinates = netex_helper_extract_stop_coordinates(stops)
+    shape_linestrings = netex_helper_extract_shape_linestrings(shapes)
+    shape_per_trip = netex_helper_map_trips_to_shapes(trips)
+    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
 
     for agency in agencies:
         netex_helper_set_netex_authority(agency)
-        filtered_routes = orion_ld_get_entities_by_query_expression("GtfsRoute", header, f'operatedBy=="{agency["id"]}"')
-        print(json.dumps(filtered_routes, indent=2, ensure_ascii=False))
-        #netex_create_shared_data_xml(agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, calendar, calendar_dates)
+        netex_create_shared_data_xml(agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, calendar, calendar_dates)
 
     # print(len(seen))
     # # route_names = netex_helper_get_route_id_and_name(routes)
