@@ -21,3 +21,5 @@ class OrionLDEndpoint(Enum):
     BATCH_UPDATE_ENDPOINT = f"{ORION_LD_BASE_URL}/entityOperations/upsert?options=update"
 
 NETEX_AUTHORITY = None
+
+NETEX_OPERATING_CITY = None

@@ -264,7 +264,7 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str], id_p
     # Return all entities
     return all_entities
 
-def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, query_expression: str, id_pattern: str | None = None) -> list[dict[str, Any]]:
+def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, query_expression: str, id_pattern: str | None = None, ids_only: bool = False) -> list[dict[str, Any]]:
     """
     Retrieve all entities of a specific NGSI-LD type that match a given query expression.
 
@@ -347,7 +347,10 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, que
                 break
 
             # Extend entity list
-            all_entities.extend(data)
+            if ids_only:
+                all_entities.extend(entity["id"] for entity in data)
+            else:
+                all_entities.extend(data)
 
             # Move offset for next page
             offset += 1000

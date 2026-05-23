@@ -4,7 +4,7 @@ from lxml import etree
 from io import BytesIO
 from unittest.mock import MagicMock
 
-from netex.netex_utils import stream_service_calendar_frame
+from netex.netex_utils import netex_stream_service_calendar_frame
 
 
 @pytest.fixture(autouse=True)
@@ -19,7 +19,7 @@ def test_service_calendar_frame_structure():
     calendar_dates = []
 
     with etree.xmlfile(xml_output, encoding="utf-8") as xf:
-        stream_service_calendar_frame(xf, calendars, calendar_dates)
+        netex_stream_service_calendar_frame(xf, calendars, calendar_dates)
 
     xml_str = xml_output.getvalue().decode()
 
@@ -47,7 +47,7 @@ def test_stream_calls_day_types(monkeypatch):
     calendars = [{"type": "GtfsCalendarRule"}]
     calendar_dates = [{"type": "GtfsCalendarDateRule"}]
 
-    stream_service_calendar_frame(xml_file, calendars, calendar_dates)
+    netex_stream_service_calendar_frame(xml_file, calendars, calendar_dates)
 
     all_entities = calendars + calendar_dates
 

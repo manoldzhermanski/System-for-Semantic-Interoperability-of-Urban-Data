@@ -1,3 +1,4 @@
+import re
 import sys
 import json
 import math
@@ -21,7 +22,8 @@ import config
 from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_batches
 from orion_ld.orion_ld_crud_operations import (
     orion_ld_define_header,
-    orion_ld_get_entities_by_type
+    orion_ld_get_entities_by_type,
+    orion_ld_get_entities_by_query_expression
     )
 
 logger = logging.getLogger("NeTEx_Converter")
@@ -31,10 +33,63 @@ GIS_NS = "http://www.opengis.net/gml/3.2"
 SIRI_NS = "http://www.siri.org.uk/siri"
 
 NSMAP = {
-    None: NETEX_NS,
+    "n": NETEX_NS,
     "gis": GIS_NS,
     "siri": SIRI_NS
 }
+# -----------------------------------------------------
+# Get Data Functions
+# -----------------------------------------------------
+def netex_helper_set_operating_city(city: str) -> None:
+    """
+    Set the parameter config.NETEX_OPERATING_CITY to the city for which we want to get data
+    
+    Args:
+        city (str): Operating city for which we want to get data
+
+    Returns:
+        None
+
+    Raises:
+        TypeError: If `city` is not a string
+        ValueError: If `city` is empty or contains invalid characters
+    """
+    # If not a string, raise TypeError
+    if not isinstance(city, str):
+        raise TypeError("City must be a string")
+
+    # Remove whitespaces around and set to title case
+    city = city.strip().title()
+
+    # If empty, raise ValueError
+    if not city:
+        raise ValueError("City cannot be empty")
+
+    # Check that the city contains valid characters
+    if not re.fullmatch(r"[A-Za-zА-Яа-я_-]+", city):
+        raise ValueError("City contains invalid characters")
+    
+    # Set the parameter
+    config.NETEX_OPERATING_CITY = city
+    
+
+def netex_get_all_gtfs_agencies_to_turn_to_authorities() -> list[dict[str, Any]]:
+    """
+    Get all GtfsAgency entities which are used to create NeTEx <Authority>
+
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsAgency entities that are used to create NeTEx <Authority>
+
+    Raises:
+        ValueError: When config.NETEX_OPERATING_CITY is not set
+    """
+    header = orion_ld_define_header("gtfs_static")
+
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_type("GtfsAgency", header, config.NETEX_OPERATING_CITY)
+    
 
 # -----------------------------------------------------
 # Set NeTEx Authority for ID Generation
@@ -913,12 +968,12 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.
     to_stop = service_link_data["to_stop"]
 
     # Build the <ServiceLink> element
-    service_link = etree.Element("ServiceLink", id=f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}", version="1")
+    service_link = etree.Element(f"{{{NETEX_NS}}}ServiceLink", id=f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}", version="1")
     
-    etree.SubElement(service_link, "Distance").text = f"{distance:.6f}"
+    etree.SubElement(service_link, f"{{{NETEX_NS}}}Distance").text = f"{distance:.6f}"
 
-    projections = etree.SubElement(service_link, "projections")
-    link_seq = etree.SubElement(projections, "LinkSequenceProjection",
+    projections = etree.SubElement(service_link, f"{{{NETEX_NS}}}projections")
+    link_seq = etree.SubElement(projections, f"{{{NETEX_NS}}}LinkSequenceProjection",
                                 id=f"{config.NETEX_AUTHORITY}:LinkSequenceProjection:{from_stop}_{to_stop}", version="1")
 
     line_string = etree.SubElement(link_seq, f"{{{GIS_NS}}}LineString", srsName="4326", srsDimension="2")
@@ -926,9 +981,9 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.
 
     etree.SubElement(line_string, f"{{{GIS_NS}}}posList", count=str(len(geometry_wgs84.coords)), srsDimension="2").text = pos_list
 
-    etree.SubElement(service_link, "FromPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop}", version="1")
+    etree.SubElement(service_link, f"{{{NETEX_NS}}}FromPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop}", version="1")
 
-    etree.SubElement(service_link, "ToPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop}", version="1")
+    etree.SubElement(service_link, f"{{{NETEX_NS}}}ToPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop}", version="1")
 
     return service_link
 
@@ -942,11 +997,12 @@ def netex_stream_service_links(xml_file, service_links_data: list[dict]) -> None
     Returns:
         None
         """
-    
+    logger.info("Streaming ServiceLinks")
+
     # Used to avoid duplicates
     seen = set()
 
-    with xml_file.element(f"{{{NETEX_NS}}}serviceLinks"):
+    with xml_file.element("serviceLinks"):
 
         for data in service_links_data:
 
@@ -969,6 +1025,9 @@ def netex_stream_service_links(xml_file, service_links_data: list[dict]) -> None
 
             # Stream <ServiceLink> into the XML file
             xml_file.write(service_link, pretty_print=True)
+
+    logger.info("Finished streaming %d ServiceLinks", len(seen))
+    
 
 ##########################################################
 # GtfsCalendarRule and GtfsCalendarDateRule
@@ -2329,7 +2388,7 @@ def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grou
 
 def netex_stream_service_frame(xml_file, agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip):
     # Create ServiceFrame element and add it's subelements
-    with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceCalendarFrame:1"):
+    with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:1"):
         netex_helper_stream_networks(xml_file, agency)
 
         netex_helper_stream_route_points(xml_file, stops)
@@ -2342,7 +2401,6 @@ def netex_stream_service_frame(xml_file, agency, stops, stop_coordinates, shape_
 
         netex_helper_stream_passenger_stop_assignments(xml_file, stops)
 
-    # return service_frame
 
 
 def netex_create_shared_data_xml(
@@ -2377,24 +2435,24 @@ if __name__ == "__main__":
     city = "Sofia"
     header = orion_ld_define_header("gtfs_static")
     agencies = orion_ld_get_entities_by_type("GtfsAgency", header, city)
-    stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
-    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
-    shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
-    trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
-    routes = orion_ld_get_entities_by_type("GtfsRoute", header, city)
-    calendar = orion_ld_get_entities_by_type("GtfsCalendarRule", header, city)
-    calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header, city)
+    # stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
+    # stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
+    # shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
+    # trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
+    # routes = orion_ld_get_entities_by_type("GtfsRoute", header, city)
+    # calendar = orion_ld_get_entities_by_type("GtfsCalendarRule", header, city)
+    # calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header, city)
 
-    stop_coordinates = netex_helper_extract_stop_coordinates(stops)
-    shape_linestrings = netex_helper_extract_shape_linestrings(shapes)
-    shape_per_trip = netex_helper_map_trips_to_shapes(trips)
-    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+    # stop_coordinates = netex_helper_extract_stop_coordinates(stops)
+    # shape_linestrings = netex_helper_extract_shape_linestrings(shapes)
+    # shape_per_trip = netex_helper_map_trips_to_shapes(trips)
+    # stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
 
     for agency in agencies:
         netex_helper_set_netex_authority(agency)
-        netex_create_shared_data_xml(agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, calendar, calendar_dates)
-
-    
+        filtered_routes = orion_ld_get_entities_by_query_expression("GtfsRoute", header, f'operatedBy=="{agency["id"]}"')
+        print(json.dumps(filtered_routes, indent=2, ensure_ascii=False))
+        #netex_create_shared_data_xml(agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, calendar, calendar_dates)
 
     # print(len(seen))
     # # route_names = netex_helper_get_route_id_and_name(routes)
@@ -2416,4 +2474,7 @@ if __name__ == "__main__":
 
     # #    print(f"--- Route group: {route_id} ---")
     # #    print(xml_str)
+
+    #filtered_routes = orion_ld_get_entities_by_query_expression("GtfsRoute", header, f'operatedBy=="urn:ngsi-ld:GtfsAgency:{city}:A"')
+    #print(json.dumps(filtered_routes, indent=2, ensure_ascii=False))
 
