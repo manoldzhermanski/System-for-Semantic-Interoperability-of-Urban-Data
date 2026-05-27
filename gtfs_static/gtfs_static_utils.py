@@ -2196,6 +2196,7 @@ def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict
     return {
             "id": entity_id,
             "type": "GtfsTransferRule",
+            
             "hasOrigin": {
                 "type": "Relationship",
                 "object": entity.get("from_stop_id")

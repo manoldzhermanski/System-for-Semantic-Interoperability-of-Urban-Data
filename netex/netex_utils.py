@@ -89,7 +89,7 @@ def netex_get_all_gtfs_agencies_to_turn_to_authorities() -> list[dict[str, Any]]
     
     return orion_ld_get_entities_by_type("GtfsAgency", header, config.NETEX_OPERATING_CITY)
     
-def netex_get_all_gtfs_routes_of_an_agency_to_turn_to_lines(agency_id: str) -> list[dict[str, Any]]:
+def netex_get_all_gtfs_routes_of_an_agency(agency_id: str) -> list[dict[str, Any]]:
     """
     Get all GtfsRoute entities of a GtfsAgency which are used to create NeTEx <Line>
 
@@ -99,12 +99,77 @@ def netex_get_all_gtfs_routes_of_an_agency_to_turn_to_lines(agency_id: str) -> l
     Returns:
         list[dict[str, Any]]: A list of all GtfsRoute entities of the specified GtfsAgency that are used to create NeTEx <Line>
     """
+    # Define header
     header = orion_ld_define_header("gtfs_static")
 
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_query_expression("GtfsRoute", header, f'operatedBy=="{agency_id}"')
+    return orion_ld_get_entities_by_query_expression("GtfsRoute", header, f'operatedBy=="{agency_id}"', config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_trips_of_a_route(route_id: str) -> list[dict[str, Any]]:
+    """
+    Get all GtfsTrip entities of a GtfsRoute which are used to create NeTEx <Route>, <JourneyPattern> 
+    and additionally used to create <ServiceLink>
+
+    Args:
+        route_id (str): ID of the GtfsRoute for which we want to get the trips
+
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsTrip entities of the specified GtfsRoute that are used to create
+        NeTEx <Route>, <JourneyPattern> and additionally used to create <ServiceLink>
+    """
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_query_expression("GtfsTrip", header, f'route=="{route_id}"', config.NETEX_OPERATING_CITY)
+       
+def netex_get_all_gtfs_calendar_of_a_trip(service_id: str) -> list[dict[str, Any]]:
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_query_expression("GtfsCalendarRule", header, f'hasService=="{service_id}"', config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_calendar_dates_of_a_trip(service_id: str) -> list[dict[str, Any]]:
+    
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_query_expression("GtfsCalendarDateRule", header, f'hasService=="{service_id}"', config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_shapes_of_a_trip(shape_id: str) -> list[dict[str, Any]]:
+    
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_query_expression("GtfsShape", header, f'id=="{shape_id}"', config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_stop_times_of_a_trip(trip_id: str) -> list[dict[str, Any]]:
+    
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_query_expression("GtfsStopTime", header, f'hasTrip=="{trip_id}"', config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_stops_of_stop_times(stop_id: str) -> list[dict[str, Any]]:
+    
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_query_expression("GtfsStop", header, f'id=="{stop_id}"', config.NETEX_OPERATING_CITY)
+
 # -----------------------------------------------------
 # Set NeTEx Authority for ID Generation
 # -----------------------------------------------------
@@ -755,7 +820,7 @@ def netex_helper_cut_shape_between_distances(shape_geometry: LineString, start_d
     
     # If the end distance is less than or equal to the start distance, return an empty list
     if end_d <= start_d:
-        return []
+        return LineString()
 
     # Return the segment of the shape's LineString geometry between the two distances
     return substring(shape_geometry, start_d, end_d)

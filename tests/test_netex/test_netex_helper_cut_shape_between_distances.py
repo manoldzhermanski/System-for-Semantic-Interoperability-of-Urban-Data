@@ -25,7 +25,7 @@ def test_cut_shape_returns_empty_when_end_distance_equals_start_distance():
 
     result = netex_helper_cut_shape_between_distances(shape, 5, 5)
 
-    assert result == []
+    assert result == LineString()
 
 
 def test_cut_shape_returns_empty_when_end_distance_less_than_start_distance():
@@ -37,7 +37,7 @@ def test_cut_shape_returns_empty_when_end_distance_less_than_start_distance():
 
     result = netex_helper_cut_shape_between_distances(shape, 8, 2)
 
-    assert result == []
+    assert result == LineString()
 
 
 def test_cut_shape_with_full_length_returns_original_geometry():

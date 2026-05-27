@@ -162,7 +162,7 @@ def test_returns_empty_list_when_end_distance_before_start_distance():
         shape_geometry
     )
 
-    assert result == []
+    assert result == LineString()
 
 
 def test_create_segment_on_multisegment_shape():
