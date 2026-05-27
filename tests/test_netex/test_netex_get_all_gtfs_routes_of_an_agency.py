@@ -14,7 +14,8 @@ def test_netex_get_all_gtfs_routes_of_an_agency():
     mock_routes = [
         {
             "id": "urn:ngsi-ld:GtfsRoute:Sofia:72",
-            "type": "GtfsRoute"
+            "type": "GtfsRoute",
+            "operatedBy": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsAgency:Sofia:A"}
         }
     ]
 

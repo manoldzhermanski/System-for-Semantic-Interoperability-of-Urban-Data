@@ -1,7 +1,8 @@
 import logging
 import pytest
+import netex.netex_utils as netex_utils
 from shapely.geometry import LineString
-from netex.netex_utils import netex_helper_for_every_trip_compute_stop_distances_along_shapes
+from unittest.mock import MagicMock
 
 
 def test_compute_stop_distances_for_single_trip():
@@ -29,7 +30,7 @@ def test_compute_stop_distances_for_single_trip():
         "TRIP1": "SHAPE1"
     }
 
-    result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+    result = netex_utils.netex_helper_for_every_trip_compute_stop_distances_along_shapes(
         stops_per_trip,
         stop_coordinates,
         shape_geometries,
@@ -69,7 +70,7 @@ def test_compute_stop_distances_for_multiple_trips():
         "TRIP2": "SHAPE2",
     }
 
-    result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+    result = netex_utils.netex_helper_for_every_trip_compute_stop_distances_along_shapes(
         stops_per_trip,
         stop_coordinates,
         shape_geometries,
@@ -91,21 +92,21 @@ def test_returns_empty_when_required_input_missing(caplog):
     Test that missing required input data returns empty dictionary.
     """
 
-    with caplog.at_level(logging.ERROR):
-
-        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-            {},
-            {},
-            {},
-            {}
-        )
+    netex_utils.logger.error = MagicMock()
+    
+    result = netex_utils.netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+        {},
+        {},
+        {},
+        {}
+    )
 
     assert result == {}
 
-    assert "Missing required input data for computing stop distances along shapes" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Missing required input data for computing stop distances along shapes")
 
 
-def test_skips_trip_when_shape_id_missing(caplog):
+def test_skips_trip_when_shape_id_missing():
     """
     Test that trips with missing shape IDs are skipped.
     """
@@ -126,21 +127,20 @@ def test_skips_trip_when_shape_id_missing(caplog):
         "TRIP2": "SHAPE2",
     }
 
-    with caplog.at_level(logging.ERROR):
+    netex_utils.logger.error = MagicMock()
 
-        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-            stops_per_trip,
-            stop_coordinates,
-            shape_geometries,
-            shape_per_trip
-        )
+    result = netex_utils.netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+        stops_per_trip,
+        stop_coordinates,
+        shape_geometries,
+        shape_per_trip
+    )
 
     assert result == {}
+    netex_utils.logger.error.assert_called_once_with("Missing shape ID for trip %s", "TRIP1")
 
-    assert "Missing shape ID for trip TRIP1" in caplog.text
 
-
-def test_skips_trip_when_shape_geometry_missing(caplog):
+def test_skips_trip_when_shape_geometry_missing():
     """
     Test that trips with missing shape geometries are skipped.
     """
@@ -161,21 +161,21 @@ def test_skips_trip_when_shape_geometry_missing(caplog):
         "TRIP1": "SHAPE1"
     }
 
-    with caplog.at_level(logging.ERROR):
+    netex_utils.logger.error = MagicMock()
 
-        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-            stops_per_trip,
-            stop_coordinates,
-            shape_geometries,
+    result = netex_utils.netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+        stops_per_trip,
+        stop_coordinates,
+        shape_geometries,
             shape_per_trip
         )
 
     assert result == {}
 
-    assert "Invalid shape geometry for trip TRIP1" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid shape geometry for trip %s", "TRIP1")
 
 
-def test_skips_trip_when_shape_geometry_is_empty(caplog):
+def test_skips_trip_when_shape_geometry_is_empty():
     """
     Test that trips with empty shape geometries are skipped.
     """
@@ -196,21 +196,20 @@ def test_skips_trip_when_shape_geometry_is_empty(caplog):
         "TRIP1": "SHAPE1"
     }
 
-    with caplog.at_level(logging.ERROR):
+    netex_utils.logger.error = MagicMock()
 
-        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-            stops_per_trip,
-            stop_coordinates,
-            shape_geometries,
-            shape_per_trip
-        )
+    result = netex_utils.netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+        stops_per_trip,
+        stop_coordinates,
+        shape_geometries,
+        shape_per_trip
+    )
 
     assert result == {}
+    netex_utils.logger.error.assert_called_once_with("Invalid shape geometry for trip %s", "TRIP1")
 
-    assert "Invalid shape geometry for trip TRIP1" in caplog.text
 
-
-def test_partial_success_when_one_trip_fails(caplog):
+def test_partial_success_when_one_trip_fails():
     """
     Test that valid trips are still processed when another trip fails.
     """
@@ -233,11 +232,11 @@ def test_partial_success_when_one_trip_fails(caplog):
         "TRIP1": "SHAPE1"
     }
 
-    with caplog.at_level(logging.ERROR):
+    netex_utils.logger.error = MagicMock()
 
-        result = netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-            stops_per_trip,
-            stop_coordinates,
+    result = netex_utils.netex_helper_for_every_trip_compute_stop_distances_along_shapes(
+        stops_per_trip,
+        stop_coordinates,
             shape_geometries,
             shape_per_trip
         )
@@ -248,4 +247,4 @@ def test_partial_success_when_one_trip_fails(caplog):
         }
     }
 
-    assert "Missing shape ID for trip TRIP2" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Missing shape ID for trip %s", "TRIP2")

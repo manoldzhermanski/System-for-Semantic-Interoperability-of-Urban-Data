@@ -1,7 +1,8 @@
 import pytest
 import logging
-from lxml import etree
-from netex.netex_utils import netex_helper_build_route_point
+import lxml.etree as etree
+import netex.netex_utils as netex_utils
+from unittest.mock import MagicMock
 
 @pytest.fixture(autouse=True)
 def set_netex_authority(monkeypatch):
@@ -28,7 +29,7 @@ def test_build_route_point_success():
         "type": "GtfsStop"
     }
 
-    result_xml = netex_helper_build_route_point(entity)
+    result_xml = netex_utils.netex_helper_build_route_point(entity)
 
     expected_xml = """
     <RoutePoint version="1" id="TEST:RoutePoint:Stop1">
@@ -43,7 +44,7 @@ def test_build_route_point_success():
     assert_xml_equal(result_xml, expected_xml)
 
 
-def test_build_route_point_returns_none_for_invalid_type(caplog):
+def test_build_route_point_returns_none_for_invalid_type():
     """
     Test unsupported entity type returns None and logs error.
     """
@@ -53,16 +54,16 @@ def test_build_route_point_returns_none_for_invalid_type(caplog):
         "type": "GtfsRoute"
     }
 
-    with caplog.at_level(logging.ERROR):
+    netex_utils.logger.error = MagicMock()
 
-        result = netex_helper_build_route_point(entity)
+    result = netex_utils.netex_helper_build_route_point(entity)
 
     assert result is None
 
-    assert "Unsupported entity type" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Unsupported entity type: %s", "GtfsRoute")
 
 
-def test_build_route_point_returns_none_for_invalid_id(caplog):
+def test_build_route_point_returns_none_for_invalid_id():
     """
     Test invalid stop ID returns None and logs error.
     """
@@ -72,10 +73,10 @@ def test_build_route_point_returns_none_for_invalid_id(caplog):
         "type": "GtfsStop"
     }
 
-    with caplog.at_level(logging.ERROR):
-
-        result = netex_helper_build_route_point(entity)
+    netex_utils.logger.error = MagicMock()
+    
+    result = netex_utils.netex_helper_build_route_point(entity)
 
     assert result is None
 
-    assert "Invalid or missing ID for GtfsStop" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsStop: %r", "broken_id")

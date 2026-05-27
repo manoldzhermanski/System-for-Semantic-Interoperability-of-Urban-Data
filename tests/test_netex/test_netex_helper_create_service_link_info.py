@@ -1,7 +1,6 @@
 import pytest
-from shapely.geometry import LineString
-
-from netex.netex_utils import netex_helper_create_service_link_info
+import netex.netex_utils as netex_utils
+from unittest.mock import MagicMock, call
 
 def test_service_link_info_happy_path():
     """
@@ -17,7 +16,7 @@ def test_service_link_info_happy_path():
     }
 
     shape_geometries = {
-        "Shape1": LineString([(0, 0), (10, 0)])
+        "Shape1": netex_utils.LineString([(0, 0), (10, 0)])
     }
 
     shape_per_trip = {
@@ -25,7 +24,7 @@ def test_service_link_info_happy_path():
     }
 
     result = list(
-        netex_helper_create_service_link_info(
+        netex_utils.netex_helper_create_service_link_info(
             stops_per_trip,
             stop_coordinates,
             shape_geometries,
@@ -43,19 +42,19 @@ def test_service_link_info_happy_path():
     assert item["distance"] == pytest.approx(10.0)
 
 
-def test_service_link_info_missing_input(caplog):
+def test_service_link_info_missing_input():
     """
     Test that the function handles missing input data.
     """
-    with caplog.at_level("ERROR"):
-        result = list(netex_helper_create_service_link_info({}, {}, {}, {}))
+    netex_utils.logger.error = MagicMock()
+    
+    result = list(netex_utils.netex_helper_create_service_link_info({}, {}, {}, {}))
 
     assert result == []
-    assert "Missing required input data" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Missing required input data")
 
 
-
-def test_service_link_info_missing_shape(caplog):
+def test_service_link_info_missing_shape():
     """
     Test that the function handles missing shape mapping for a trip.
     """
@@ -67,18 +66,22 @@ def test_service_link_info_missing_shape(caplog):
     }
 
     shape_geometries = {
-        "Shape1": LineString([(0, 0), (10, 0)])
+        "Shape1": netex_utils.LineString([(0, 0), (10, 0)])
     }
 
     shape_per_trip = {
         "Trip1": "Shape2"
     }
 
-    with caplog.at_level("ERROR"):
-        result = list(netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_geometries, shape_per_trip))
+    netex_utils.logger.error = MagicMock()
+    
+    result = list(netex_utils.netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_geometries, shape_per_trip))
 
     assert result == []
-    assert "Missing shape ID for trip Trip1" in caplog.text
+    netex_utils.logger.error.assert_has_calls([
+        call("Invalid shape geometry for trip %s", "Trip1"),
+        call("Missing shape ID for trip %s", "Trip1")
+    ])
 
 
 def test_service_link_info_multiple_trips():
@@ -91,15 +94,15 @@ def test_service_link_info_multiple_trips():
     }
 
     stop_coordinates = {
-        "Stop1": (0, 0),
-        "Stop2": (10, 0),
-        "Stop3": (0, 0),
-        "Stop4": (5, 0),
+        "Stop1": (0.0, 0.0),
+        "Stop2": (10.0, 0.0),
+        "Stop3": (0.0, 0.0),
+        "Stop4": (5.0, 0.0),
     }
 
     shape_geometries = {
-        "Shape1": LineString([(0, 0), (10, 0)]),
-        "Shape2": LineString([(0, 0), (5, 0)]),
+        "Shape1": netex_utils.LineString([(0, 0), (10, 0)]),
+        "Shape2": netex_utils.LineString([(0, 0), (5, 0)]),
     }
 
     shape_per_trip = {
@@ -107,7 +110,7 @@ def test_service_link_info_multiple_trips():
         "Trip2": "Shape2",
     }
 
-    result = list(netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_geometries,shape_per_trip))
+    result = list(netex_utils.netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_geometries,shape_per_trip))
 
     assert len(result) == 2
     trip_ids = {res["trip_id"] for res in result}

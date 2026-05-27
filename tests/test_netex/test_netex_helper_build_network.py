@@ -1,7 +1,7 @@
 import pytest
-import logging
-from lxml import etree
-from netex.netex_utils import netex_helper_build_network
+import lxml.etree as etree
+import netex.netex_utils as netex_utils
+from unittest.mock import MagicMock
 
 @pytest.fixture(autouse=True)
 def set_netex_authority(monkeypatch):
@@ -29,7 +29,7 @@ def test_netex_helper_build_network_retuns_the_expected_result():
         "agency_name": {"type": "Property","value": "Mainline Transit"},
     }
 
-    result_xml = netex_helper_build_network(entity)
+    result_xml = netex_utils.netex_helper_build_network(entity)
 
     expected_xml = """
     <Network version="1" id="TEST:Network:AGENCY1Nett">
@@ -45,12 +45,14 @@ def test_netex_helper_build_network_returns_none_when_encountering_an_unsupporte
     """
     entity = {"id": "urn:ngsi-ld:GtfsStop:TestCity:Stop1", "type": "GtfsStop"}
 
-    result_xml = netex_helper_build_network(entity)
+    netex_utils.logger.error = MagicMock()
+    
+    result_xml = netex_utils.netex_helper_build_network(entity)
 
     assert result_xml is None
-    assert "Unsupported entity type" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Unsupported entity type for Network conversion: %s", "GtfsStop")
 
-def test_netex_helper_build_network_returns_none_if_id_format_is_not_correct(caplog):
+def test_netex_helper_build_network_returns_none_if_id_format_is_not_correct():
     """
     Test that if the `id` field is not in the correct format, None is returned
     """
@@ -59,8 +61,10 @@ def test_netex_helper_build_network_returns_none_if_id_format_is_not_correct(cap
         "type": "GtfsAgency",
         "agency_name": {"type": "Property","value": "Mainline Transit"},
     }
+    
+    netex_utils.logger.error = MagicMock()
 
-    result_xml = netex_helper_build_network(entity)
+    result_xml = netex_utils.netex_helper_build_network(entity)
 
     assert result_xml is None
-    assert "Invalid or missing ID" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsAgency: %r", "broken_id")

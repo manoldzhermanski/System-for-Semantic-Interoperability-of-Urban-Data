@@ -1,9 +1,9 @@
 import pytest
-import logging
-from lxml import etree
+import lxml.etree as etree
+import netex.netex_utils as netex_utils
 from io import BytesIO
 from unittest.mock import MagicMock
-from netex.netex_utils import netex_helper_stream_networks
+
 
 @pytest.fixture(autouse=True)
 def set_netex_authority(monkeypatch):
@@ -35,7 +35,7 @@ def test_stream_network_writes_valid_network():
 
     with etree.xmlfile(output, encoding="utf-8") as xf:
 
-        netex_helper_stream_networks(xf, agency)
+        netex_utils.netex_helper_stream_networks(xf, agency)
 
     root = parse_streamed_xml(output)
 
@@ -49,18 +49,24 @@ def test_stream_network_writes_valid_network():
 
     assert authority_ref.get("ref") == "TEST:Authority:Agency1_ID"
 
-def test_stream_network_returns_empty_and_logs_error(caplog):
+
+def test_stream_network_returns_empty_and_logs_error():
 
     agency = {
         "id": "broken_id",
         "type": "GtfsAgency",
-        "agency_name": {"type": "Property", "value": "Test Transport"}
+        "agency_name": {
+            "type": "Property",
+            "value": "Test Transport"
+        }
     }
 
     xml_file = MagicMock()
 
-    with caplog.at_level("ERROR"):
-        netex_helper_stream_networks(xml_file, agency)
+    netex_utils.logger.error = MagicMock()
 
-    assert "Invalid or missing ID for GtfsAgency" in caplog.text
+    netex_utils.netex_helper_stream_networks(xml_file, agency)
+
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsAgency: %r", "broken_id")
+
     xml_file.write.assert_not_called()

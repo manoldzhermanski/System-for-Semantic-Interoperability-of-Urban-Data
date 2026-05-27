@@ -1,7 +1,7 @@
-# import logging
 import pytest
+import netex.netex_utils as netex_utils
+from unittest.mock import MagicMock
 from shapely.geometry import LineString, Point as ShapelyPoint
-from netex.netex_utils import netex_helper_create_line_string_segments_between_stop_pairs
 
 
 def test_create_line_string_segment_between_valid_stop_pair():
@@ -21,7 +21,7 @@ def test_create_line_string_segment_between_valid_stop_pair():
         (10, 0)
     ])
 
-    result = netex_helper_create_line_string_segments_between_stop_pairs(
+    result = netex_utils.netex_helper_create_line_string_segments_between_stop_pairs(
         stop_pair,
         stop_distances_along_shape,
         shape_geometry
@@ -35,7 +35,7 @@ def test_create_line_string_segment_between_valid_stop_pair():
     ]
 
 
-def test_returns_none_when_stop_pair_is_none(caplog):
+def test_returns_none_when_stop_pair_is_none():
     """
     Test that None stop pairs are rejected.
     """
@@ -51,19 +51,20 @@ def test_returns_none_when_stop_pair_is_none(caplog):
         (10, 0)
     ])
 
-
-    result = netex_helper_create_line_string_segments_between_stop_pairs(
-        stop_pair,
+    netex_utils.logger.error = MagicMock()
+    
+    result = netex_utils.netex_helper_create_line_string_segments_between_stop_pairs(
+        stop_pair, # type: ignore
         stop_distances_along_shape,
         shape_geometry
     )
 
     assert result is None
 
-    assert "Invalid stop pair" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid stop pair: %r", stop_pair)
 
 
-def test_returns_none_when_stop_pair_has_invalid_length(caplog):
+def test_returns_none_when_stop_pair_has_invalid_length():
     """
     Test invalid stop pair tuple length.
     """
@@ -78,19 +79,21 @@ def test_returns_none_when_stop_pair_has_invalid_length(caplog):
         (0, 0),
         (10, 0)
     ])
+    
+    netex_utils.logger.error = MagicMock()
 
-    result = netex_helper_create_line_string_segments_between_stop_pairs(
-        stop_pair,
+    result = netex_utils.netex_helper_create_line_string_segments_between_stop_pairs(
+        stop_pair, # type: ignore
         stop_distances_along_shape,
         shape_geometry
     )
 
     assert result is None
 
-    assert "Invalid stop pair" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid stop pair: %r", stop_pair)
 
 
-def test_returns_none_when_stop_distances_missing(caplog):
+def test_returns_none_when_stop_distances_missing():
     """
     Test missing stop distances dictionary.
     """
@@ -103,8 +106,9 @@ def test_returns_none_when_stop_distances_missing(caplog):
         (10, 0)
     ])
 
-
-    result = netex_helper_create_line_string_segments_between_stop_pairs(
+    netex_utils.logger.error = MagicMock()
+    
+    result = netex_utils.netex_helper_create_line_string_segments_between_stop_pairs(
         stop_pair,
         stop_distances_along_shape,
         shape_geometry
@@ -112,10 +116,10 @@ def test_returns_none_when_stop_distances_missing(caplog):
 
     assert result is None
 
-    assert "Missing stop distances along shape" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Missing stop distances along shape")
 
 
-def test_returns_none_when_shape_geometry_is_empty(caplog):
+def test_returns_none_when_shape_geometry_is_empty():
     """
     Test empty shape geometry.
     """
@@ -128,7 +132,9 @@ def test_returns_none_when_shape_geometry_is_empty(caplog):
 
     shape_geometry = LineString([])
 
-    result = netex_helper_create_line_string_segments_between_stop_pairs(
+    netex_utils.logger.error = MagicMock()
+    
+    result = netex_utils.netex_helper_create_line_string_segments_between_stop_pairs(
         stop_pair,
         stop_distances_along_shape,
         shape_geometry
@@ -136,7 +142,7 @@ def test_returns_none_when_shape_geometry_is_empty(caplog):
 
     assert result is None
 
-    assert "Cannot create line string segment: shape geometry is empty" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Cannot create line string segment: shape geometry is empty")
 
 
 def test_returns_empty_list_when_end_distance_before_start_distance():
@@ -156,7 +162,7 @@ def test_returns_empty_list_when_end_distance_before_start_distance():
         (10, 0)
     ])
 
-    result = netex_helper_create_line_string_segments_between_stop_pairs(
+    result = netex_utils.netex_helper_create_line_string_segments_between_stop_pairs(
         stop_pair,
         stop_distances_along_shape,
         shape_geometry
@@ -183,7 +189,7 @@ def test_create_segment_on_multisegment_shape():
         (10, 10)
     ])
 
-    result = netex_helper_create_line_string_segments_between_stop_pairs(
+    result = netex_utils.netex_helper_create_line_string_segments_between_stop_pairs(
         stop_pair,
         stop_distances_along_shape,
         shape_geometry
@@ -215,7 +221,7 @@ def test_returns_point_for_tiny_segment():
         (10, 0)
     ])
 
-    result = netex_helper_create_line_string_segments_between_stop_pairs(
+    result = netex_utils.netex_helper_create_line_string_segments_between_stop_pairs(
         stop_pair,
         stop_distances_along_shape,
         shape_geometry

@@ -1,8 +1,7 @@
 import pytest
-import logging
-from lxml import etree
-from netex.netex_utils import netex_helper_build_passenger_stop_assignment
-
+import lxml.etree as etree
+import netex.netex_utils as netex_utils
+from unittest.mock import MagicMock
 
 @pytest.fixture(autouse=True)
 def set_netex_authority(monkeypatch):
@@ -24,7 +23,7 @@ def test_build_passenger_stop_assignment_success():
         "type": "GtfsStop",
     }
 
-    result = netex_helper_build_passenger_stop_assignment(entity, 1)
+    result = netex_utils.netex_helper_build_passenger_stop_assignment(entity, 1)
 
     expected_xml = """
     <PassengerStopAssignment order="1" version="1" id="TEST:PassengerStopAssignment:Stop1">
@@ -36,25 +35,29 @@ def test_build_passenger_stop_assignment_success():
     assert_xml_equal(result, expected_xml)
 
 
-def test_build_passenger_stop_assignment_invalid_type(caplog):
+def test_build_passenger_stop_assignment_invalid_type():
     entity = {
         "id": "urn:ngsi-ld:GtfsRoute:TestCity:1",
         "type": "GtfsRoute",
     }
+    
+    netex_utils.logger.error = MagicMock()
 
-    result = netex_helper_build_passenger_stop_assignment(entity, 1)
+    result = netex_utils.netex_helper_build_passenger_stop_assignment(entity, 1)
 
     assert result is None
-    assert "Unsupported entity type" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Unsupported entity type: %s", "GtfsRoute")
 
 
-def test_build_passenger_stop_assignment_invalid_id(caplog):
+def test_build_passenger_stop_assignment_invalid_id():
     entity = {
         "id": "broken_id",
         "type": "GtfsStop",
     }
+    
+    netex_utils.logger.error = MagicMock()
 
-    result = netex_helper_build_passenger_stop_assignment(entity, 1)
+    result = netex_utils.netex_helper_build_passenger_stop_assignment(entity, 1)
 
     assert result is None
-    assert "Invalid or missing ID for GtfsStop" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsStop: %r", "broken_id")

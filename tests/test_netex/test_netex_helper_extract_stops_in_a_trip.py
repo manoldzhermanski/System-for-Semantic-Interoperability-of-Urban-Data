@@ -1,6 +1,7 @@
 import pytest
 import logging
-from netex.netex_utils import netex_helper_extract_stops_in_a_trip
+import netex.netex_utils as netex_utils
+from unittest.mock import MagicMock
 
 def test_netex_helper_extract_stops_in_a_trip_with_single_trip_and_multiple_stops():
     stop_times = [
@@ -20,7 +21,7 @@ def test_netex_helper_extract_stops_in_a_trip_with_single_trip_and_multiple_stop
         },
     ]
 
-    result = netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
 
     assert result == {"Trip1": ["Stop2", "Stop1"]}
 
@@ -42,7 +43,7 @@ def test_netex_helper_extract_stops_in_a_trip_with_multiple_trips():
         },
     ]
 
-    result = netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
 
     assert result == {
         "Trip1": ["Stop1"],
@@ -50,7 +51,7 @@ def test_netex_helper_extract_stops_in_a_trip_with_multiple_trips():
     }
 
 def test_netex_helper_extract_stops_in_a_trip_with_empty_input():
-    assert netex_helper_extract_stops_in_a_trip([]) == {}
+    assert netex_utils.netex_helper_extract_stops_in_a_trip([]) == {}
 
 def test_netex_helper_extract_stops_in_a_trip_with_none_values():
     stop_times = [
@@ -63,11 +64,11 @@ def test_netex_helper_extract_stops_in_a_trip_with_none_values():
         }
     ]
 
-    result = netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
 
     assert result == {}
 
-def test_netex_helper_extract_stops_in_a_trip_skips_unsupported_entity_type(caplog):
+def test_netex_helper_extract_stops_in_a_trip_skips_unsupported_entity_type():
     """
     Test that unsupported entity types are skipped.
     """
@@ -81,13 +82,15 @@ def test_netex_helper_extract_stops_in_a_trip_skips_unsupported_entity_type(capl
             "stopSequence": {"type": "Property", "value": 1},
         }
     ]
+    
+    netex_utils.logger.error = MagicMock()
 
-    result = netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
 
     assert result == {}
-    assert "Unsupported entity type" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Unsupported entity type, expected GtfsStopTime: %s", "GtfsStop")
 
-def test_netex_helper_extract_stops_in_a_trip_skips_invalid_trip_id(caplog):
+def test_netex_helper_extract_stops_in_a_trip_skips_invalid_trip_id():
     """
     Test that malformed trip IDs are skipped.
     """
@@ -101,13 +104,15 @@ def test_netex_helper_extract_stops_in_a_trip_skips_invalid_trip_id(caplog):
             "stopSequence": {"type": "Property", "value": 1},
         }
     ]
+    
+    netex_utils.logger.error = MagicMock()
 
-    result = netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
 
     assert result == {}
-    assert "Invalid or missing ID for GtfsTrip" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsTrip: %r", "broken_trip_id")
 
-def test_netex_helper_extract_stops_in_a_trip_skips_invalid_stop_id(caplog):
+def test_netex_helper_extract_stops_in_a_trip_skips_invalid_stop_id():
     """
     Test that malformed stop IDs are skipped.
     """
@@ -121,13 +126,15 @@ def test_netex_helper_extract_stops_in_a_trip_skips_invalid_stop_id(caplog):
             "stopSequence": {"type": "Property", "value": 1},
         }
     ]
+    
+    netex_utils.logger.error = MagicMock()
 
-    result = netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
 
     assert result == {}
-    assert "Invalid or missing ID for GtfsStop" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsStop: %r", "broken_stop_id")
 
-def test_netex_helper_extract_stops_in_a_trip_skips_invalid_sequence(caplog):
+def test_netex_helper_extract_stops_in_a_trip_skips_invalid_sequence():
     """
     Test that non-integer stop sequences are skipped.
     """
@@ -141,11 +148,13 @@ def test_netex_helper_extract_stops_in_a_trip_skips_invalid_sequence(caplog):
             "stopSequence": {"type": "Property", "value": "not_an_int"},
         }
     ]
+    
+    netex_utils.logger.error = MagicMock()
 
-    result = netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
 
     assert result == {}
-    assert "Invalid or missing stop sequence" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing stop sequence: %r", "not_an_int")
 
 def test_netex_helper_extract_stops_in_a_trip_correctly_sorts_many_stops():
     """
@@ -176,7 +185,7 @@ def test_netex_helper_extract_stops_in_a_trip_correctly_sorts_many_stops():
         },
     ]
 
-    result = netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
 
     assert result == {
         "Trip1": ["Stop1", "Stop2", "Stop3"]

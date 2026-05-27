@@ -1,7 +1,7 @@
 import pytest
-import logging
-from lxml import etree
-from netex.netex_utils import netex_helper_build_day_type
+import lxml.etree as etree
+import netex.netex_utils as netex_utils
+from unittest.mock import MagicMock
 
 @pytest.fixture(autouse=True)
 def set_netex_authority(monkeypatch):
@@ -38,7 +38,7 @@ def test_netex_helper_build_day_type_with_gtfs_calendar_rule():
         "endDate": {"type": "Property", "value": "20260430"}
     }
    
-    result_xml = netex_helper_build_day_type(entity)
+    result_xml = netex_utils.netex_helper_build_day_type(entity)
    
     expected_xml = """
     <DayType version="1" id="TEST:DayType:WeekdayId">
@@ -65,7 +65,7 @@ def test_netex_helper_build_day_type_with_gtfs_calendar_date_rule():
         "exceptionType": {"type": "Property", "value": 1}
         }
    
-    result_xml = netex_helper_build_day_type(entity)
+    result_xml = netex_utils.netex_helper_build_day_type(entity)
    
     expected_xml = """
     <DayType version="1" id="TEST:DayType:WeekdayId"/>
@@ -94,7 +94,7 @@ def test_netex_helper_build_day_type_returns_none_when_id_is_missing():
             }
         }
     
-    result_xml = netex_helper_build_day_type(entity)
+    result_xml = netex_utils.netex_helper_build_day_type(entity)
 
     assert result_xml is None
 
@@ -156,24 +156,26 @@ def test_netex_helper_build_day_type_returns_none_when_type_is_missing():
         }
     }
     
-    result_xml = netex_helper_build_day_type(entity)
+    result_xml = netex_utils.netex_helper_build_day_type(entity)
 
     assert result_xml is None
     
 
-def test_netex_helper_build_day_type_returns_none_when_encountering_an_unsupported_type(caplog):
+def test_netex_helper_build_day_type_returns_none_when_encountering_an_unsupported_type():
     """
     Test that when encountering an unsupported GTFS type, None is returned
     """
     entity = {"id": "urn:ngsi-ld:GtfsStop:TestCity:Stop1", "type": "GtfsStop"}
 
-    result_xml = netex_helper_build_day_type(entity)
+    netex_utils.logger.error = MagicMock()
+    
+    result_xml = netex_utils.netex_helper_build_day_type(entity)
 
     assert result_xml is None
-    assert "Unsupported entity type" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Unsupported entity type: %s", "GtfsStop")
 
 
-def test_netex_helper_build_day_type_returns_none_if_id_format_is_not_correct(caplog):
+def test_netex_helper_build_day_type_returns_none_if_id_format_is_not_correct():
     """
     Test that if the `id` field is not in the correct format, None is returned
     """
@@ -196,9 +198,11 @@ def test_netex_helper_build_day_type_returns_none_if_id_format_is_not_correct(ca
             }
         }
     
-    result_xml = netex_helper_build_day_type(entity)
+    netex_utils.logger.error = MagicMock()
+    
+    result_xml = netex_utils.netex_helper_build_day_type(entity)
 
     assert result_xml is None
-    assert "Invalid ID" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid ID for %s: %r", "GtfsCalendarDateRule", "broken_id")
 
 

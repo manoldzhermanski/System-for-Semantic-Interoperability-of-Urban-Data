@@ -1,6 +1,8 @@
 import logging
 import pytest
+import netex.netex_utils as netex_utils
 from shapely.geometry import LineString
+from unittest.mock import MagicMock
 
 from netex.netex_utils import netex_helper_map_stops_to_shape_distances
 
@@ -49,10 +51,10 @@ def test_map_stops_to_shape_distances_skips_missing_coordinates(caplog):
         (0, 0),
         (10, 0)
     ])
-
-    with caplog.at_level(logging.ERROR):
-
-        result = netex_helper_map_stops_to_shape_distances(
+    
+    netex_utils.logger.error = MagicMock()
+    
+    result = netex_helper_map_stops_to_shape_distances(
             stop_ids,
             stop_coordinates,
             shape_geometry
@@ -62,7 +64,7 @@ def test_map_stops_to_shape_distances_skips_missing_coordinates(caplog):
         "STOP1": 3.0
     }
 
-    assert "Missing coordinates for stop STOP2" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Missing coordinates for stop %s", "STOP2")
 
 
 def test_map_stops_to_shape_distances_returns_empty_when_shape_is_empty(caplog):
@@ -78,9 +80,9 @@ def test_map_stops_to_shape_distances_returns_empty_when_shape_is_empty(caplog):
 
     shape_geometry = LineString([])
 
-    with caplog.at_level(logging.ERROR):
-
-        result = netex_helper_map_stops_to_shape_distances(
+    netex_utils.logger.error = MagicMock()
+    
+    result = netex_helper_map_stops_to_shape_distances(
             stop_ids,
             stop_coordinates,
             shape_geometry
@@ -88,7 +90,7 @@ def test_map_stops_to_shape_distances_returns_empty_when_shape_is_empty(caplog):
 
     assert result == {}
 
-    assert "Cannot calculate stop distances: shape is empty" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Cannot calculate stop distances: shape is empty")
 
 
 def test_map_stops_to_shape_distances_returns_empty_when_stop_ids_missing(caplog):
@@ -107,9 +109,9 @@ def test_map_stops_to_shape_distances_returns_empty_when_stop_ids_missing(caplog
         (10, 0)
     ])
 
-    with caplog.at_level(logging.ERROR):
-
-        result = netex_helper_map_stops_to_shape_distances(
+    netex_utils.logger.error = MagicMock()
+    
+    result = netex_helper_map_stops_to_shape_distances(
             stop_ids,
             stop_coordinates,
             shape_geometry
@@ -117,7 +119,7 @@ def test_map_stops_to_shape_distances_returns_empty_when_stop_ids_missing(caplog
 
     assert result == {}
 
-    assert "Missing stop IDs" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Missing stop IDs")
 
 
 def test_map_stops_to_shape_distances_on_multisegment_shape():

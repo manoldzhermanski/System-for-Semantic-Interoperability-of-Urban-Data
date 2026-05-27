@@ -1,7 +1,7 @@
 import pytest
-import logging
-from lxml import etree
-from netex.netex_utils import netex_helper_build_operating_period
+import lxml.etree as etree
+import netex.netex_utils as netex_utils
+from unittest.mock import MagicMock
 
 @pytest.fixture(autouse=True)
 def set_netex_authority(monkeypatch):
@@ -18,7 +18,7 @@ def assert_xml_equal(generated_xml, expected_xml_str):
 
     assert etree.tostring(generated) == etree.tostring(expected)
 
-def test_netex_helper_build_day_type_with_gtfs_calendar_rule():
+def test_netex_helper_build_operating_period_with_gtfs_calendar_rule():
     """
     Tests a single GtfsCalendarRule entity which results in building a <DayType> entity
     """
@@ -38,7 +38,7 @@ def test_netex_helper_build_day_type_with_gtfs_calendar_rule():
         "endDate": {"type": "Property", "value": "20260430"}
     }
    
-    result_xml = netex_helper_build_operating_period(entity)
+    result_xml = netex_utils.netex_helper_build_operating_period(entity)
    
     expected_xml = """
     <OperatingPeriod version="1" id="TEST:OperatingPeriod:WeekdayId">
@@ -55,12 +55,14 @@ def test_netex_helper_build_operating_period_returns_none_when_encountering_an_u
     """
     entity = {"id": "urn:ngsi-ld:GtfsStop:TestCity:Stop1", "type": "GtfsStop"}
 
-    result_xml = netex_helper_build_operating_period(entity)
+    netex_utils.logger.error = MagicMock()
+    
+    result_xml = netex_utils.netex_helper_build_operating_period(entity)
 
     assert result_xml is None
-    assert "Unsupported entity type" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Unsupported entity type for OperatingPeriod: %s", "GtfsStop")
 
-def test_netex_helper_build_day_type_returns_none_if_id_format_is_not_correct(caplog):
+def test_netex_helper_build_operating_period_returns_none_if_id_format_is_not_correct():
     """
     Test that if the `id` field is not in the correct format, None is returned
     """
@@ -79,7 +81,9 @@ def test_netex_helper_build_day_type_returns_none_if_id_format_is_not_correct(ca
         "endDate": {"type": "Property", "value": "20260430"}
     }
     
-    result_xml = netex_helper_build_operating_period(entity)
+    netex_utils.logger.error = MagicMock()
+    
+    result_xml = netex_utils.netex_helper_build_operating_period(entity)
 
     assert result_xml is None
-    assert "Invalid ID" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid ID for GtfsCalendarRule: %r", "broken_id")

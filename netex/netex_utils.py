@@ -125,7 +125,49 @@ def netex_get_all_gtfs_trips_of_a_route(route_id: str) -> list[dict[str, Any]]:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
     return orion_ld_get_entities_by_query_expression("GtfsTrip", header, f'route=="{route_id}"', config.NETEX_OPERATING_CITY)
-       
+    
+def netex_get_all_trips_of_an_agency(agency_id: str) -> list[dict[str, Any]]:
+    """
+    Get all GtfsTrip entities of a GtfsAgency which are used to create NeTEx <Route>, <JourneyPattern> 
+    and additionally used to create <ServiceLink>
+
+    Args:
+        agency_id (str): ID of the GtfsAgency for which we want to get the trips
+        
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsTrip entities of the specified GtfsAgency that are used to create
+        NeTEx <Route>, <JourneyPattern> and additionally used to create <ServiceLink>
+    """
+    # Check that config.NETEX_OPERATING_CITY is set
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+
+    # Get all routes of the agency
+    routes = netex_get_all_gtfs_routes_of_an_agency(agency_id)
+
+    # Store all trips
+    all_trips = []
+
+    # Get all trips for every route
+    for route in routes:
+
+        # Get route ID
+        route_id = route.get("id")
+
+        # If route ID is missing, log an error and skip the route
+        if not route_id:
+            logger.error("Route entity is missing ID: %r", route)
+            continue
+
+        # Get all trips of the route
+        route_trips = netex_get_all_gtfs_trips_of_a_route(route_id)
+
+        # Extend the list of all trips with the trips of the route
+        all_trips.extend(route_trips)
+
+    # Return the list of all trips
+    return all_trips
+
 def netex_get_all_gtfs_calendar_of_a_trip(service_id: str) -> list[dict[str, Any]]:
     header = orion_ld_define_header("gtfs_static")
     
@@ -1020,8 +1062,6 @@ def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]], 
             continue
 
         shape_geometry = shape_geometries[shape_id]
-
-        shape_geometry = shape_geometries.get(shape_id)
 
         stop_distances = stop_projections_per_trip.get(trip_id)
 
@@ -2544,31 +2584,31 @@ def netex_create_shared_data_xml(
 
 if __name__ == "__main__":
 
-    # netex_helper_set_operating_city("Sofia")
-    # authorities = netex_get_all_gtfs_agencies_to_turn_to_authorities()
-    # for autority in authorities:
-    #     routes = netex_get_all_gtfs_routes_of_an_agency_to_turn_to_lines(autority["id"])
-    #     print(json.dumps(routes, indent=2, ensure_ascii=False))
+    netex_helper_set_operating_city("Sofia")
+    authorities = netex_get_all_gtfs_agencies_to_turn_to_authorities()
+    for autority in authorities:
+        routes = netex_get_all_gtfs_routes_of_an_agency(autority["id"])
+        print(json.dumps(routes, indent=2, ensure_ascii=False))
 
-    city = "Sofia"
-    header = orion_ld_define_header("gtfs_static")
-    agencies = orion_ld_get_entities_by_type("GtfsAgency", header, city)
-    stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
-    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
-    shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
-    trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
-    routes = orion_ld_get_entities_by_type("GtfsRoute", header, city)
-    calendar = orion_ld_get_entities_by_type("GtfsCalendarRule", header, city)
-    calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header, city)
+    # city = "Sofia"
+    # header = orion_ld_define_header("gtfs_static")
+    # agencies = orion_ld_get_entities_by_type("GtfsAgency", header, city)
+    # stops = orion_ld_get_entities_by_type("GtfsStop", header, city)
+    # stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header, city)
+    # shapes = orion_ld_get_entities_by_type("GtfsShape", header, city)
+    # trips = orion_ld_get_entities_by_type("GtfsTrip", header, city)
+    # routes = orion_ld_get_entities_by_type("GtfsRoute", header, city)
+    # calendar = orion_ld_get_entities_by_type("GtfsCalendarRule", header, city)
+    # calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header, city)
 
-    stop_coordinates = netex_helper_extract_stop_coordinates(stops)
-    shape_linestrings = netex_helper_extract_shape_linestrings(shapes)
-    shape_per_trip = netex_helper_map_trips_to_shapes(trips)
-    stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
+    # stop_coordinates = netex_helper_extract_stop_coordinates(stops)
+    # shape_linestrings = netex_helper_extract_shape_linestrings(shapes)
+    # shape_per_trip = netex_helper_map_trips_to_shapes(trips)
+    # stops_per_trip = netex_helper_extract_stops_in_a_trip(stop_times)
 
-    for agency in agencies:
-        netex_helper_set_netex_authority(agency)
-        netex_create_shared_data_xml(agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, calendar, calendar_dates)
+    # for agency in agencies:
+    #     netex_helper_set_netex_authority(agency)
+    #     netex_create_shared_data_xml(agency, stops, stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, calendar, calendar_dates)
 
     # print(len(seen))
     # # route_names = netex_helper_get_route_id_and_name(routes)

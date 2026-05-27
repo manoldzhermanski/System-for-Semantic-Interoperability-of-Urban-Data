@@ -1,7 +1,8 @@
 import pytest
 import logging
-from lxml import etree
-from netex.netex_utils import netex_helper_build_scheduled_stop_point
+import lxml.etree as etree
+import netex.netex_utils as netex_utils
+from unittest.mock import MagicMock
 
 @pytest.fixture(autouse=True)
 def set_netex_authority(monkeypatch):
@@ -29,7 +30,7 @@ def test_build_scheduled_stop_point_success():
         "stop_name": {"type": "Property", "value": "Central Station"}
     }
 
-    result_xml = netex_helper_build_scheduled_stop_point(entity)
+    result_xml = netex_utils.netex_helper_build_scheduled_stop_point(entity)
 
     expected_xml = """
     <ScheduledStopPoint
@@ -53,7 +54,7 @@ def test_build_scheduled_stop_point_without_name():
         "type": "GtfsStop"
     }
 
-    result_xml = netex_helper_build_scheduled_stop_point(entity)
+    result_xml = netex_utils.netex_helper_build_scheduled_stop_point(entity)
 
     expected_xml = """
     <ScheduledStopPoint
@@ -66,7 +67,7 @@ def test_build_scheduled_stop_point_without_name():
     assert_xml_equal(result_xml, expected_xml)
 
 
-def test_build_scheduled_stop_point_returns_none_for_invalid_type(caplog):
+def test_build_scheduled_stop_point_returns_none_for_invalid_type():
     """
     Test unsupported entity type returns None and logs error.
     """
@@ -76,15 +77,16 @@ def test_build_scheduled_stop_point_returns_none_for_invalid_type(caplog):
         "type": "GtfsRoute"
     }
 
-
-    result_xml = netex_helper_build_scheduled_stop_point(entity)
+    netex_utils.logger.error = MagicMock()
+    
+    result_xml = netex_utils.netex_helper_build_scheduled_stop_point(entity)
 
     assert result_xml is None
 
-    assert "Unsupported entity type" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Unsupported entity type: %s", "GtfsRoute")
 
 
-def test_build_scheduled_stop_point_returns_none_for_invalid_id(caplog):
+def test_build_scheduled_stop_point_returns_none_for_invalid_id():
     """
     Test invalid stop ID returns None and logs error.
     """
@@ -93,9 +95,11 @@ def test_build_scheduled_stop_point_returns_none_for_invalid_id(caplog):
         "id": "broken_id",
         "type": "GtfsStop"
     }
+    
+    netex_utils.logger.error = MagicMock()
 
-    result_xml = netex_helper_build_scheduled_stop_point(entity)
+    result_xml = netex_utils.netex_helper_build_scheduled_stop_point(entity)
 
     assert result_xml is None
 
-    assert "Invalid or missing ID for GtfsStop" in caplog.text
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsStop: %r", "broken_id")
