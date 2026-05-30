@@ -72,12 +72,15 @@ def netex_helper_set_operating_city(city: str) -> None:
     # Set the parameter
     config.NETEX_OPERATING_CITY = city
 
-def netex_get_all_gtfs_agencies_to_turn_to_authorities() -> list[dict[str, Any]]:
+def netex_get_all_gtfs_agencies_of_a_city() -> list[dict[str, Any]]:
     """
-    Get all GtfsAgency entities which are used to create NeTEx <Authority>
+    Get all GtfsAgency entities of a city
 
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsAgency entities
+    for the operating city.
+    
     Returns:
-        list[dict[str, Any]]: A list of all GtfsAgency entities that are used to create NeTEx <Authority>
+        list[dict[str, Any]]: A list of all GtfsAgency entities for the operating city
 
     Raises:
         ValueError: When config.NETEX_OPERATING_CITY is not set
@@ -89,15 +92,18 @@ def netex_get_all_gtfs_agencies_to_turn_to_authorities() -> list[dict[str, Any]]
     
     return orion_ld_get_entities_by_type("GtfsAgency", header, config.NETEX_OPERATING_CITY)
     
-def netex_get_all_gtfs_routes_of_an_agency(agency_id: str) -> list[dict[str, Any]]:
+def netex_get_all_gtfs_routes_of_a_city() -> list[dict[str, Any]]:
     """
-    Get all GtfsRoute entities of a GtfsAgency which are used to create NeTEx <Line>
+    Get all GtfsRoute entities of a city
 
-    Args:
-        agency_id (str): ID of the GtfsAgency for which we want to get the routes
-
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsRoute entities
+    for the operating city.
+    
     Returns:
-        list[dict[str, Any]]: A list of all GtfsRoute entities of the specified GtfsAgency that are used to create NeTEx <Line>
+        list[dict[str, Any]]: A list of all GtfsRoute entities for the operating city
+        
+    Raises:
+        ValueError: If config.NETEX_OPERATING_CITY is not set
     """
     # Define header
     header = orion_ld_define_header("gtfs_static")
@@ -105,112 +111,472 @@ def netex_get_all_gtfs_routes_of_an_agency(agency_id: str) -> list[dict[str, Any
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_query_expression("GtfsRoute", header, f'operatedBy=="{agency_id}"', config.NETEX_OPERATING_CITY)
+    return orion_ld_get_entities_by_type("GtfsRoute", header, config.NETEX_OPERATING_CITY)
 
-def netex_get_all_gtfs_trips_of_a_route(route_id: str) -> list[dict[str, Any]]:
+def netex_get_all_gtfs_trips_of_a_city() -> list[dict[str, Any]]:
     """
-    Get all GtfsTrip entities of a GtfsRoute which are used to create NeTEx <Route>, <JourneyPattern> 
-    and additionally used to create <ServiceLink>
+    Get all GtfsTrip entities of a city
 
-    Args:
-        route_id (str): ID of the GtfsRoute for which we want to get the trips
-
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsTrip entities
+    for the operating city.
+    
     Returns:
-        list[dict[str, Any]]: A list of all GtfsTrip entities of the specified GtfsRoute that are used to create
-        NeTEx <Route>, <JourneyPattern> and additionally used to create <ServiceLink>
+        list[dict[str, Any]]: A list of all GtfsTrip entities for the operating city
+        
+    Raises:
+        ValueError: If config.NETEX_OPERATING_CITY is not set
     """
     header = orion_ld_define_header("gtfs_static")
     
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_query_expression("GtfsTrip", header, f'route=="{route_id}"', config.NETEX_OPERATING_CITY)
-    
-def netex_get_all_trips_of_an_agency(agency_id: str) -> list[dict[str, Any]]:
-    """
-    Get all GtfsTrip entities of a GtfsAgency which are used to create NeTEx <Route>, <JourneyPattern> 
-    and additionally used to create <ServiceLink>
+    return orion_ld_get_entities_by_type("GtfsTrip", header, config.NETEX_OPERATING_CITY)
 
+def netex_get_all_gtfs_calendar_of_a_city() -> list[dict[str, Any]]:
+    """
+    Get all GtfsCalendarRule entities of a city
+
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsCalendarRule
+    entities for the operating city.
+    
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsCalendarRule entities for the operating city
+        
+    Raises:
+        ValueError: If config.NETEX_OPERATING_CITY is not set
+    """
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_type("GtfsCalendarRule", header, config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_calendar_dates_of_a_city() -> list[dict[str, Any]]:
+    """
+    Get all GtfsCalendarDateRule entities of a city
+
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsCalendarDateRule
+    entities for the operating city.
+    
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsCalendarDateRule entities for the operating city
+        
+    Raises:
+        ValueError: If config.NETEX_OPERATING_CITY is not set
+    """
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_type("GtfsCalendarDateRule", header, config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_shapes_of_a_city() -> list[dict[str, Any]]:
+    """
+    Get all GtfsShape entities of a city
+
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsShape
+    entities for the operating city.
+    
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsShape entities for the operating city
+        
+    Raises:
+        ValueError: If config.NETEX_OPERATING_CITY is not set
+    """
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_type("GtfsShape", header, config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_stop_times_of_a_city() -> list[dict[str, Any]]:
+    """
+    Get all GtfsStopTime entities of a city
+
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsStopTime
+    entities for the operating city.
+    
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsStopTime entities for the operating city
+        
+    Raises:
+        ValueError: If config.NETEX_OPERATING_CITY is not set
+    """
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_type("GtfsStopTime", header, config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_stops_of_city() -> list[dict[str, Any]]:
+    """
+    Get all GtfsStop entities of a city
+
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsStop
+    entities for the operating city.
+    
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsStop entities for the operating city
+        
+    Raises:
+        ValueError: If config.NETEX_OPERATING_CITY is not set
+    """
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_type("GtfsStop", header, config.NETEX_OPERATING_CITY)
+
+def netex_get_all_gtfs_transfers_of_city() -> list[dict[str, Any]]:
+    """
+    Get all GtfsTransfer entities of a city
+
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsTransfer
+    entities for the operating city.
+    
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsTransfer entities for the operating city
+        
+    Raises:
+        ValueError: If config.NETEX_OPERATING_CITY is not set
+    """
+    header = orion_ld_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return orion_ld_get_entities_by_type("GtfsTransfer", header, config.NETEX_OPERATING_CITY)
+
+def netex_load_city_dataset() -> dict[str, Any]:
+    
+    return {
+        "agencies": netex_get_all_gtfs_agencies_of_a_city(),
+        "routes": netex_get_all_gtfs_routes_of_a_city(),
+        "trips": netex_get_all_gtfs_trips_of_a_city(),
+        "calendar": netex_get_all_gtfs_calendar_of_a_city(),
+        "calendar_dates": netex_get_all_gtfs_calendar_dates_of_a_city(),
+        "shapes": netex_get_all_gtfs_shapes_of_a_city(),
+        "stop_times": netex_get_all_gtfs_stop_times_of_a_city(),
+        "stops": netex_get_all_gtfs_stops_of_city(),
+        "transfers": netex_get_all_gtfs_transfers_of_city(),
+    }
+
+# -----------------------------------------------------
+# Index Functions
+# -----------------------------------------------------
+
+def netex_index_routes_by_agency(routes: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """
+    Group the GtfsRoute entities based on the agencies who support them
+    
     Args:
-        agency_id (str): ID of the GtfsAgency for which we want to get the trips
+        routes (list[dict[str, Any]]): List of GtfsRoute entities who are to be grouped
         
     Returns:
-        list[dict[str, Any]]: A list of all GtfsTrip entities of the specified GtfsAgency that are used to create
-        NeTEx <Route>, <JourneyPattern> and additionally used to create <ServiceLink>
+        dict[str, list[dict[str, Any]]]: Dictionary mapping agency IDs to lists of routes
     """
-    # Check that config.NETEX_OPERATING_CITY is set
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
 
-    # Get all routes of the agency
-    routes = netex_get_all_gtfs_routes_of_an_agency(agency_id)
+    # Group containes
+    routes_by_agency = {}
 
-    # Store all trips
-    all_trips = []
-
-    # Get all trips for every route
+    # Traverse all routes
     for route in routes:
+        
+        # Get the agency that supports the route
+        operated_by = route.get("operatedBy")
 
-        # Get route ID
-        route_id = route.get("id")
-
-        # If route ID is missing, log an error and skip the route
-        if not route_id:
-            logger.error("Route entity is missing ID: %r", route)
+        # If missing, log error and continue
+        if not operated_by:
+            logger.error("Route missing operatedBy: %r", route["id"])
             continue
 
-        # Get all trips of the route
-        route_trips = netex_get_all_gtfs_trips_of_a_route(route_id)
+        # Extract agency ID value
+        agency_id = operated_by.get("object")
 
-        # Extend the list of all trips with the trips of the route
-        all_trips.extend(route_trips)
+        # If missing, log error and continue
+        if not agency_id:
+            logger.error("Invalid operatedBy structure: %r", route["id"])
+            continue
 
-    # Return the list of all trips
-    return all_trips
+        # If agency is encountered for the first time add a list for it
+        if agency_id not in routes_by_agency:
+            routes_by_agency[agency_id] = []
 
-def netex_get_all_gtfs_calendar_of_a_trip(service_id: str) -> list[dict[str, Any]]:
-    header = orion_ld_define_header("gtfs_static")
-    
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
-    
-    return orion_ld_get_entities_by_query_expression("GtfsCalendarRule", header, f'hasService=="{service_id}"', config.NETEX_OPERATING_CITY)
+        # Add route for the coresponding agency
+        routes_by_agency[agency_id].append(route)
 
-def netex_get_all_gtfs_calendar_dates_of_a_trip(service_id: str) -> list[dict[str, Any]]:
-    
-    header = orion_ld_define_header("gtfs_static")
-    
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
-    
-    return orion_ld_get_entities_by_query_expression("GtfsCalendarDateRule", header, f'hasService=="{service_id}"', config.NETEX_OPERATING_CITY)
+    return routes_by_agency
 
-def netex_get_all_gtfs_shapes_of_a_trip(shape_id: str) -> list[dict[str, Any]]:
-    
-    header = orion_ld_define_header("gtfs_static")
-    
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
-    
-    return orion_ld_get_entities_by_query_expression("GtfsShape", header, f'id=="{shape_id}"', config.NETEX_OPERATING_CITY)
+def netex_index_trips_by_route(trips: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """
+    Group GtfsTrip entities based on the route they belong to.
 
-def netex_get_all_gtfs_stop_times_of_a_trip(trip_id: str) -> list[dict[str, Any]]:
-    
-    header = orion_ld_define_header("gtfs_static")
-    
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
-    
-    return orion_ld_get_entities_by_query_expression("GtfsStopTime", header, f'hasTrip=="{trip_id}"', config.NETEX_OPERATING_CITY)
+    Args:
+        trips (list[dict[str, Any]]): List of GtfsTrip entities to group
 
-def netex_get_all_gtfs_stops_of_stop_times(stop_id: str) -> list[dict[str, Any]]:
+    Returns:
+        dict[str, list[dict[str, Any]]]: Dictionary mapping route IDs to lists of trips
+    """
+
+    # Group container
+    trips_by_route = {}
+
+    # Traverse all trips
+    for trip in trips:
+
+        # Get route relationship
+        route = trip.get("route")
+
+        # If missing, log error and continue
+        if not route:
+            logger.error("Trip missing route: %r", trip["id"])
+            continue
+
+        # Extract route ID
+        route_id = route.get("object")
+
+        # If invalid, log error and continue
+        if not route_id:
+            logger.error("Invalid route structure: %r", trip["id"])
+            continue
+
+        # Initialize route bucket if first encounter
+        if route_id not in trips_by_route:
+            trips_by_route[route_id] = []
+
+        # Add trip to corresponding route
+        trips_by_route[route_id].append(trip)
+
+    return trips_by_route
+ 
+def netex_index_calendar_or_calendar_dates_by_service(calendar_or_calendar_dates: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """
+    Group GtfsCalendarRule / GtfsCalendarDateRule entities based on the service they belong to.
+
+    Args:
+        calendar_or_calendar_dates (list[dict[str, Any]]): List of GtfsCalendarRule / GtfsCalendarDateRule entities to group
+
+    Returns:
+        dict[str, list[dict[str, Any]]]: Dictionary mapping service IDs to lists of calendar / calendar dates
+    """
+
+    # Group container
+    calendar_or_calendar_dates_by_service = {}
+
+    # Traverse all calendar dates
+    for calendar_or_calendar_date in calendar_or_calendar_dates:
+
+        # Get service relationship
+        service = calendar_or_calendar_date.get("hasService")
+
+        # If missing, log error and continue
+        if not service:
+            logger.error("Calendar / Calendar Date has missing service: %r", calendar_or_calendar_date["id"])
+            continue
+
+        # Extract route ID
+        service_id = service.get("object")
+
+        # If invalid, log error and continue
+        if not service_id:
+            logger.error("Invalid hasService structure: %r", calendar_or_calendar_date["id"])
+            continue
+
+        # Initialize service bucket if first encounter
+        if service_id not in calendar_or_calendar_dates_by_service:
+            calendar_or_calendar_dates_by_service[service_id] = []
+
+        # Add calendar date to corresponding service
+        calendar_or_calendar_dates_by_service[service_id].append(calendar_or_calendar_date)
+
+    return calendar_or_calendar_dates_by_service
+
+def netex_index_trip_by_shape(trips: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """
+    Group GtfsTrip entities based on the shape they follow.
+
+    Args:
+        trips (list[dict[str, Any]]): List of GtfsTrip entities to group
+
+    Returns:
+        dict[str, list[dict[str, Any]]]: Dictionary mapping trip IDs to lists of shapes
+    """
+    # Group container
+    trips_by_shape = {}
+
+    # Traverse all trips
+    for trip in trips:
+
+        # Get shape relationship
+        shape = trip.get("hasShape")
+
+        # If missing, log error and continue
+        if not shape:
+            logger.error("Trip missing hasShape: %r", trip["id"])
+            continue
+
+        # Extract route ID
+        shape_id = shape.get("object")
+
+        # If invalid, log error and continue
+        if not shape_id:
+            logger.error("Invalid hasShape structure: %r", trip["id"])
+            continue
+
+        # Initialize route bucket if first encounter
+        if shape_id not in trips_by_shape:
+            trips_by_shape[shape_id] = []
+
+        # Add trip to corresponding route
+        trips_by_shape[shape_id].append(trip)
+
+    return trips_by_shape
+
+def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]):
+    """
+    Group GtfsStopTimes entities based on the trips they follow.
+
+    Args:
+        stop_times (list[dict[str, Any]]): List of GtfsStopTimes entities to group
+
+    Returns:
+        dict[str, list[dict[str, Any]]]: Dictionary mapping stop time IDs to lists of trips
+    """
+    # Group container
+    stop_times_by_trip = {}
+
+    # Traverse all stop times
+    for stop_time in stop_times:
+
+        # Get trip relationship
+        trip = stop_time.get("hasTrip")
+
+        # If missing, log error and continue
+        if not trip:
+            logger.error("Stop time missing hasTrip: %r", stop_time["id"])
+            continue
+
+        # Extract route ID
+        trip_id = trip.get("object")
+
+        # If invalid, log error and continue
+        if not trip_id:
+            logger.error("Invalid hasTrip structure: %r", stop_time["id"])
+            continue
+
+        # Initialize trip bucket if first encounter
+        if trip_id not in stop_times_by_trip:
+            stop_times_by_trip[trip_id] = []
+
+        # Add stop time to corresponding trip
+        stop_times_by_trip[trip_id].append(stop_time)
+
+    return stop_times_by_trip
+
+def netex_index_stops_by_trip(stop_times: list[dict[str, Any]]):
     
-    header = orion_ld_define_header("gtfs_static")
+    # Group container
+    stops_by_trip = {}
+
+    # Traverse all stop times
+    for stop_time in stop_times:
+
+        # Get trip relationship
+        trip = stop_time.get("hasTrip")
+
+        # If missing, log error and continue
+        if not trip:
+            logger.error("Stop time missing hasTrip: %r", stop_time["id"])
+            continue
+
+        # Extract trip ID
+        trip_id = trip.get("object")
+        
+        # If invalid, log error and continue
+        if not trip_id:
+            logger.error("Invalid hasTrip structure: %r", stop_time["id"])
+            continue
+        
+        # Get stop relationship
+        stop = stop_time.get("hasStop")
+        
+        # If missing, log error and continue
+        if not stop:
+            logger.error("Stop time missing hasStop: %r", stop_time["id"])
+            continue
+        
+        # Extract stop ID
+        stop_id = stop.get("object")
+        
+        # If invalid, log error and continue
+        if not stop_id:
+            logger.error("Invalid hasStop structure: %r", stop_time["id"])
+            continue 
+
+        # Initialize trip bucket if first encounter
+        if trip_id not in stops_by_trip:
+            stops_by_trip[trip_id] = []
+
+        # Add stop time to corresponding trip
+        stops_by_trip[trip_id].append(stop)
+        
+    return stops_by_trip
     
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
-    
-    return orion_ld_get_entities_by_query_expression("GtfsStop", header, f'id=="{stop_id}"', config.NETEX_OPERATING_CITY)
+def netex_filter_valid_transfers_for_service_journey_interchanges(transfers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Filter GtfsTransferRule entities that can be represented as
+    NeTEx ServiceJourneyInterchange.
+
+    A valid ServiceJourneyInterchange requires:
+    - from_stop_id
+    - to_stop_id
+    - from_trip_id
+    - to_trip_id
+
+    Args:
+        transfers (list[dict[str, Any]]):
+            List of GtfsTransferRule entities.
+
+    Returns:
+        list[dict[str, Any]]:
+            List containing only valid ServiceJourneyInterchange candidates.
+    """
+
+    valid_transfers = []
+
+    for transfer in transfers:
+
+        transfer_id = transfer["id"]
+
+        has_origin = transfer.get("hasOrigin", {}).get("object")
+        if not has_origin:
+            logger.error("Transfer cannot be converted to ServiceJourneyInterchange. Missing hasOrigin: %r", transfer_id)
+            continue
+
+        has_destination = transfer.get("hasDestination", {}).get("object")
+        if not has_destination:
+            logger.error("Transfer cannot be converted to ServiceJourneyInterchange. Missing hasDestination: %r",transfer_id)
+            continue
+
+        from_trip = transfer.get("from_trip_id", {}).get("object")
+        if not from_trip:
+            logger.error("Transfer cannot be converted to ServiceJourneyInterchange. Missing from_trip_id: %r",transfer_id)
+            continue
+
+        to_trip = transfer.get("to_trip_id", {}).get("object")
+        if not to_trip:
+            logger.error("Transfer cannot be converted to ServiceJourneyInterchange. Missing to_trip_id: %r", transfer_id)
+            continue
+
+        valid_transfers.append(transfer)
+
+    return valid_transfers
 
 # -----------------------------------------------------
 # Set NeTEx Authority for ID Generation
@@ -2585,11 +2951,6 @@ def netex_create_shared_data_xml(
 if __name__ == "__main__":
 
     netex_helper_set_operating_city("Sofia")
-    authorities = netex_get_all_gtfs_agencies_to_turn_to_authorities()
-    for autority in authorities:
-        routes = netex_get_all_gtfs_routes_of_an_agency(autority["id"])
-        print(json.dumps(routes, indent=2, ensure_ascii=False))
-
     # city = "Sofia"
     # header = orion_ld_define_header("gtfs_static")
     # agencies = orion_ld_get_entities_by_type("GtfsAgency", header, city)
