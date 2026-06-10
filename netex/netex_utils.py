@@ -2560,106 +2560,6 @@ def netex_helper_stream_line(xml_file, route: dict[str, Any]) -> None:
         xml_file.write(line, pretty_print=True)
 
 
-def netex_convert_routes_to_lines(entity: dict[str, Any]) -> etree.Element:
-    """
-    Converts a GTFS Route entity into a NeTEx Line XML element.
-
-    Args:
-        entity (dict[str, Any]): GtfsRoute entity
-
-    Returns:
-        etree.Element: A NeTEx Line XML element populated with the corresponding
-        route information.
-    """
-
-    # Extract route ID
-    route_id = entity.get("id")
-    route_id_value = route_id.split(":")[-1] if route_id else "unknown"
-
-    # Create Line element
-    line = etree.Element("Line", version="1", id=f"{config.NETEX_AUTHORITY}:Line:{route_id_value}")
-
-    # Add line Name
-    route_long_name = entity.get("name", {}).get("value")
-    if route_long_name:
-        etree.SubElement(line, "Name").text = route_long_name
-
-    # Add line Description
-    route_description = entity.get("description", {}).get("value")
-    if route_description:
-        etree.SubElement(line, "Description").text = route_description
-
-    # Mapping between transport mode and NeTEx submode tags
-    SUBMODE_TAG_MAP = {
-        'rail': 'RailSubmode',
-        'coach': 'CoachSubmode',
-        'metro': 'MetroSubmode',
-        'bus': 'BusSubmode',
-        'trolleyBus': 'TrolleyBusSubmode',
-        'tram': 'TramSubmode',
-        'water': 'WaterSubmode',
-        'cableway': 'TelecabinSubmode',
-        'funicular': 'FunicularSubmode',
-        'taxi': 'TaxiSubMode',
-        'other': 'OtherSubMode'
-    }
-
-    # Get transport mode and submode from route type
-    route_type = entity.get("routeType", {}).get("value")
-    transport_mode_and_submode = netex_helper_get_transport_mode_and_submode(route_type)
-
-    try:
-        mode_text, submode_text = transport_mode_and_submode
-    except (ValueError, TypeError):
-        raise ValueError("transport_mode_and_submode must be a tuple of two strings.")
-
-    # Add TransportMode element
-    etree.SubElement(line, "TransportMode").text = mode_text
-
-    # Get submode tag based on transport mode
-    submode_tag = SUBMODE_TAG_MAP.get(mode_text)
-
-    if not submode_tag:
-        raise ValueError(f"Unknown Transport Mode: '{mode_text}'")
-
-    # Add TransportSubmode element
-    transport_submode_parent = etree.SubElement(line, "TransportSubmode")
-    etree.SubElement(transport_submode_parent, submode_tag).text = submode_text
-
-    # Add line URL
-    route_url = entity.get("route_url", {}).get("value")
-    if route_url:
-        etree.SubElement(line, "Url").text = route_url
-
-    # Add line short name (PublicCode)
-    route_short_name = entity.get("shortName", {}).get("value")
-    if route_short_name:
-        etree.SubElement(line, "PublicCode").text = route_short_name
-
-    # Add operator references
-    agency = entity.get("operatedBy", {}).get("object")
-    if agency:
-        agency_id = agency.split(":")[-1]
-
-        etree.SubElement(line, "OperatorRef", ref=f"{agency_id}:Operator:{agency_id}")
-
-        etree.SubElement(line,"RepresentedByGroupRef",ref=f"{agency_id}:Authority:{agency_id}Nett")
-
-    # Add presentation (colors)
-    route_colour = entity.get("routeColor", {}).get("value")
-    route_text_colour = entity.get("routeTextColor", {}).get("value")
-
-    if route_colour or route_text_colour:
-        presentation = etree.SubElement(line, "Presentation")
-
-        if route_colour:
-            etree.SubElement(presentation, "Colour").text = route_colour
-
-        if route_text_colour:
-            etree.SubElement(presentation, "TextColour").text = route_text_colour
-
-    return line
-
 def netex_helper_build_points_in_sequence_for_route(stops_per_trip: dict[str, list[str]], trip_id: str) -> etree.Element:
     
     points_in_sequence = etree.Element("pointsInSequence")
@@ -3173,6 +3073,7 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
     route = route_dataset["route"]
     trips = route_dataset["trips"]
     ordered_stops_by_trip = netex_helper_extract_stops_in_a_trip(route_dataset["stop_times"])
+    stop_pairs = netex_helper_split_stops_into_pairs(ordered_stops_by_trip)
 
     route_id = route.get("id")
 
@@ -3225,6 +3126,7 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
             "route_id": route_id,
             "stop_sequence": list(stop_sequence),
             "trip_ids": trip_ids,
+            "stop_pairs": stop_pairs
         }
 
         if direction:
@@ -3281,19 +3183,88 @@ def netex_helper_build_route(route_structure: dict[str, Any]) -> etree.Element:
 
 def netex_helper_stream_routes(xml_file, route_structures: list[dict[str, Any]]) -> None:
 
-    xml_file.write(b"\n")
+    logger.info("Streaming Routes")
+
+    counter = 0
+
     with xml_file.element("routes"):
+
         xml_file.write(b"\n")
 
         for structure in route_structures:
 
             route = netex_helper_build_route(structure)
 
+            counter += 1
+
             xml_file.write(route, pretty_print=True)
 
+        logger.info("Finished streaming %d Routes", counter)
+
 # -----------------------------------------------------
-# 
+#  Netex <JourneyPattern>
 # -----------------------------------------------------
+
+def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree.Element:
+
+    route_id = route_structure["route_id"]
+    route_id_value = route_id.split(":")[-1] if route_id else "unknown"
+
+    sequence = route_structure["stop_sequence"]
+    stop_pairs = route_structure["stop_pairs"]
+
+    journey_pattern = etree.Element("JourneyPattern", version = "1", 
+            id = f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}")
+    
+    route_long_name = route_structure.get("route_long_name")
+
+    if route_long_name:
+        etree.SubElement(journey_pattern, "Name").text = route_long_name
+
+    etree.SubElement(journey_pattern, "RouteRef", ref = f"{config.NETEX_AUTHORITY}:Route:{route_id_value}", version = "1")
+
+    points_in_sequence = etree.SubElement(journey_pattern, "pointsInSequence")
+
+    for order, stop_id in enumerate(sequence, start=1):
+
+        point_on_route = etree.SubElement(points_in_sequence, "StopPointInJourneyPattern",
+                                           order = str(order), version = "1",
+                                           id = f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}")
+
+        etree.SubElement(point_on_route, "ScheduledStopPointRef",
+        ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id}")
+
+    links_in_sequence = etree.SubElement(journey_pattern, "linksInSequence")
+
+    for order, (from_stop, to_stop) in enumerate(stop_pairs, start=1):
+
+        service_link_in_journey_pattern = etree.SubElement(links_in_sequence, "ServiceLinkInJourneyPattern",
+                                                           order = str(order), version = "1",
+                                                           id = f"{config.NETEX_AUTHORITY}:ServiceLinkInJourneyPattern:{from_stop}_{to_stop}")
+
+        etree.SubElement(service_link_in_journey_pattern, "ServiceLinkRef", ref = f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}")
+
+    return journey_pattern
+
+def netex_helper_stream_journey_patterns(xml_file, route_structures: list[dict[str, Any]]) -> None:
+
+    logger.info("Streaming JourneyPatterns")
+
+    counter = 0
+
+    with xml_file.element("journeyPatterns"):
+
+        xml_file.write(b"\n")
+
+        for structure in route_structures:
+
+            journey_pattern = netex_helper_build_journey_pattern(structure)
+
+            counter += 1
+
+            xml_file.write(journey_pattern, pretty_print=True)
+
+        logger.info("Finished streaming %d JourneyPatterns", counter)
 
 def netex_helper_process_and_group_stop_times(stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
@@ -3391,6 +3362,8 @@ def netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_struc
         netex_helper_stream_routes(xml_file, route_structure)
 
         netex_helper_stream_line(xml_file, route_dataset["route"])
+
+        netex_helper_stream_journey_patterns(xml_file, route_structure)
 
 def netex_create_shared_data_xml(
         agency: dict[str, Any], 
