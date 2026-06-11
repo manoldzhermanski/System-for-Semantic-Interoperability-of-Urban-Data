@@ -1,9 +1,8 @@
 import re
 import sys
-import json
-import math
+import uuid
 import logging
-from typing import Iterator, Any
+from typing import Any
 from pathlib import Path
 from lxml import etree # type: ignore
 from pyproj import Transformer
@@ -19,11 +18,9 @@ sys.path.append(str(project_root))
 
 import config
 
-from gtfs_static.gtfs_static_utils import gtfs_static_get_ngsi_ld_batches
 from orion_ld.orion_ld_crud_operations import (
     orion_ld_define_header,
     orion_ld_get_entities_by_type,
-    orion_ld_get_entities_by_query_expression
     )
 
 logger = logging.getLogger("NeTEx_Converter")
@@ -529,6 +526,8 @@ def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]):
 #         if not trip_id:
 #             logger.error("Invalid hasTrip structure: %r", stop_time["id"])
 #             continue
+
+#         trip_id_value = trip_id.split(":")[-1]
         
 #         # Get stop relationship
 #         stop = stop_time.get("hasStop")
@@ -546,6 +545,8 @@ def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]):
 #             logger.error("Invalid hasStop structure: %r", stop_time["id"])
 #             continue 
 
+#         stop_id_value = stop_id.split(":")[-1]
+
 #         # Get stop sequence
 #         sequence = stop_time.get("stopSequence", {}).get("value")
 
@@ -555,19 +556,19 @@ def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]):
 #             continue
 
 #         # Create container if trip id is encountered for the first time
-#         if trip_id not in stops_by_trip:
-#             stops_by_trip[trip_id] = []
+#         if trip_id_value not in stops_by_trip:
+#             stops_by_trip[trip_id_value] = []
 
 #         # Add sequence and stop ID tuple
-#         stops_by_trip[trip_id].append((sequence, stop_id))
+#         stops_by_trip[trip_id_value].append((sequence, stop_id_value))
 
-#     for trip_id in stops_by_trip:
+#     for trip_id_value in stops_by_trip:
 
 #         # Sort stops by sequence number
-#         stops_by_trip[trip_id].sort(key=lambda x: x[0])
+#         stops_by_trip[trip_id_value].sort(key=lambda x: x[0])
 
 #         # Keep only the stop IDs in the final output
-#         stops_by_trip[trip_id] = [stop_id for _, stop_id in stops_by_trip[trip_id]]
+#         stops_by_trip[trip_id_value] = [stop_id_value for _, stop_id_value in stops_by_trip[trip_id_value]]
 
 #     return stops_by_trip
 
@@ -1015,6 +1016,8 @@ def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str
 
     calendar_dates = [calendar_date for calendar_date in authority_dataset["calendar_dates"] if calendar_date.get("hasService", {}).get("object") in service_ids]
     
+    # stops = netex_index_stops_by_trip(stop_times)
+
     return {
         "agency": authority_dataset["agency"],
         "route": route,
@@ -1024,6 +1027,7 @@ def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str
         "transfers": transfers,
         "calendar": calendars,
         "calendar_dates": calendar_dates,
+        # "stops": stops
     }
 
 # -----------------------------------------------------
@@ -1302,7 +1306,7 @@ def netex_stream_resource_frame_for_shared_data_xml(xml_file, agencies: list[dic
         agencies = [agencies]
 
     xml_file.write(b"\n")
-    with xml_file.element("ResourceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ResourceFrame:1"):
+    with xml_file.element("ResourceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ResourceFrame:{uuid.uuid4()}"):
         with xml_file.element("organisations"):
 
             # Stream Authorities
@@ -2034,9 +2038,9 @@ def netex_stream_service_links(xml_file, service_links_data: list[dict]) -> None
 
     logger.info("Finished streaming %d ServiceLinks", len(seen))
     
-
-##########################################################
-# GtfsCalendarRule and GtfsCalendarDateRule
+# --------------------------------------------
+# Helper Functions for <OperatingPeriod> creation
+# --------------------------------------------
 
 def netex_helper_convert_yyyymmdd_date_to_iso_date(date_str: str) -> str:
     """
@@ -2220,6 +2224,7 @@ def netex_helper_stream_day_types(xml_file, entities: list[dict[str, Any]]) -> N
 # --------------------------------------------
 # GtfsCalendarRule to NeTEx <OperatingPeriod>
 # --------------------------------------------
+
 def netex_helper_build_operating_period(entity: dict[str, Any]) -> etree.Element | None:
     """
     Builds a NeTEx <OperatingPeriod> element from a GtfsCalendarRule entity.
@@ -2346,7 +2351,7 @@ def netex_helper_build_day_type_assignment(entity: dict[str, Any], index: int) -
         is_available_value = "true" if is_available else "false"
 
         # Build DayTypeAssignment element with the extracted ID value, date, day type reference and availability
-        day_type_assignment = etree.Element("DayTypeAssignment", order = str(index), version = "1", id = f"{config.NETEX_AUTHORITY}:DayTypeAssignment:{day_type_id_value}-{index}")
+        day_type_assignment = etree.Element("DayTypeAssignment", order = str(index), version = "1", id = f"{config.NETEX_AUTHORITY}:DayTypeAssignment:{day_type_id_value}_{index}")
 
         etree.SubElement(day_type_assignment, "Date").text = datetime.strptime(raw_date, "%Y%m%d").strftime("%Y-%m-%d")
 
@@ -2364,11 +2369,11 @@ def netex_helper_build_day_type_assignment(entity: dict[str, Any], index: int) -
         day_type_id_value = day_type_assignment_id.split(":")[-1]
 
         # Build DayTypeAssignment element with the extracted ID value, operating period reference and day type reference
-        day_type_assignment = etree.Element("DayTypeAssignment", order=str(index), version="1", id=f"{config.NETEX_AUTHORITY}:DayTypeAssignment:{day_type_id_value}-{index}")
+        day_type_assignment = etree.Element("DayTypeAssignment", order=str(index), version="1", id=f"{config.NETEX_AUTHORITY}:DayTypeAssignment:{day_type_id_value}_{index}")
 
         etree.SubElement(day_type_assignment, "OperatingPeriodRef", version = "1", ref = f"{config.NETEX_AUTHORITY}:OperatingPeriod:{day_type_id_value}")
 
-        etree.SubElement(day_type_assignment, "DayTypeRef", version = "1", ref = f"{config.NETEX_AUTHORITY}:DayType:{day_type_id_value}-{index}")
+        etree.SubElement(day_type_assignment, "DayTypeRef", version = "1", ref = f"{config.NETEX_AUTHORITY}:DayType:{day_type_id_value}_{index}")
 
         return day_type_assignment
     
@@ -2410,6 +2415,7 @@ def netex_helper_stream_day_type_assignments(xml_file, entities: list[dict[str, 
 # ----------------------------------------------------------------------------------------------
 # NeTEx <ServiceCalendarFrame> containing <DayType>, <OperatingPeriod> and <DayTypeAssignment>
 # ----------------------------------------------------------------------------------------------
+
 def netex_stream_service_calendar_frame_for_shared_data_xml(xml_file, calendars, calendar_dates) -> None:
     """
     Streams a NeTEx <ServiceCalendarFrame> element containing <DayType>, <OperatingPeriod> and <DayTypeAssignment> elements.
@@ -2426,7 +2432,7 @@ def netex_stream_service_calendar_frame_for_shared_data_xml(xml_file, calendars,
 
     # Stream the <ServiceCalendarFrame> element with its child elements
     xml_file.write(b"\n")
-    with xml_file.element("ServiceCalendarFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceCalendarFrame:1"):
+    with xml_file.element("ServiceCalendarFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceCalendarFrame:{uuid.uuid4()}"):
 
         netex_helper_stream_day_types(xml_file, all_entities)
 
@@ -2593,56 +2599,10 @@ def netex_helper_stream_line(xml_file, route: dict[str, Any]) -> None:
 
     logger.info("Finished streaming Line")
 
-
-def netex_helper_build_points_in_sequence_for_route(stops_per_trip: dict[str, list[str]], trip_id: str) -> etree.Element:
-    
-    points_in_sequence = etree.Element("pointsInSequence")
-
-    stops = stops_per_trip.get(trip_id, [])
-    
-    for index, stop in enumerate(stops, start=1):
-        point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute", order = str(index), version = "1", id = f"{config.NETEX_AUTHORITY}:PointOnRoute:{trip_id}_{index}")
-        
-        route_point_ref = etree.SubElement(point_on_route, "RoutePointRef")
-        route_point_ref.set("ref", f"{config.NETEX_AUTHORITY}:RoutePoint:{stop}")
-        
-    return points_in_sequence
-
-# Questions to ask:
-# Tips on ID creation
-# For pointsInSequence should I copy the Quay data for the stops along the line
-# Tips on IDs for shape segments
-def netex_convert_trips_to_journey_patterns(entity: dict[str, Any], stops_per_trip: dict[str, list[str]]):
-    
-    id_value = entity.get("id")
-    trip_id = id_value.split(":")[-1] if id_value else "unknown"
-    
-    journey_pattern = etree.Element("JourneyPattern", id = f"{config.NETEX_AUTHORITY}:JourneyPattern:{trip_id}", version = "1")
-    
-    name = entity.get("headSign", {}).get("value")
-    if name:
-        journey_pattern_name = etree.SubElement(journey_pattern, "Name")
-        journey_pattern_name.text = name
-        
-    route = entity.get("route", {}).get("object")
-    route_id = route.split(":")[-1]
-    
-    if route_id:
-        journey_pattern_route = etree.SubElement(journey_pattern, "RouteRef")
-        journey_pattern_route.set("ref", f"{config.NETEX_AUTHORITY}:Route:{route_id}")
-        journey_pattern_route.set("version", "1")
-    
-    points_in_sequence = netex_helper_build_points_in_sequence_for_route(stops_per_trip, trip_id)
-    
-    journey_pattern.append(points_in_sequence)
-
-    links_in_sequence = etree.SubElement(journey_pattern, "linksInSequence")
-        
-    return journey_pattern
-
 # -----------------------------------------------------
 # GtfsStop to NeTEx <ScheduledStopPoint>
 # ----------------------------------------------------- 
+
 def netex_helper_build_scheduled_stop_point(gtfs_stop: dict[str, Any]) -> etree.Element | None:
     """
     Builds a NeTEx <ScheduledStopPoint> element from a GtfsStop entity.
@@ -2730,199 +2690,159 @@ def netex_helper_stream_scheduled_stop_points(xml_file, gtfs_stops: list[dict[st
 # -----------------------------------------------------
 # GtfsStop to NeTEx <StopPlace>
 # -----------------------------------------------------
-def netex_helper_extract_routes_in_a_trip(trips: list[dict[str, Any]]) -> dict[str, str]:
-    """
-    Create a lookup dictionary which shows for each trip what is it's associated route
 
-    Args:
-        trips (list[dict[str, Any]]): list of GtfsTrip entities
-
-    Returns:
-        dict[str, str]: dictionary of `trip_id - route_id` 
-    """
-    # Create dictionary to store the data
-    route_per_trip = {}
-    
-    for trip in trips:
-        
-        # Extract trip_id
-        trip_id = trip["id"]
-        
-        # Extract route_id
-        route_id = trip["route"]["object"]
-        
-        # Populate dictionary
-        if trip_id not in route_per_trip.keys():
-            route_per_trip[trip_id] = route_id
-    
-    # Return dictionary
-    return route_per_trip
-
-def netex_helper_get_transport_modes_per_stop(
-    stops_per_trip: dict[str, list[str]],
-    route_per_trip: dict[str, str],
-    route_type_per_route: dict[str, int]
-) -> dict[str, set[tuple[str, str]]]:
-    """
-    Creates a mapping of stop_id -> set of (transport_mode, submode)
-
-    Returns:
-        dict[str, set[tuple[str, str]]]
-    """
+def netex_helper_get_transport_modes_per_stop(authority_dataset):
 
     transport_modes_per_stop = {}
 
-    for trip_id, stops in stops_per_trip.items():
+    route_types = [route.get("routeType", {}).get("value") for route in authority_dataset["routes"]]
 
-        # Get route_id
-        route_id = route_per_trip.get(trip_id)
-        if not route_id:
-            continue
+    for route_type in route_types:
 
-        # Get route_type
-        route_type = route_type_per_route.get(route_id)
-        if route_type is None:
-            continue
-
-        # Convert to NetEx mode/submode
         transport_mode = netex_helper_get_transport_mode_and_submode(route_type)
 
-        for stop_id in stops:
+        for stop in authority_dataset["stops"]:
 
-            if stop_id not in transport_modes_per_stop:
-                transport_modes_per_stop[stop_id] = set()
+            stop_id_value = stop["id"].split(":")[-1]
 
-            transport_modes_per_stop[stop_id].add(transport_mode)
+            if stop_id_value not in transport_modes_per_stop:
+                transport_modes_per_stop[stop_id_value] = set()
+
+            transport_modes_per_stop[stop_id_value].add(transport_mode)
 
     return transport_modes_per_stop
 
-def netex_convert_stops_to_stop_place(entities: list[dict[str, Any]], transport_modes_per_stop: dict[str, set[tuple[str, str]]]) -> etree.Element:
-    """
-    Create <StopPlace> elements from a list of GtfsStop entities and store them in a <stopPlaces> container.
+def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_modes_per_stop: dict[str, set[tuple[str, str]]], index: int) -> etree.Element | None:
 
-    Args:
-        entities (list[dict[str, Any]]): List of GtfsStop entities
-
-    Returns:
-        etree.Element: <stopPlaces> container with <StopPlace> elements
-    """
-    # Used to store unique StopPlace XML elements
-    stop_places_dict = {}
-
-    # Iterate through the list of GtfsStop entities
-    for index, entity in enumerate(entities, start = 1):
-
-        # Check if entity is of proper type
-        entity_type = entity["type"]
-        if entity_type != "GtfsStop":
-            continue
-        
-        # Extract stop_id
-        stop_id = entity["id"]
-        if not isinstance(stop_id, str) or ":" not in stop_id:
-            logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
-            continue
-        stop_id_value = stop_id.split(":")[-1]
-       
-        # Create StopPlace element
-        stop_place = etree.Element("StopPlace", version = "1", id = f"{config.NETEX_AUTHORITY}:StopPlace:{stop_id_value}")
-
-        # Extract location type, name, code, description and coordinates
-        location_type = entity.get("locationType", {}).get("value", 0)
-        name_value = entity.get("name", {}).get("value")
-        stop_code_value = entity.get("code", {}).get("value")
-        description_value = entity.get("description", {}).get("value")
-        coords = entity.get("location", {}).get("value", {}).get("coordinates")
-
-        # Add Name, Description, PublicCode and Centroid elements if values are present
-        if name_value:
-            etree.SubElement(stop_place, "Name").text = name_value
-
-        if description_value:
-            etree.SubElement(stop_place, "Description").text = description_value
-
-        if stop_code_value:
-            etree.SubElement(stop_place, "PublicCode").text = str(stop_code_value)
-
-        if coords:
-            centroid = etree.SubElement(stop_place, "Centroid")
-            location = etree.SubElement(centroid, "Location")
-            etree.SubElement(location, "Longitude").text = str(coords[0])
-            etree.SubElement(location, "Latitude").text = str(coords[1])
-
-        # Extract wheelchair boarding and tts_stop_name for accessibility information
-        wheelchair = entity.get("wheelchair_boarding", {}).get("value")
-        tts_stop_name = entity.get("tts_stop_name", {}).get("value")
-
-        # Add AccessibilityAssessment and AccessibilityLimitation elements if wheelchair boarding information is present
-        if wheelchair:
-            accessibility_assessment = etree.SubElement(stop_place, "AccessibilityAssessment", version = "1", id = f"{config.NETEX_AUTHORITY}:AccessibilityAssessment:{str(index)}")
-            etree.SubElement(accessibility_assessment, "MobilityImpairedAccess").text = "partial"
-            limitations = etree.SubElement(accessibility_assessment, "limitations")
-            accessibility_limitation = etree.SubElement(limitations, "AccessibilityLimitation", version = "1", id = str(index))
-            etree.SubElement(accessibility_limitation, "WheelchairAccess").text = "true"
-            etree.SubElement(accessibility_limitation, "StepFreeAccess").text = "unknown"
-            etree.SubElement(accessibility_limitation, "EscalatorFreeAccess").text = "unknown"
-            etree.SubElement(accessibility_limitation, "LiftFreeAccess").text = "unknown"
-            
-            # If tts_stop_name is present, we can assume that audible signs are available, otherwise we set it to unknown
-            if tts_stop_name:
-                etree.SubElement(accessibility_limitation, "AudibleSignsAvailable").text = "true"
-            else:
-                etree.SubElement(accessibility_limitation, "AudibleSignsAvailable").text = "unknown"
-            etree.SubElement(accessibility_limitation, "VisualSignsAvailable").text = "unknown"
-
-        # Extract parent station information and add ParentSiteRef element if present
-        parent_station = entity.get("hasParentStation", {}).get("object")
-       
-        if parent_station:
-            parent_station_value = parent_station.split(":")[-1]
-            etree.SubElement(stop_place, "ParentSiteRef", ref = f"{config.NETEX_AUTHORITY}:StopPlace:{parent_station_value}", version = "1")
-
-        # Determine transport mode and submode for the stop based on the routes that pass through it
-        mode = "unknown"
-        submode = "unknown"
-        
-        # Get transport modes for the stop from the provided mapping
-        transport_modes = transport_modes_per_stop.get(stop_id, set())
-
-        # Choose the first transport mode and submode
-        if transport_modes:
-            mode, submode = sorted(transport_modes)[0]  
+    # Get entity type and ID
+    stop_id = gtfs_stop_entity["id"]
+    entity_type = gtfs_stop_entity["type"]
     
-        # Add TransportMode and StopPlaceType elements
-        etree.SubElement(stop_place, "TransportMode").text = mode
-        etree.SubElement(stop_place, "StopPlaceType").text = submode
-           
-        # Add Quay element with its data
-        quays_container = etree.SubElement(stop_place, "quays")
-        quay = etree.SubElement(quays_container, "Quay", version = "1", id = f"{config.NETEX_AUTHORITY}:Quay:{stop_id_value}")
+    if entity_type != "GtfsStop":
+        logger.error("Unsupported entity type: %s", entity_type)
+        return None
 
-        if stop_code_value:
-            stop_public_code = etree.SubElement(quay, "PublicCode")
-            stop_public_code.text = str(stop_code_value)
+    # If not correctly formatted, log an error and return None    
+    if not isinstance(stop_id, str) or ":" not in stop_id:
+        logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
+        return None
+    
+    stop_id_value = stop_id.split(":")[-1]
+    
+    # Create StopPlace element
+    stop_place = etree.Element("StopPlace", version = "1", id = f"{config.NETEX_AUTHORITY}:StopPlace:{stop_id_value}")
 
-        if coords:
-            centroid = etree.SubElement(quay, "Centroid")
-            loc = etree.SubElement(centroid, "Location")
-            etree.SubElement(loc, "Longitude").text = str(coords[0])
-            etree.SubElement(loc, "Latitude").text = str(coords[1])
+    # Extract  name, code, description and coordinates
+    name_value = gtfs_stop_entity.get("name", {}).get("value")
+    stop_code_value = gtfs_stop_entity.get("code", {}).get("value")
+    description_value = gtfs_stop_entity.get("description", {}).get("value")
+    coords = gtfs_stop_entity.get("location", {}).get("value", {}).get("coordinates")
 
-        # If the XML element is unique, add it to the dict so we remove duplicates
-        if stop_id not in stop_places_dict:
-            stop_places_dict[stop_id] = stop_place
+    # Add Name, Description, PublicCode and Centroid elements if values are present
+    if name_value:
+        etree.SubElement(stop_place, "Name").text = name_value
 
-    # Create stopPlaces container and populate it with the StopPlace XML elements
-    stop_places = etree.Element("stopPlaces")
-    for stop_place in stop_places_dict.values():
-        stop_places.append(stop_place)
+    if description_value:
+        etree.SubElement(stop_place, "Description").text = description_value
 
-    # Return the stopPlaces container with all StopPlace elements
-    return stop_places
+    if stop_code_value:
+        etree.SubElement(stop_place, "PublicCode").text = str(stop_code_value)
+
+    if coords:
+        centroid = etree.SubElement(stop_place, "Centroid")
+        location = etree.SubElement(centroid, "Location")
+        etree.SubElement(location, "Longitude").text = str(coords[0])
+        etree.SubElement(location, "Latitude").text = str(coords[1])
+
+    # Extract wheelchair boarding and tts_stop_name for accessibility information
+    wheelchair = gtfs_stop_entity.get("wheelchair_boarding", {}).get("value")
+    tts_stop_name = gtfs_stop_entity.get("tts_stop_name", {}).get("value")
+
+    # Add AccessibilityAssessment and AccessibilityLimitation elements if wheelchair boarding information is present
+    if wheelchair:
+        accessibility_assessment = etree.SubElement(stop_place, "AccessibilityAssessment", version = "1", id = f"{config.NETEX_AUTHORITY}:AccessibilityAssessment:{str(index)}")
+        etree.SubElement(accessibility_assessment, "MobilityImpairedAccess").text = "partial"
+        limitations = etree.SubElement(accessibility_assessment, "limitations")
+        accessibility_limitation = etree.SubElement(limitations, "AccessibilityLimitation", version = "1", id = f"{uuid.uuid4()}")
+        etree.SubElement(accessibility_limitation, "WheelchairAccess").text = "true"
+        etree.SubElement(accessibility_limitation, "StepFreeAccess").text = "unknown"
+        etree.SubElement(accessibility_limitation, "EscalatorFreeAccess").text = "unknown"
+        etree.SubElement(accessibility_limitation, "LiftFreeAccess").text = "unknown"
+        
+        # If tts_stop_name is present, we can assume that audible signs are available, otherwise we set it to unknown
+        if tts_stop_name:
+            etree.SubElement(accessibility_limitation, "AudibleSignsAvailable").text = "true"
+        else:
+            etree.SubElement(accessibility_limitation, "AudibleSignsAvailable").text = "unknown"
+        etree.SubElement(accessibility_limitation, "VisualSignsAvailable").text = "unknown"
+
+    # Extract parent station information and add ParentSiteRef element if present
+    parent_station = gtfs_stop_entity.get("hasParentStation", {}).get("object")
+    
+    if parent_station:
+        parent_station_value = parent_station.split(":")[-1]
+        etree.SubElement(stop_place, "ParentSiteRef", ref = f"{config.NETEX_AUTHORITY}:StopPlace:{parent_station_value}", version = "1")
+
+    # Determine transport mode and submode for the stop based on the routes that pass through it
+    mode = "unknown"
+    submode = "unknown"
+    
+    # Get transport modes for the stop from the provided mapping
+    transport_modes = transport_modes_per_stop.get(stop_id, set())
+
+    # Choose the first transport mode and submode
+    if transport_modes:
+        mode, submode = sorted(transport_modes)[0]  
+
+    # Add TransportMode and StopPlaceType elements
+    etree.SubElement(stop_place, "TransportMode").text = mode
+    etree.SubElement(stop_place, "StopPlaceType").text = submode
+        
+    # Add Quay element with its data
+    quays_container = etree.SubElement(stop_place, "quays")
+    quay = etree.SubElement(quays_container, "Quay", version = "1", id = f"{config.NETEX_AUTHORITY}:Quay:{stop_id_value}")
+
+    if stop_code_value:
+        stop_public_code = etree.SubElement(quay, "PublicCode")
+        stop_public_code.text = str(stop_code_value)
+
+    if coords:
+        centroid = etree.SubElement(quay, "Centroid")
+        loc = etree.SubElement(centroid, "Location")
+        etree.SubElement(loc, "Longitude").text = str(coords[0])
+        etree.SubElement(loc, "Latitude").text = str(coords[1])
+
+    return stop_place
+
+def netex_helper_stream_stop_places(xml_file, transport_modes_per_stop: dict[str, set[tuple[str, str]]], gtfs_stop_entities: list[dict[str, Any]]) -> None:
+
+    logger.info("Streaming StopPlaces")
+
+    counter = 0
+
+    # Create container for <stopPlaces> elements
+    with xml_file.element("stopPlaces"):
+
+        for index, entity in enumerate(gtfs_stop_entities, start=1):
+
+            # Build <stopPlaces> element
+            stop_place = netex_helper_build_stop_place(entity, transport_modes_per_stop, index)
+
+            # Continue when unsuccessful
+            if stop_place is None:
+                continue
+
+            counter += 1
+
+            # Stream the <PassengerStopAssignment> element into the XML file
+            xml_file.write(stop_place, pretty_print=True)
+
+    logger.info("Finished streaming %d stopPlaces", counter)
 
 # -----------------------------------------------------
 # GtfsStop to NeTex <PassengerStopAssignment>
 # -----------------------------------------------------
+
 def netex_helper_build_passenger_stop_assignment(entity: dict[str, Any], index: int) -> etree.Element | None:
     """
     Build a single <PassengerStopAssignment> element.
@@ -3004,6 +2924,7 @@ def netex_helper_stream_passenger_stop_assignments(xml_file, entities: list[dict
 # -----------------------------------------------------
 # GtfsStop to NeTex <RoutePoint> and <PointProjection>
 # -----------------------------------------------------
+
 def netex_helper_build_route_point(gtfs_stop: dict[str, Any]) -> etree.Element | None:
     """
     Builds a NeTEx <RoutePoint> element from a single GtfsStop entity.
@@ -3087,6 +3008,7 @@ def netex_helper_stream_route_points(xml_file, gtfs_stops: list[dict[str, Any]])
 # -----------------------------------------------------
 # NeTEx <Route>
 # -----------------------------------------------------
+
 def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Build Route structures by grouping trips that share the same
@@ -3242,7 +3164,7 @@ def netex_helper_stream_routes(xml_file, route_structures: list[dict[str, Any]])
         logger.info("Finished streaming %d Routes", counter)
 
 # -----------------------------------------------------
-#  Netex <JourneyPattern>
+#  NeTEx <JourneyPattern>
 # -----------------------------------------------------
 
 def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree.Element:
@@ -3305,6 +3227,57 @@ def netex_helper_stream_journey_patterns(xml_file, route_structures: list[dict[s
             xml_file.write(journey_pattern, pretty_print=True)
 
         logger.info("Finished streaming %d JourneyPatterns", counter)
+
+# -----------------------------------------------------
+#  GtfsTransfers to NeTEx <ServiceJourneyInterchange>
+# -----------------------------------------------------
+
+def netex_helper_build_service_journey_interchange(route_tansfer: dict[str, Any]) -> etree.Element:
+
+    from_stop_id = route_tansfer.get("hasOrigin", {}).get("object")
+    to_stop_id = route_tansfer.get("hasDestination", {}).get("object")
+    from_trip_id = route_tansfer.get("from_trip_id", {}).get("object")
+    to_trip_id = route_tansfer.get("to_trip_id", {}).get("object")
+
+    from_stop_id_value = from_stop_id.split(":")[-1]
+    to_stop_id_value = to_stop_id.split(":")[-1]
+    from_trip_id_id_value = from_trip_id.split(":")[-1]
+    to_trip_id_id_value = to_trip_id.split(":")[-1]
+
+    service_journey_interchange = etree.Element("ServiceJourneyInterchange", version = "1", id = f"{config.NETEX_AUTHORITY}:ServiceJourneyInterchange:{from_stop_id_value}_{to_stop_id_value}_{from_trip_id_id_value}_{to_trip_id_id_value}")
+    
+    etree.SubElement(service_journey_interchange, "Guaranteed").text = bool(True)
+
+    etree.SubElement(service_journey_interchange, "FromPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop_id_value}")
+
+    etree.SubElement(service_journey_interchange, "ToPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop_id_value}")
+
+    etree.SubElement(service_journey_interchange, "FromJourneyRef", ref = f"{config.NETEX_AUTHORITY}:ServiceJourney:{from_trip_id_id_value}_{from_stop_id_value}_{to_stop_id_value}")
+
+    etree.SubElement(service_journey_interchange, "ToJourneyRef", ref = f"{config.NETEX_AUTHORITY}:ServiceJourney:{to_trip_id_id_value}_{from_stop_id_value}_{to_trip_id_id_value}")
+
+    return service_journey_interchange
+
+def netex_helper_stream_service_journey_interchange(xml_file, transfers: list[dict[str, Any]]) -> None:
+
+    logger.info("Streaming ServiceJourneyInterchange")
+
+    counter = 0
+
+    with xml_file.element("journeyInterchanges"):
+
+        xml_file.write(b"\n")
+
+        for transfer in transfers:
+
+            service_journey_interchange = netex_helper_build_service_journey_interchange(transfer)
+
+            counter += 1
+
+            xml_file.write(service_journey_interchange, pretty_print=True)
+
+        logger.info("Finished streaming %d ServiceJourneyInterchanges", counter)
+
 
 def netex_helper_process_and_group_stop_times(stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
@@ -3380,7 +3353,7 @@ def netex_stream_service_frame_for_shared_data_xml(xml_file,
                                ):
     # Create ServiceFrame element and add it's subelements
     xml_file.write(b"\n")
-    with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:1"):
+    with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:{uuid.uuid4()}"):
         netex_helper_stream_networks(xml_file, agency)
 
         netex_helper_stream_route_points(xml_file, stops)
@@ -3393,18 +3366,34 @@ def netex_stream_service_frame_for_shared_data_xml(xml_file,
 
         netex_helper_stream_passenger_stop_assignments(xml_file, stops)
 
-
 def netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_structure):
 
     # Create ServiceFrame element and add it's subelements
     xml_file.write(b"\n")
-    with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:1"):
+    with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:{uuid.uuid4()}"):
         netex_helper_stream_routes(xml_file, route_structure)
 
         netex_helper_stream_line(xml_file, route_dataset["route"])
 
         netex_helper_stream_journey_patterns(xml_file, route_structure)
 
+def netex_stream_service_frame_for_stops_xml(xml_file, authority_dataset) -> None:
+
+    with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:{uuid.uuid4()}"):
+
+        netex_helper_stream_scheduled_stop_points(xml_file, authority_dataset["stops"])
+
+        netex_helper_stream_passenger_stop_assignments(xml_file, authority_dataset["stops"])
+
+def netex_stream_site_frame_for_stops_xml(xml_file, authority_dataset):
+
+    transport_modes = netex_helper_get_transport_modes_per_stop(authority_dataset)
+
+    xml_file.write(b"\n")
+    with xml_file.element("SiteFrame", version="1", id=f"{config.NETEX_AUTHORITY}:SiteFrame:{uuid.uuid4()}"):
+
+        netex_helper_stream_stop_places(xml_file, transport_modes, authority_dataset["stops"])
+    
 def netex_create_shared_data_xml(
         agency: dict[str, Any], 
         stops: list[dict[str, Any]], 
@@ -3423,7 +3412,7 @@ def netex_create_shared_data_xml(
             xml_file.write(b"\n")
             with xml_file.element("dataObjects"):
                 xml_file.write(b"\n")
-                with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:1"):
+                with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
 
                     frame = netex_build_frame_defaults(agency)
                     xml_file.write(frame, pretty_print=True)
@@ -3500,12 +3489,25 @@ def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
             xml_file.write(b"\n")
             with xml_file.element("dataObjects"):
                 xml_file.write(b"\n")
-                with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:1"):
+                with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
                     frame = netex_build_frame_defaults(route_dataset["agency"])
                     xml_file.write(frame, pretty_print=True)
                     with xml_file.element("frames"):
                         netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_structures)
-    pass
+
+def netex_create_stops_xml(authority_dataset):
+
+    with etree.xmlfile(f"_stops.xml", encoding="utf-8") as xml_file:
+        xml_file.write_declaration()
+
+        with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
+            xml_file.write(b"\n")
+            with xml_file.element("dataObjects"):
+                xml_file.write(b"\n")
+
+                netex_stream_service_frame_for_stops_xml(xml_file, authority_dataset)
+
+                netex_stream_site_frame_for_stops_xml(xml_file, authority_dataset)
 
 if __name__ == "__main__":
 
@@ -3524,4 +3526,6 @@ if __name__ == "__main__":
         netex_create_shared_data_xml(agency, authority_dataset["stops"], stop_coordinates, shape_linestrings, shape_per_trip, stops_and_info_per_trip, authority_dataset["calendar"], authority_dataset["calendar_dates"])
 
         netex_create_line_xmls(authority_dataset)
+
+        netex_create_stops_xml(authority_dataset)
 
