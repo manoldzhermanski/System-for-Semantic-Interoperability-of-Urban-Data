@@ -1426,9 +1426,9 @@ def netex_helper_transform_line_string_to_wgs84(polyline_projected: LineString) 
     # Return a new LineString with the transformed coordinates
     return LineString(zip(tx, ty))
 
-def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str, Any]]) -> dict[str, list[str]]:
+def netex_helper_extract_stops_and_info_in_a_trip(gtfs_stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
-    For every trip, extract the ordered list of stops that comprise the trip based on the stop times information
+    For every trip, extract stop time information which will be used in NeTEx conversions
     
     Args:
         stop_times (list[dict[str, Any]]): A list of GtfsStopTime entities
@@ -1448,10 +1448,14 @@ def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str,
             logger.error("Unsupported entity type, expected GtfsStopTime: %s", entity_type)
             continue
         
-        # Get trip id, stop id and sequence
+        # Get needed data
         trip_id = stop_time.get("hasTrip", {}).get("object")
         stop_id = stop_time.get("hasStop", {}).get("object")
         sequence = stop_time.get("stopSequence", {}).get("value")
+        arrival_time = stop_time.get("arrivalTime", {}).get("value")
+        departure_time = stop_time.get("departureTime", {}).get("value")
+        for_alighting = stop_time.get("pickupType", {}).get("value")
+        for_boarding = stop_time.get("dropOffType", {}).get("value")
 
         if not isinstance(trip_id, str) or ":" not in trip_id:
             logger.error("Invalid or missing ID for GtfsTrip: %r", trip_id)
@@ -1466,21 +1470,36 @@ def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str,
         if not isinstance(sequence, int):
             logger.error("Invalid or missing stop sequence: %r", sequence)
             continue
-                
+
+        # Create stop record
+        stop_record = {
+            "stop_id": stop_id_value,
+            "stop_sequence": sequence,
+        }
+
+        if arrival_time is not None:
+            stop_record["arrival_time"] = arrival_time
+
+        if departure_time is not None:
+            stop_record["departure_time"] = departure_time
+
+        if for_alighting is not None:
+            stop_record["for_alighting"] = for_alighting
+
+        if for_boarding is not None:
+            stop_record["for_boarding"] = for_boarding
+
         # If the trip ID is not already in the stops_per_trip dictionary, initialize it with an empty list
         if trip_id_value not in stops_per_trip:
             stops_per_trip[trip_id_value] = []
             
-        # Append the stop ID and its sequence to the list of stops for the corresponding trip ID
-        stops_per_trip[trip_id_value].append((stop_id_value, sequence))
+        # Append the stop record to the list for the corresponding trip ID
+        stops_per_trip[trip_id_value].append(stop_record)
             
-    # After populating the stops_per_trip dictionary, sort the stops for each trip by their stop sequence
+    # After populating the stops_per_trip dictionary, sort the records for each trip by their stop sequence
     for trip in stops_per_trip:
-        stops_per_trip[trip].sort(key=lambda x: x[1])
-        
-        # Keep only the stop IDs
-        stops_per_trip[trip] = [stop_id for stop_id, seq in stops_per_trip[trip]]  # Keep only stop IDs
-            
+        stops_per_trip[trip].sort(key=lambda x: x["stop_sequence"])
+                
     # Return the lookup of stops per trip
     return stops_per_trip
 
@@ -1638,7 +1657,7 @@ def netex_helper_map_trips_to_shapes(gtfs_trips: list[dict[str, Any]]) -> dict[s
     # Return the dictionary
     return shapes_per_trip
 
-def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[str]]) -> dict[str, list[tuple[str, str]]]:
+def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[dict[str, Any]]]) -> dict[str, list[tuple[str, str]]]:
     """
     For every trip, split the ordered list of stops into pairs of consecutive stops to represent the segments between them.
     
@@ -1659,7 +1678,15 @@ def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[str]]) ->
 
         # Iterate through the list of stops and create pairs of consecutive stops
         for i in range(len(stops)-1):
-            pairs.append((stops[i], stops[i+1]))
+            
+            from_stop = stops[i].get("stop_id")
+            to_stop = stops[i + 1].get("stop_id")
+
+            if not from_stop or not to_stop:
+                logger.warning("Missing stop_id in trip %s at index %s", trip, i)
+                continue
+
+            pairs.append((from_stop, to_stop))
 
         # Populate the trip_stop_pairs dictionary with the trip ID and its list of stop pairs
         stop_pairs_in_a_trip[trip] = pairs
@@ -1751,7 +1778,7 @@ def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordina
     return stop_distances
       
 def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-    stops_per_trip: dict[str, list[str]],
+    stops_and_info_per_trip: dict[str, list[dict[str, Any]]],
     stop_coordinates: dict[str, Point],
     shape_geometries: dict[str, LineString],
     shape_per_trip: dict[str, str],
@@ -1760,7 +1787,7 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
     Compute stop distances along shapes for every trip.
 
     Args:
-        stops_per_trip (dict[str, list[str]]): A dictionary mapping trip IDs to lists of stop IDs in order.
+        stops_and_info_per_trip (dict[str, list[dict[str, Any]]]): A dictionary mapping trip IDs to lists of stop IDs in order and info surrounding the trip.
         stop_coordinates (dict[str, Point]): A dictionary mapping stop IDs to their coordinates in projected CRS.
         shape_geometries (dict[str, LineString]): A dictionary mapping shape IDs to their geometries in projected CRS.
         shape_per_trip (dict[str, str]): A dictionary mapping trip IDs to shape IDs.
@@ -1772,12 +1799,12 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
     stop_projections_per_trip: dict[str, dict[str, float]] = {}
 
     # Validate that all required input data is present before processing
-    if not stops_per_trip or not stop_coordinates or not shape_geometries or not shape_per_trip:
+    if not stops_and_info_per_trip or not stop_coordinates or not shape_geometries or not shape_per_trip:
         logger.error("Missing required input data for computing stop distances along shapes")
         return {}
 
     # Go through each trip and it's stops
-    for trip_id, stop_ids in stops_per_trip.items():
+    for trip_id, stop_and_info in stops_and_info_per_trip.items():
 
         # Get the shape ID for the current trip
         shape_id = shape_per_trip.get(trip_id)
@@ -1786,6 +1813,9 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
         if not shape_id:
             logger.error("Missing shape ID for trip %s", trip_id)
             continue
+
+        # Extract stop IDs in order
+        stop_ids = [stop.get("stop_id") for stop in stop_and_info if stop.get("stop_id")]
 
         # Get the shape geometry for the current trip's shape ID
         shape_geometry = shape_geometries.get(shape_id)
@@ -1842,7 +1872,7 @@ def netex_helper_create_line_string_segments_between_stop_pairs(
     # Return the segment of the shape geometry between the two stops
     return netex_helper_cut_shape_between_distances(shape_geometry, start_distance, end_distance)
     
-def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]],
+def netex_helper_create_service_link_info(stops_and_info_per_trip: dict[str, list[dict[str, Any]]],
                                            stop_coordinates: dict[str, Point],
                                           shape_geometries: dict[str, LineString],
                                             shape_per_trip: dict[str, str]):
@@ -1850,7 +1880,7 @@ def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]],
     Yield ServiceLink information objects.
 
     Args:
-        stops_per_trip (dict[str, list[str]]): A dictionary mapping trip IDs to lists of stop IDs.
+        stops_and_info_per_trip (dict[str, list[dict[str, Any]]]): A dictionary mapping trip IDs to lists of stop IDs in order and info surrounding the trip.
         stop_coordinates (dict[str, Point]): A dictionary mapping stop IDs to their coordinates.
         shape_geometries (dict[str, LineString]): A dictionary mapping shape IDs to their geometries.
         shape_per_trip (dict[str, str]): A dictionary mapping trip IDs to shape IDs.
@@ -1859,16 +1889,16 @@ def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]],
         None
     """
 
-    if not(stops_per_trip and stop_coordinates and shape_geometries and shape_per_trip):
+    if not(stops_and_info_per_trip and stop_coordinates and shape_geometries and shape_per_trip):
         logger.error("Missing required input data")
         return
 
     
-    stop_pairs_per_trip = netex_helper_split_stops_into_pairs(stops_per_trip)
+    stop_pairs_per_trip = netex_helper_split_stops_into_pairs(stops_and_info_per_trip)
 
     stop_projections_per_trip = (
         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-            stops_per_trip,
+            stops_and_info_per_trip,
             stop_coordinates,
             shape_geometries,
             shape_per_trip
@@ -2553,11 +2583,15 @@ def netex_helper_stream_line(xml_file, route: dict[str, Any]) -> None:
 
     xml_file.write(b"\n")
 
+    logger.info("Streaming Line")
+
     with xml_file.element("lines"):
 
         line = netex_helper_build_line(route)
 
         xml_file.write(line, pretty_print=True)
+
+    logger.info("Finished streaming Line")
 
 
 def netex_helper_build_points_in_sequence_for_route(stops_per_trip: dict[str, list[str]], trip_id: str) -> etree.Element:
@@ -3072,8 +3106,8 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
 
     route = route_dataset["route"]
     trips = route_dataset["trips"]
-    ordered_stops_by_trip = netex_helper_extract_stops_in_a_trip(route_dataset["stop_times"])
-    stop_pairs = netex_helper_split_stops_into_pairs(ordered_stops_by_trip)
+    ordered_stops_by_trip = netex_helper_extract_stops_and_info_in_a_trip(route_dataset["stop_times"])
+    stop_pairs_per_trip = netex_helper_split_stops_into_pairs(ordered_stops_by_trip)
 
     route_id = route.get("id")
 
@@ -3092,10 +3126,16 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
             continue
         trip_id_value = trip_id.split(":")[-1]
 
-        stop_sequence = ordered_stops_by_trip.get(trip_id_value)
+        stop_sequence = [stop_id.get("stop_id") for stop_id in ordered_stops_by_trip.get(trip_id_value)]
 
         if not stop_sequence:
             logger.warning("No stop sequence found for trip %s", trip_id_value)
+            continue
+
+        stop_pairs = stop_pairs_per_trip.get(trip_id_value)
+
+        if not stop_pairs:
+            logger.warning("No stop pairs found for trip %s", trip_id_value)
             continue
 
         direction_id = trip.get("direction", {}).get("value")
@@ -3336,7 +3376,7 @@ def netex_stream_service_frame_for_shared_data_xml(xml_file,
                                stop_coordinates, 
                                shape_linestrings, 
                                shape_per_trip, 
-                               stops_per_trip
+                               stops_and_info_per_trip
                                ):
     # Create ServiceFrame element and add it's subelements
     xml_file.write(b"\n")
@@ -3347,7 +3387,7 @@ def netex_stream_service_frame_for_shared_data_xml(xml_file,
 
         netex_helper_stream_scheduled_stop_points(xml_file, stops)
 
-        service_links_data = netex_helper_create_service_link_info(stops_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
+        service_links_data = netex_helper_create_service_link_info(stops_and_info_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
 
         netex_stream_service_links(xml_file, service_links_data)
 
@@ -3371,7 +3411,7 @@ def netex_create_shared_data_xml(
         stop_coordinates: dict[str, Any], 
         shape_linestrings: dict[str, Any], 
         shape_per_trip: dict[str, Any], 
-        stops_per_trip: dict[str, Any], 
+        stops_and_info_per_trip: dict[str, Any], 
         calendar: list[dict[str, Any]], 
         calendar_dates: list[dict[str, Any]]
         ) -> None:
@@ -3392,7 +3432,7 @@ def netex_create_shared_data_xml(
                         
                         netex_stream_service_frame_for_shared_data_xml(xml_file, agency, stops,
                                                                         stop_coordinates, shape_linestrings,
-                                                                          shape_per_trip, stops_per_trip)
+                                                                          shape_per_trip, stops_and_info_per_trip)
                         
                         netex_stream_service_calendar_frame_for_shared_data_xml(xml_file, 
                                                                                 calendar, calendar_dates)
@@ -3475,33 +3515,13 @@ if __name__ == "__main__":
     for agency in gtfs_dataset["agencies"]:
         authority_dataset = netex_build_authority_dataset(agency, gtfs_indexes)
 
-        stops_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
+        stops_and_info_per_trip = netex_helper_extract_stops_and_info_in_a_trip(authority_dataset["stop_times"])
         stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
         shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
         shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
 
         netex_helper_set_netex_authority(agency)
-        netex_create_shared_data_xml(agency, authority_dataset["stops"], stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, authority_dataset["calendar"], authority_dataset["calendar_dates"])
+        netex_create_shared_data_xml(agency, authority_dataset["stops"], stop_coordinates, shape_linestrings, shape_per_trip, stops_and_info_per_trip, authority_dataset["calendar"], authority_dataset["calendar_dates"])
 
         netex_create_line_xmls(authority_dataset)
 
-    # print(len(seen))
-    # # route_names = netex_helper_get_route_id_and_name(routes)
-    # # trip_directions = netex_helper_get_trip_direction(trips)
-    # # groups = netex_helper_group_trips_by_route_direction_and_sequence(trip_directions, stops_per_trip)
-    # # route_data = netex_helper_create_route_structures(groups, route_names)
-    # # netex_routes =netex_generate_routes(route_data)
-
-    # # #pprint(stops_per_trip)
-    # # #pprint(groups)
-    # # pprint(route_data)
-
-    # #for route_id, routes_xml in netex_routes.items():
-    # #    xml_str = etree.tostring(
-    # #        routes_xml,
-    # #        pretty_print=True,
-    # #        encoding="unicode"
-    # #    )
-
-    # #    print(f"--- Route group: {route_id} ---")
-    # #    print(xml_str)

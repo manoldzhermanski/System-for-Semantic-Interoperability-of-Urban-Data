@@ -21,7 +21,7 @@ def test_netex_helper_extract_stops_in_a_trip_with_single_trip_and_multiple_stop
         },
     ]
 
-    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_and_info_in_a_trip(stop_times)
 
     assert result == {"Trip1": ["Stop2", "Stop1"]}
 
@@ -43,7 +43,7 @@ def test_netex_helper_extract_stops_in_a_trip_with_multiple_trips():
         },
     ]
 
-    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_and_info_in_a_trip(stop_times)
 
     assert result == {
         "Trip1": ["Stop1"],
@@ -51,7 +51,7 @@ def test_netex_helper_extract_stops_in_a_trip_with_multiple_trips():
     }
 
 def test_netex_helper_extract_stops_in_a_trip_with_empty_input():
-    assert netex_utils.netex_helper_extract_stops_in_a_trip([]) == {}
+    assert netex_utils.netex_helper_extract_stops_and_info_in_a_trip([]) == {}
 
 def test_netex_helper_extract_stops_in_a_trip_with_none_values():
     stop_times = [
@@ -64,7 +64,7 @@ def test_netex_helper_extract_stops_in_a_trip_with_none_values():
         }
     ]
 
-    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_and_info_in_a_trip(stop_times)
 
     assert result == {}
 
@@ -85,7 +85,7 @@ def test_netex_helper_extract_stops_in_a_trip_skips_unsupported_entity_type():
     
     netex_utils.logger.error = MagicMock()
 
-    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_and_info_in_a_trip(stop_times)
 
     assert result == {}
     netex_utils.logger.error.assert_called_once_with("Unsupported entity type, expected GtfsStopTime: %s", "GtfsStop")
@@ -107,7 +107,7 @@ def test_netex_helper_extract_stops_in_a_trip_skips_invalid_trip_id():
     
     netex_utils.logger.error = MagicMock()
 
-    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_and_info_in_a_trip(stop_times)
 
     assert result == {}
     netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsTrip: %r", "broken_trip_id")
@@ -129,7 +129,7 @@ def test_netex_helper_extract_stops_in_a_trip_skips_invalid_stop_id():
     
     netex_utils.logger.error = MagicMock()
 
-    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_and_info_in_a_trip(stop_times)
 
     assert result == {}
     netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsStop: %r", "broken_stop_id")
@@ -151,7 +151,7 @@ def test_netex_helper_extract_stops_in_a_trip_skips_invalid_sequence():
     
     netex_utils.logger.error = MagicMock()
 
-    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_and_info_in_a_trip(stop_times)
 
     assert result == {}
     netex_utils.logger.error.assert_called_once_with("Invalid or missing stop sequence: %r", "not_an_int")
@@ -185,7 +185,7 @@ def test_netex_helper_extract_stops_in_a_trip_correctly_sorts_many_stops():
         },
     ]
 
-    result = netex_utils.netex_helper_extract_stops_in_a_trip(stop_times)
+    result = netex_utils.netex_helper_extract_stops_and_info_in_a_trip(stop_times)
 
     assert result == {
         "Trip1": ["Stop1", "Stop2", "Stop3"]

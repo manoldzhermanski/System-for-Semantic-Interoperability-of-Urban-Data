@@ -1245,7 +1245,7 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any], city: str) -> None:
     # Validate 'pickup_type' values
     pickup_type = entity.get("pickup_type")
     if pickup_type is not None and not validation_utils.is_valid_pickup_type(pickup_type):
-        raise ValueError(f"'pickup_type' must be 0, 1, 2 or 3, got {pickup_type}")
+        raise ValueError(f"'pickup_type' must be 0, 1, 2, 3 or empty, got {pickup_type}")
     
     # Validate that if 'location_id' or 'location_group_id' are defined, 'pickup_type' cannot be 0 or 3
     if has_location_group_id or has_location_id:
@@ -1255,7 +1255,7 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any], city: str) -> None:
     # Validate 'drop_off_type' values 
     drop_off_type = entity.get("drop_off_type")
     if drop_off_type is not None and not validation_utils.is_valid_drop_off_type(drop_off_type):
-        raise ValueError(f"'drop_off_type' must be 0, 1, 2 or 3, got {drop_off_type}")
+        raise ValueError(f"'drop_off_type' must be 0, 1, 2, 3 or empty, got {drop_off_type}")
     
     # Validate that if 'location_id' or 'location_group_id' are defined, 'drop_off_type' cannot be 0
     if has_location_group_id or has_location_id:
