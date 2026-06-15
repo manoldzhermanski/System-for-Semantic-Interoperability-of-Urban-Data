@@ -1076,7 +1076,6 @@ def netex_helper_set_netex_authority(agency: dict[str, Any]) -> None:
 # Generate <FrameDefaults>
 # -----------------------------------------------------
 
-# For FrameDefaults: How should I handle the timezone and default language and if there are multiple timezones in agency.txt
 def netex_build_frame_defaults(agency: dict[str, Any]) -> etree.Element:
     """
     Builds the NeTEx <FrameDefaults> element from a GtfsAgency entity
@@ -3256,17 +3255,18 @@ def netex_helper_build_service_journey_interchange(route_tansfer: dict[str, Any]
     from_trip_id_id_value = from_trip_id.split(":")[-1]
     to_trip_id_id_value = to_trip_id.split(":")[-1]
 
-    service_journey_interchange = etree.Element("ServiceJourneyInterchange", version = "1", id = f"{config.NETEX_AUTHORITY}:ServiceJourneyInterchange:{from_stop_id_value}_{to_stop_id_value}_{from_trip_id_id_value}_{to_trip_id_id_value}")
+    service_journey_interchange = etree.Element("ServiceJourneyInterchange", version = "1",
+                                                id = f"{config.NETEX_AUTHORITY}:ServiceJourneyInterchange:{from_stop_id_value}_{to_stop_id_value}_{from_trip_id_id_value}_{to_trip_id_id_value}")
     
-    etree.SubElement(service_journey_interchange, "Guaranteed").text = bool(True)
+    etree.SubElement(service_journey_interchange, "Guaranteed").text = str(True).lower()
 
     etree.SubElement(service_journey_interchange, "FromPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{from_stop_id_value}")
 
     etree.SubElement(service_journey_interchange, "ToPointRef", ref = f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{to_stop_id_value}")
 
-    etree.SubElement(service_journey_interchange, "FromJourneyRef", ref = f"{config.NETEX_AUTHORITY}:ServiceJourney:{from_trip_id_id_value}_{from_stop_id_value}_{to_stop_id_value}")
+    etree.SubElement(service_journey_interchange, "FromJourneyRef", ref = f"{config.NETEX_AUTHORITY}:ServiceJourney:{from_trip_id_id_value}")
 
-    etree.SubElement(service_journey_interchange, "ToJourneyRef", ref = f"{config.NETEX_AUTHORITY}:ServiceJourney:{to_trip_id_id_value}_{from_stop_id_value}_{to_trip_id_id_value}")
+    etree.SubElement(service_journey_interchange, "ToJourneyRef", ref = f"{config.NETEX_AUTHORITY}:ServiceJourney:{to_trip_id_id_value}")
 
     return service_journey_interchange
 
@@ -3276,11 +3276,20 @@ def netex_helper_stream_service_journey_interchange(xml_file, transfers: list[di
 
     counter = 0
 
+    seen = set()
+
     with xml_file.element("journeyInterchanges"):
 
         xml_file.write(b"\n")
 
         for transfer in transfers:
+
+            transfer_id = transfer.get("id")
+
+            if transfer_id in seen:
+                continue
+
+            seen.add(transfer_id)
 
             service_journey_interchange = netex_helper_build_service_journey_interchange(transfer)
 
@@ -3310,15 +3319,13 @@ def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list
     for trip in route_structure["trips"]:
 
         trip_id = trip["trip_id"]
+        trip_id_value = trip_id.split(":")[-1] if trip_id else "unknown"
         service_id = trip.get("service_id")
 
         service_id_value = service_id.split(":")[-1] if service_id else "unknown"
 
-        service_journey = etree.Element(
-            "ServiceJourney",
-            version="1",
-            id=f"{config.NETEX_AUTHORITY}:ServiceJourney:{trip_id.split(':')[-1]}"
-        )
+        service_journey = etree.Element("ServiceJourney", version="1",
+                                        id=f"{config.NETEX_AUTHORITY}:ServiceJourney:{trip_id_value}")
 
         route_long_name = route_structure.get("route_long_name")
 
@@ -3326,31 +3333,15 @@ def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list
             etree.SubElement(service_journey, "Name").text = route_long_name
 
         day_types = etree.SubElement(service_journey, "dayTypes")
-        etree.SubElement(
-            day_types,
-            "DayTypeRef",
-            ref=f"{config.NETEX_AUTHORITY}:DayType:{service_id_value}"
-        )
+        etree.SubElement(day_types, "DayTypeRef", ref=f"{config.NETEX_AUTHORITY}:DayType:{service_id_value}")
 
-        etree.SubElement(
-            service_journey,
-            "JourneyPatternRef",
+        etree.SubElement(service_journey, "JourneyPatternRef",
             ref=f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}",
-            version="1"
-        )
+            version="1")
 
-        etree.SubElement(
-            service_journey,
-            "OperatorRef",
-            ref=f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}"
-        )
+        etree.SubElement(service_journey, "OperatorRef", ref=f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}")
 
-        etree.SubElement(
-            service_journey,
-            "LineRef",
-            ref=f"{config.NETEX_AUTHORITY}:Line:{route_id_value}",
-            version="1"
-        )
+        etree.SubElement(service_journey, "LineRef", ref=f"{config.NETEX_AUTHORITY}:Line:{route_id_value}", version="1")
 
         passing_times = etree.SubElement(service_journey, "passingTimes")
 
@@ -3359,19 +3350,11 @@ def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list
             arrival_time = stop_time.get("arrivalTime", {}).get("value")
             departure_time = stop_time.get("departureTime", {}).get("value")
 
-            time_tabled_passing_time = etree.SubElement(
-                passing_times,
-                "TimetabledPassingTime",
-                version="1",
-                id=f"{config.NETEX_AUTHORITY}:TimetabledPassingTime:{trip_id.split(':')[-1]}:{stop_id}"
-            )
+            time_tabled_passing_time = etree.SubElement(passing_times, "TimetabledPassingTime",
+                version="1", id=f"{config.NETEX_AUTHORITY}:TimetabledPassingTime:{trip_id_value}:{stop_id}")
 
-            etree.SubElement(
-                time_tabled_passing_time,
-                "StopPointInJourneyPatternRef",
-                ref=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}",
-                version="1"
-            )
+            etree.SubElement(time_tabled_passing_time, "StopPointInJourneyPatternRef",
+                ref=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}", version="1")
 
             if arrival_time:
                 etree.SubElement(time_tabled_passing_time, "ArrivalTime").text = arrival_time
@@ -3404,7 +3387,6 @@ def netex_helper_stream_service_journey(xml_file, route_structures: list[dict[st
 
         logger.info("Finished streaming %d ServiceJourneys", counter)
         
-
 def netex_stream_service_frame_for_shared_data_xml(xml_file, 
                                agency, 
                                stops, 
@@ -3439,10 +3421,12 @@ def netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_struc
 
         netex_helper_stream_journey_patterns(xml_file, route_structure)
 
-def netex_stream_time_table_frame_for_line_xml(xml_file, route_structure):
+def netex_stream_time_table_frame_for_line_xml(xml_file, route_dataset, route_structure):
     
     with xml_file.element("TimetableFrame", version="1", id=f"{config.NETEX_AUTHORITY}:TimetableFrame:{uuid.uuid4()}"):
         netex_helper_stream_service_journey(xml_file, route_structure)
+
+        netex_helper_stream_service_journey_interchange(xml_file, route_dataset["transfers"])
 
 def netex_stream_service_frame_for_stops_xml(xml_file, authority_dataset) -> None:
 
@@ -3562,7 +3546,7 @@ def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
                     with xml_file.element("frames"):
                         netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_structures)
                         
-                        netex_stream_time_table_frame_for_line_xml(xml_file, route_structures)
+                        netex_stream_time_table_frame_for_line_xml(xml_file, route_dataset, route_structures)
 
 def netex_create_stops_xml(agency, authority_dataset):
 
