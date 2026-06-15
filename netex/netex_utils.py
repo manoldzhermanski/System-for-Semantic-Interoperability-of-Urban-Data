@@ -454,7 +454,7 @@ def netex_index_shape_by_trip(trips: list[dict[str, Any]], shapes: list[dict[str
 
     return shape_by_trip
 
-def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]):
+def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
     Group GtfsStopTimes entities based on the trips they follow.
 
@@ -492,85 +492,89 @@ def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]):
 
         # Add stop time to corresponding trip
         stop_times_by_trip[trip_id].append(stop_time)
+        
+    # Sort by stopSequence as it will be needed later on
+    for trip_id, trip_stop_times in stop_times_by_trip.items():
+        trip_stop_times.sort(key=lambda st: st.get("stopSequence", {}).get("value", 0))
 
     return stop_times_by_trip
 
-# def netex_index_stops_by_trip(stop_times: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
-#     """
-#     Group GtfsStop entities based on the trip they follow
+def netex_index_stops_by_trip(stop_times: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """
+    Group GtfsStop entities based on the trip they follow
 
-#     Args:
-#         stop_times (list[dict[str, Any]]): List of GtfsStopTime entities where the relationship stop - trip could be found
+    Args:
+        stop_times (list[dict[str, Any]]): List of GtfsStopTime entities where the relationship stop - trip could be found
 
-#     Returns:
-#         dict[str, list[dict[str, Any]]]: Dictionary mapping trip ID to list of stops
-#     """
-#     # Group container
-#     stops_by_trip = {}
+    Returns:
+        dict[str, list[dict[str, Any]]]: Dictionary mapping trip ID to list of stops
+    """
+    # Group container
+    stops_by_trip = {}
 
-#     # Traverse all stop times
-#     for stop_time in stop_times:
+    # Traverse all stop times
+    for stop_time in stop_times:
 
-#         # Get trip relationship
-#         trip = stop_time.get("hasTrip")
+        # Get trip relationship
+        trip = stop_time.get("hasTrip")
 
-#         # If missing, log error and continue
-#         if not trip:
-#             logger.error("Stop time missing hasTrip: %r", stop_time["id"])
-#             continue
+        # If missing, log error and continue
+        if not trip:
+            logger.error("Stop time missing hasTrip: %r", stop_time["id"])
+            continue
 
-#         # Extract trip ID
-#         trip_id = trip.get("object")
+        # Extract trip ID
+        trip_id = trip.get("object")
         
-#         # If invalid, log error and continue
-#         if not trip_id:
-#             logger.error("Invalid hasTrip structure: %r", stop_time["id"])
-#             continue
+        # If invalid, log error and continue
+        if not trip_id:
+            logger.error("Invalid hasTrip structure: %r", stop_time["id"])
+            continue
 
-#         trip_id_value = trip_id.split(":")[-1]
+        trip_id_value = trip_id.split(":")[-1]
         
-#         # Get stop relationship
-#         stop = stop_time.get("hasStop")
+        # Get stop relationship
+        stop = stop_time.get("hasStop")
         
-#         # If missing, log error and continue
-#         if not stop:
-#             logger.error("Stop time missing hasStop: %r", stop_time["id"])
-#             continue
+        # If missing, log error and continue
+        if not stop:
+            logger.error("Stop time missing hasStop: %r", stop_time["id"])
+            continue
         
-#         # Extract stop ID
-#         stop_id = stop.get("object")
+        # Extract stop ID
+        stop_id = stop.get("object")
         
-#         # If invalid, log error and continue
-#         if not stop_id:
-#             logger.error("Invalid hasStop structure: %r", stop_time["id"])
-#             continue 
+        # If invalid, log error and continue
+        if not stop_id:
+            logger.error("Invalid hasStop structure: %r", stop_time["id"])
+            continue 
 
-#         stop_id_value = stop_id.split(":")[-1]
+        stop_id_value = stop_id.split(":")[-1]
 
-#         # Get stop sequence
-#         sequence = stop_time.get("stopSequence", {}).get("value")
+        # Get stop sequence
+        sequence = stop_time.get("stopSequence", {}).get("value")
 
-#         # If invalid, log error and continue
-#         if not isinstance(sequence, int):
-#             logger.error("Invalid stopSequence: %r", stop_time["id"])
-#             continue
+        # If invalid, log error and continue
+        if not isinstance(sequence, int):
+            logger.error("Invalid stopSequence: %r", stop_time["id"])
+            continue
 
-#         # Create container if trip id is encountered for the first time
-#         if trip_id_value not in stops_by_trip:
-#             stops_by_trip[trip_id_value] = []
+        # Create container if trip id is encountered for the first time
+        if trip_id_value not in stops_by_trip:
+            stops_by_trip[trip_id_value] = []
 
-#         # Add sequence and stop ID tuple
-#         stops_by_trip[trip_id_value].append((sequence, stop_id_value))
+        # Add sequence and stop ID tuple
+        stops_by_trip[trip_id_value].append((sequence, stop_id_value))
 
-#     for trip_id_value in stops_by_trip:
+    for trip_id_value in stops_by_trip:
 
-#         # Sort stops by sequence number
-#         stops_by_trip[trip_id_value].sort(key=lambda x: x[0])
+        # Sort stops by sequence number
+        stops_by_trip[trip_id_value].sort(key=lambda x: x[0])
 
-#         # Keep only the stop IDs in the final output
-#         stops_by_trip[trip_id_value] = [stop_id_value for _, stop_id_value in stops_by_trip[trip_id_value]]
+        # Keep only the stop IDs in the final output
+        stops_by_trip[trip_id_value] = [stop_id_value for _, stop_id_value in stops_by_trip[trip_id_value]]
 
-#     return stops_by_trip
+    return stops_by_trip
 
 def netex_collect_stops(stop_times: list[dict[str, Any]], stops: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
@@ -802,6 +806,10 @@ def netex_helper_collect_entities_by_trip(trips: list[dict[str, Any]], index: di
         # Get trip id
         trip_id = trip.get("id")
 
+        if not isinstance(trip_id, str):
+            logger.warning("Invalid or missing trip id for %s", trip)
+            continue
+
         # Collect from the index all entities related to a specific trip
         entities = index.get(trip_id, [])
 
@@ -836,7 +844,12 @@ def netex_helper_collect_entities_by_service(trips: list[dict[str, Any]], index:
     for trip in trips:
 
         # Get service id
-        service_id = (trip.get("service").get("object") or trip.get("hasService", {}).get("object"))
+        service = trip.get("service") or {}
+        service_id = service.get("object") or trip.get("hasService", {}).get("object")
+
+        if not isinstance(service_id, str):
+            logger.warning("Invalid or missing service id for trip %s", trip.get("id"))
+            continue
 
         # Collect from the index all entities related to a specific service
         entities = index.get(service_id, [])
@@ -871,6 +884,10 @@ def netex_helper_collect_shapes_by_trip(trips: list[dict[str, Any]], shape_by_tr
 
         # Get trip ID
         trip_id = trip.get("id")
+
+        if not isinstance(trip_id, str):
+            logger.warning("Invalid trip id %s", trip_id)
+            continue
 
         # Collect all shape IDs associated with the trip
         shape_id = shape_by_trip.get(trip_id)
@@ -956,8 +973,7 @@ def netex_build_authority_dataset(agency: dict[str, Any], indexes: dict[str, Any
     # -----------------------------
     # STOP TIMES
     # -----------------------------
-    dataset["stop_times"] = netex_helper_collect_entities_by_trip(trips, indexes.get("stop_times_by_trip", {}), "stop times")
-
+    dataset["stop_times_by_trip"] = {trip["id"]: indexes["stop_times_by_trip"].get(trip["id"], []) for trip in trips}
     # -----------------------------
     # STOPS
     # -----------------------------
@@ -998,7 +1014,7 @@ def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str
 
     trip_ids = {trip["id"] for trip in trips if trip.get("id")}
 
-    stop_times = [stop_time for stop_time in authority_dataset.get("stop_times", []) if stop_time.get("hasTrip", {}).get("object") in trip_ids]
+    stop_times_by_trip = {trip_id: authority_dataset["stop_times_by_trip"].get(trip_id, []) for trip_id in trip_ids}
 
     shape_by_trip = authority_dataset.get("shape_by_trip", {})
 
@@ -1022,7 +1038,7 @@ def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str
         "agency": authority_dataset["agency"],
         "route": route,
         "trips": trips,
-        "stop_times": stop_times,
+        "stop_times": stop_times_by_trip,
         # "shapes": shapes,
         "transfers": transfers,
         "calendar": calendars,
@@ -1430,9 +1446,9 @@ def netex_helper_transform_line_string_to_wgs84(polyline_projected: LineString) 
     # Return a new LineString with the transformed coordinates
     return LineString(zip(tx, ty))
 
-def netex_helper_extract_stops_and_info_in_a_trip(gtfs_stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str, Any]]) -> dict[str, list[str]]:
     """
-    For every trip, extract stop time information which will be used in NeTEx conversions
+    For every trip, extract the ordered list of stops that comprise the trip based on the stop times information
     
     Args:
         stop_times (list[dict[str, Any]]): A list of GtfsStopTime entities
@@ -1452,14 +1468,10 @@ def netex_helper_extract_stops_and_info_in_a_trip(gtfs_stop_time_entities: list[
             logger.error("Unsupported entity type, expected GtfsStopTime: %s", entity_type)
             continue
         
-        # Get needed data
+        # Get trip id, stop id and sequence
         trip_id = stop_time.get("hasTrip", {}).get("object")
         stop_id = stop_time.get("hasStop", {}).get("object")
         sequence = stop_time.get("stopSequence", {}).get("value")
-        arrival_time = stop_time.get("arrivalTime", {}).get("value")
-        departure_time = stop_time.get("departureTime", {}).get("value")
-        for_alighting = stop_time.get("pickupType", {}).get("value")
-        for_boarding = stop_time.get("dropOffType", {}).get("value")
 
         if not isinstance(trip_id, str) or ":" not in trip_id:
             logger.error("Invalid or missing ID for GtfsTrip: %r", trip_id)
@@ -1474,36 +1486,21 @@ def netex_helper_extract_stops_and_info_in_a_trip(gtfs_stop_time_entities: list[
         if not isinstance(sequence, int):
             logger.error("Invalid or missing stop sequence: %r", sequence)
             continue
-
-        # Create stop record
-        stop_record = {
-            "stop_id": stop_id_value,
-            "stop_sequence": sequence,
-        }
-
-        if arrival_time is not None:
-            stop_record["arrival_time"] = arrival_time
-
-        if departure_time is not None:
-            stop_record["departure_time"] = departure_time
-
-        if for_alighting is not None:
-            stop_record["for_alighting"] = for_alighting
-
-        if for_boarding is not None:
-            stop_record["for_boarding"] = for_boarding
-
+                
         # If the trip ID is not already in the stops_per_trip dictionary, initialize it with an empty list
         if trip_id_value not in stops_per_trip:
             stops_per_trip[trip_id_value] = []
             
-        # Append the stop record to the list for the corresponding trip ID
-        stops_per_trip[trip_id_value].append(stop_record)
+        # Append the stop ID and its sequence to the list of stops for the corresponding trip ID
+        stops_per_trip[trip_id_value].append((stop_id_value, sequence))
             
-    # After populating the stops_per_trip dictionary, sort the records for each trip by their stop sequence
+    # After populating the stops_per_trip dictionary, sort the stops for each trip by their stop sequence
     for trip in stops_per_trip:
-        stops_per_trip[trip].sort(key=lambda x: x["stop_sequence"])
-                
+        stops_per_trip[trip].sort(key=lambda x: x[1])
+        
+        # Keep only the stop IDs
+        stops_per_trip[trip] = [stop_id for stop_id, seq in stops_per_trip[trip]]  # Keep only stop IDs
+            
     # Return the lookup of stops per trip
     return stops_per_trip
 
@@ -1661,7 +1658,7 @@ def netex_helper_map_trips_to_shapes(gtfs_trips: list[dict[str, Any]]) -> dict[s
     # Return the dictionary
     return shapes_per_trip
 
-def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[dict[str, Any]]]) -> dict[str, list[tuple[str, str]]]:
+def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[str]]) -> dict[str, list[tuple[str, str]]]:
     """
     For every trip, split the ordered list of stops into pairs of consecutive stops to represent the segments between them.
     
@@ -1682,15 +1679,7 @@ def netex_helper_split_stops_into_pairs(stops_per_trip: dict[str, list[dict[str,
 
         # Iterate through the list of stops and create pairs of consecutive stops
         for i in range(len(stops)-1):
-            
-            from_stop = stops[i].get("stop_id")
-            to_stop = stops[i + 1].get("stop_id")
-
-            if not from_stop or not to_stop:
-                logger.warning("Missing stop_id in trip %s at index %s", trip, i)
-                continue
-
-            pairs.append((from_stop, to_stop))
+            pairs.append((stops[i], stops[i+1]))
 
         # Populate the trip_stop_pairs dictionary with the trip ID and its list of stop pairs
         stop_pairs_in_a_trip[trip] = pairs
@@ -1782,7 +1771,7 @@ def netex_helper_map_stops_to_shape_distances(stop_ids: list[str], stop_coordina
     return stop_distances
       
 def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-    stops_and_info_per_trip: dict[str, list[dict[str, Any]]],
+    stops_per_trip: dict[str, list[str]],
     stop_coordinates: dict[str, Point],
     shape_geometries: dict[str, LineString],
     shape_per_trip: dict[str, str],
@@ -1791,7 +1780,7 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
     Compute stop distances along shapes for every trip.
 
     Args:
-        stops_and_info_per_trip (dict[str, list[dict[str, Any]]]): A dictionary mapping trip IDs to lists of stop IDs in order and info surrounding the trip.
+        stops_per_trip (dict[str, list[str]]): A dictionary mapping trip IDs to lists of stop IDs in order.
         stop_coordinates (dict[str, Point]): A dictionary mapping stop IDs to their coordinates in projected CRS.
         shape_geometries (dict[str, LineString]): A dictionary mapping shape IDs to their geometries in projected CRS.
         shape_per_trip (dict[str, str]): A dictionary mapping trip IDs to shape IDs.
@@ -1803,12 +1792,12 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
     stop_projections_per_trip: dict[str, dict[str, float]] = {}
 
     # Validate that all required input data is present before processing
-    if not stops_and_info_per_trip or not stop_coordinates or not shape_geometries or not shape_per_trip:
+    if not stops_per_trip or not stop_coordinates or not shape_geometries or not shape_per_trip:
         logger.error("Missing required input data for computing stop distances along shapes")
         return {}
 
     # Go through each trip and it's stops
-    for trip_id, stop_and_info in stops_and_info_per_trip.items():
+    for trip_id, stop_ids in stops_per_trip.items():
 
         # Get the shape ID for the current trip
         shape_id = shape_per_trip.get(trip_id)
@@ -1817,9 +1806,6 @@ def netex_helper_for_every_trip_compute_stop_distances_along_shapes(
         if not shape_id:
             logger.error("Missing shape ID for trip %s", trip_id)
             continue
-
-        # Extract stop IDs in order
-        stop_ids = [stop.get("stop_id") for stop in stop_and_info if stop.get("stop_id")]
 
         # Get the shape geometry for the current trip's shape ID
         shape_geometry = shape_geometries.get(shape_id)
@@ -1876,7 +1862,7 @@ def netex_helper_create_line_string_segments_between_stop_pairs(
     # Return the segment of the shape geometry between the two stops
     return netex_helper_cut_shape_between_distances(shape_geometry, start_distance, end_distance)
     
-def netex_helper_create_service_link_info(stops_and_info_per_trip: dict[str, list[dict[str, Any]]],
+def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]],
                                            stop_coordinates: dict[str, Point],
                                           shape_geometries: dict[str, LineString],
                                             shape_per_trip: dict[str, str]):
@@ -1884,7 +1870,7 @@ def netex_helper_create_service_link_info(stops_and_info_per_trip: dict[str, lis
     Yield ServiceLink information objects.
 
     Args:
-        stops_and_info_per_trip (dict[str, list[dict[str, Any]]]): A dictionary mapping trip IDs to lists of stop IDs in order and info surrounding the trip.
+        stops_per_trip (dict[str, list[str]]): A dictionary mapping trip IDs to lists of stop IDs.
         stop_coordinates (dict[str, Point]): A dictionary mapping stop IDs to their coordinates.
         shape_geometries (dict[str, LineString]): A dictionary mapping shape IDs to their geometries.
         shape_per_trip (dict[str, str]): A dictionary mapping trip IDs to shape IDs.
@@ -1893,16 +1879,16 @@ def netex_helper_create_service_link_info(stops_and_info_per_trip: dict[str, lis
         None
     """
 
-    if not(stops_and_info_per_trip and stop_coordinates and shape_geometries and shape_per_trip):
+    if not(stops_per_trip and stop_coordinates and shape_geometries and shape_per_trip):
         logger.error("Missing required input data")
         return
 
     
-    stop_pairs_per_trip = netex_helper_split_stops_into_pairs(stops_and_info_per_trip)
+    stop_pairs_per_trip = netex_helper_split_stops_into_pairs(stops_per_trip)
 
     stop_projections_per_trip = (
         netex_helper_for_every_trip_compute_stop_distances_along_shapes(
-            stops_and_info_per_trip,
+            stops_per_trip,
             stop_coordinates,
             shape_geometries,
             shape_per_trip
@@ -3018,9 +3004,6 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
         route_dataset (dict[str, Any]):
             Dataset for a single route.
 
-        ordered_stops_by_trip (dict[str, list[str]]):
-            Lookup of ordered stop sequences per trip.
-
     Returns:
         list[dict[str, Any]]:
             Route structures used for NeTEx Route generation.
@@ -3028,13 +3011,13 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
 
     route = route_dataset["route"]
     trips = route_dataset["trips"]
-    ordered_stops_by_trip = netex_helper_extract_stops_and_info_in_a_trip(route_dataset["stop_times"])
-    stop_pairs_per_trip = netex_helper_split_stops_into_pairs(ordered_stops_by_trip)
+    stop_times_by_trip = route_dataset["stop_times"]
 
     route_id = route.get("id")
 
     route_short_name = route.get("shortName", {}).get("value")
     route_long_name = route.get("name", {}).get("value")
+    agency_id = route.get("operatedBy", {}).get("object")
 
     # Group trips by direction + stop sequence
     trip_groups = {}
@@ -3046,18 +3029,30 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
         if not trip_id:
             logger.error("Trip missing ID: %r", trip)
             continue
-        trip_id_value = trip_id.split(":")[-1]
 
-        stop_sequence = [stop_id.get("stop_id") for stop_id in ordered_stops_by_trip.get(trip_id_value)]
+        trip_stop_times = stop_times_by_trip.get(trip_id, [])
 
-        if not stop_sequence:
-            logger.warning("No stop sequence found for trip %s", trip_id_value)
+        if not trip_stop_times:
+            logger.warning("No stop times found for trip %s", trip_id)
             continue
 
-        stop_pairs = stop_pairs_per_trip.get(trip_id_value)
+        stop_sequence = []
 
-        if not stop_pairs:
-            logger.warning("No stop pairs found for trip %s", trip_id_value)
+        for stop_time in trip_stop_times:
+
+            stop_id = stop_time.get("hasStop", {}).get("object")
+
+            if not isinstance(stop_id, str) or ":" not in stop_id:
+                logger.warning(
+                    "Invalid stop reference in stop time %s",
+                    stop_time.get("id")
+                )
+                continue
+
+            stop_sequence.append(stop_id.split(":")[-1])
+
+        if not stop_sequence:
+            logger.warning("No stop sequence found for trip %s", trip_id)
             continue
 
         direction_id = trip.get("direction", {}).get("value")
@@ -3069,26 +3064,32 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
         elif direction_id == 1:
             direction = "inbound"
 
-        key = (
-            direction,
-            tuple(stop_sequence)
-        )
+        key = (direction, tuple(stop_sequence))
 
         if key not in trip_groups:
-            trip_groups[key] = []
+            trip_groups[key] = {
+                "trips": [],
+                "trip_stop_times": trip_stop_times
+            }
 
-        trip_groups[key].append(trip_id)
+        trip_groups[key]["trips"].append(
+            {
+                "trip_id": trip_id,
+                "service_id": trip.get("service", {}).get("object")
+            }
+        )
 
     # Convert grouped trips to Route structures
     route_structures = []
 
-    for (direction, stop_sequence), trip_ids in trip_groups.items():
+    for (direction, stop_sequence), group in trip_groups.items():
 
         route_structure = {
             "route_id": route_id,
+            "agency_id": agency_id,
             "stop_sequence": list(stop_sequence),
-            "trip_ids": trip_ids,
-            "stop_pairs": stop_pairs
+            "trips": group["trips"],
+            "stop_times": group["trip_stop_times"]
         }
 
         if direction:
@@ -3171,40 +3172,51 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
 
     route_id = route_structure["route_id"]
     route_id_value = route_id.split(":")[-1] if route_id else "unknown"
-
-    sequence = route_structure["stop_sequence"]
-    stop_pairs = route_structure["stop_pairs"]
-
-    journey_pattern = etree.Element("JourneyPattern", version = "1", 
-            id = f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}")
     
+    sequence = route_structure["stop_sequence"]
+    stop_times = route_structure.get("stop_times", [])
+
+    journey_pattern = etree.Element("JourneyPattern", version="1",
+                                    id=f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}")
+
     route_long_name = route_structure.get("route_long_name")
 
     if route_long_name:
         etree.SubElement(journey_pattern, "Name").text = route_long_name
 
-    etree.SubElement(journey_pattern, "RouteRef", ref = f"{config.NETEX_AUTHORITY}:Route:{route_id_value}", version = "1")
+    etree.SubElement(journey_pattern, "RouteRef", ref=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}", version="1")
 
     points_in_sequence = etree.SubElement(journey_pattern, "pointsInSequence")
 
-    for order, stop_id in enumerate(sequence, start=1):
+    for order, (stop_id, stop_time) in enumerate(zip(sequence, stop_times), start=1):
 
-        point_on_route = etree.SubElement(points_in_sequence, "StopPointInJourneyPattern",
-                                           order = str(order), version = "1",
-                                           id = f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}")
+        pickup_type = stop_time.get("pickupType", {}).get("value")
+        drop_off_type = stop_time.get("dropOffType", {}).get("value")
 
-        etree.SubElement(point_on_route, "ScheduledStopPointRef",
-        ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id}")
+        point_on_route = etree.SubElement(points_in_sequence, "StopPointInJourneyPattern", order=str(order), version="1",
+                                          id=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}")
+
+        etree.SubElement(point_on_route, "ScheduledStopPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id}")
+
+        for_boarding = pickup_type in (None, 0)
+
+        etree.SubElement(point_on_route, "ForBoarding").text = str(for_boarding).lower()
+
+        for_alighting = drop_off_type in (None, 0)
+
+        etree.SubElement(point_on_route, "ForAlighting").text = str(for_alighting).lower()
 
     links_in_sequence = etree.SubElement(journey_pattern, "linksInSequence")
 
-    for order, (from_stop, to_stop) in enumerate(stop_pairs, start=1):
+    for order, (from_stop, to_stop) in enumerate(zip(sequence, sequence[1:]), start=1):
 
-        service_link_in_journey_pattern = etree.SubElement(links_in_sequence, "ServiceLinkInJourneyPattern",
-                                                           order = str(order), version = "1",
-                                                           id = f"{config.NETEX_AUTHORITY}:ServiceLinkInJourneyPattern:{from_stop}_{to_stop}")
+        service_link_in_journey_pattern = etree.SubElement(
+            links_in_sequence, "ServiceLinkInJourneyPattern", order=str(order), version="1",
+            id=f"{config.NETEX_AUTHORITY}:ServiceLinkInJourneyPattern:{from_stop}_{to_stop}"
+        )
 
-        etree.SubElement(service_link_in_journey_pattern, "ServiceLinkRef", ref = f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}")
+        etree.SubElement(service_link_in_journey_pattern, "ServiceLinkRef",
+                         ref=f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}")
 
     return journey_pattern
 
@@ -3278,70 +3290,85 @@ def netex_helper_stream_service_journey_interchange(xml_file, transfers: list[di
 
         logger.info("Finished streaming %d ServiceJourneyInterchanges", counter)
 
+# -----------------------------------------------------
+#  NeTEx <ServiceJourney>
+# -----------------------------------------------------
 
-def netex_helper_process_and_group_stop_times(stop_time_entities: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
-    """
-    Groups NGSI-LD GtfsStopTime entities by trip, sorts them by stop sequence,
-    and extracts specified fields.
+def netex_helper_build_service_journey(route_structure: dict[str, Any]) -> etree.Element:
+    
+    route_id = route_structure["route_id"]
+    route_id_value = route_id.split(":")[-1] if route_id else "unknown"
+    
+    agency_id = route_structure["agency_id"]
+    agency_id_value = route_id.split(":")[-1] if agency_id else "unknown"
 
-    Args:
-        stop_time_entities: A list of GtfsStopTime entities, each as a dictionary.
+    sequence = route_structure["stop_sequence"]
+    stop_times = route_structure.get("stop_times", [])
+    
+    service_id = route_structure["trips"].get("service_id")
+    service_id_value = "unknown"
+    if service_id:
+        service_id_value = service_id.split(":")[-1]
+    
+    service_journey = etree.Element("ServiceJourney", version = "1",
+                                    id = f"{config.NETEX_AUTHORITY}:ServiceJourney:{route_id_value}_{sequence[0]}_{sequence[-1]}")
+    
+    route_long_name = route_structure.get("route_long_name")
 
-    Returns:
-        A dictionary where keys are trip IDs and values are lists of
-        stop information, sorted by stopSequence.
-    """
-    grouped_by_trip = {}
-
-    # 1. Group entities by the 'hasTrip' relationship object
-    for entity in stop_time_entities:
-        trip_id = entity.get("hasTrip", {}).get("object")
-        if trip_id:
-            # If the trip_id is not yet a key in the dictionary, create it with an empty list
-            grouped_by_trip.setdefault(trip_id, []).append(entity)
-
-    processed_data = {}
-
-    # 2. Sort each group and extract the required information
-    for trip_id, stops in grouped_by_trip.items():
-        # Sort the list of stops in-place based on the 'stopSequence' value
-        stops.sort(key=lambda s: s.get("stopSequence", {}).get("value", 0))
-
-        # 3. Extract only the fields you need
-        extracted_stops = []
-        for stop in stops:
-            extracted_info = {
-                "arrivalTime": stop.get("arrivalTime", {}).get("value"),
-                "departureTime": stop.get("departureTime", {}).get("value"),
-                "hasTrip": stop.get("hasTrip", {}).get("object").split(":")[-1],
-                "hasStop": stop.get("hasStop", {}).get("object").split(":")[-1],
-                "pickupType": stop.get("pickupType", {}).get("value"),
-                "dropOffType": stop.get("dropOffType", {}).get("value"),
-                "shapeDistTraveled": stop.get("shapeDistTraveled", {}).get("value"),
-                "stopSequence": stop.get("stopSequence", {}).get("value") # Included for verification
-            }
-            extracted_stops.append(extracted_info)
+    if route_long_name:
+        etree.SubElement(service_journey, "Name").text = route_long_name
         
-        processed_data[trip_id] = extracted_stops
-
-    return processed_data
-
-def netex_convert_stop_times_to_service_journey(stop_times: dict[str, Any], grouped_stop_times: dict[str, list[dict[str, Any]]]):
-
-    stop_time = stop_times.get("id")
-    search_id = ":".join(stop_time.split(":")[:-1])
-    stop_time_id = stop_time.split(":")[-2]
-
-    stop_time_info = grouped_stop_times[search_id]
-
-    service_journey = etree.Element("ServiceJourney", version = "1", id = f"{config.NETEX_AUTHORITY}:ServiceJourney:{stop_time_id}")
-
-    journey_pattern_ref = etree.SubElement(service_journey, "JourneyPatternRef")
-    journey_pattern_ref.set("ref", f"{config.NETEX_AUTHORITY}:JourneyPattern:{stop_time_info[0].get("hasTrip")}")
-
+    day_types = etree.SubElement(service_journey, "dayTypes")
+    etree.SubElement(day_types, "DayTypeRef", ref = f"{config.NETEX_AUTHORITY}:DayType:{service_id_value}")
+    
+    etree.SubElement(service_journey, "JourneyPatternRef",
+                     ref = f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}", version = "1")
+    
+    etree.SubElement(service_journey, "OperatorRef", ref = f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}")
+    
+    etree.SubElement(service_journey, "LineRef", ref = f"{config.NETEX_AUTHORITY}:Line:{route_id_value}", version = "1")
+    
     passing_times = etree.SubElement(service_journey, "passingTimes")
     
+    for order, (stop_id, stop_time) in enumerate(zip(sequence, stop_times), start=1):
+        
+        arrival_time = stop_time.get("arrivalTime", {}).get("value")
+        departure_time = stop_time.get("departureTime", {}).get("value")
+        
+        time_tabled_passing_time = etree.SubElement(passing_times, "TimetabledPassingTime", version = "1", 
+                                                    id = f"{config.NETEX_AUTHORITY}:TimetabledPassingTime:{uuid.uuid4}")
+        
+        etree.SubElement(time_tabled_passing_time, "StopPointInJourneyPatternRef",
+                         id = f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}", version = "1")
+        
+        if arrival_time:
+            etree.SubElement(time_tabled_passing_time, "ArrivalTime").text = arrival_time
+            
+        if departure_time:
+            etree.SubElement(time_tabled_passing_time, "DepartureTime").text = departure_time
+            
     return service_journey
+
+def netex_helper_stream_service_journey(xml_file, route_structures: list[dict[str, Any]]) -> None:
+    
+    logger.info("Streaming ServiceJourneys")
+
+    counter = 0
+
+    with xml_file.element("vehicleJourneys"):
+        
+        xml_file.write(b"\n")
+        
+        for structure in route_structures:
+
+            service_journey = netex_helper_build_service_journey(structure)
+
+            counter += 1
+
+            xml_file.write(service_journey, pretty_print=True)
+
+        logger.info("Finished streaming %d ServiceJourneys", counter)
+        
 
 def netex_stream_service_frame_for_shared_data_xml(xml_file, 
                                agency, 
@@ -3362,7 +3389,7 @@ def netex_stream_service_frame_for_shared_data_xml(xml_file,
 
         service_links_data = netex_helper_create_service_link_info(stops_and_info_per_trip, stop_coordinates, shape_linestrings, shape_per_trip)
 
-        netex_stream_service_links(xml_file, service_links_data)
+        netex_stream_service_links(xml_file, list(service_links_data))
 
         netex_helper_stream_passenger_stop_assignments(xml_file, stops)
 
@@ -3377,6 +3404,11 @@ def netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_struc
 
         netex_helper_stream_journey_patterns(xml_file, route_structure)
 
+def netex_stream_time_table_frame_for_line_xml(xml_file, route_structure):
+    
+    with xml_file.element("TimetableFrame", version="1", id=f"{config.NETEX_AUTHORITY}:TimetableFrame:{uuid.uuid4()}"):
+        netex_helper_stream_service_journey(xml_file, route_structure)
+
 def netex_stream_service_frame_for_stops_xml(xml_file, authority_dataset) -> None:
 
     with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:{uuid.uuid4()}"):
@@ -3385,13 +3417,13 @@ def netex_stream_service_frame_for_stops_xml(xml_file, authority_dataset) -> Non
 
         netex_helper_stream_passenger_stop_assignments(xml_file, authority_dataset["stops"])
 
-def netex_stream_site_frame_for_stops_xml(xml_file, authority_dataset):
+def netex_stream_site_frame_for_stops_xml(xml_file, agency, authority_dataset):
 
     transport_modes = netex_helper_get_transport_modes_per_stop(authority_dataset)
 
     xml_file.write(b"\n")
     with xml_file.element("SiteFrame", version="1", id=f"{config.NETEX_AUTHORITY}:SiteFrame:{uuid.uuid4()}"):
-
+        netex_build_frame_defaults(agency)
         netex_helper_stream_stop_places(xml_file, transport_modes, authority_dataset["stops"])
     
 def netex_create_shared_data_xml(
@@ -3494,8 +3526,10 @@ def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
                     xml_file.write(frame, pretty_print=True)
                     with xml_file.element("frames"):
                         netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_structures)
+                        
+                        netex_stream_time_table_frame_for_line_xml(xml_file, route_structures)
 
-def netex_create_stops_xml(authority_dataset):
+def netex_create_stops_xml(agency, authority_dataset):
 
     with etree.xmlfile(f"_stops.xml", encoding="utf-8") as xml_file:
         xml_file.write_declaration()
@@ -3507,7 +3541,7 @@ def netex_create_stops_xml(authority_dataset):
 
                 netex_stream_service_frame_for_stops_xml(xml_file, authority_dataset)
 
-                netex_stream_site_frame_for_stops_xml(xml_file, authority_dataset)
+                netex_stream_site_frame_for_stops_xml(xml_file, agency, authority_dataset)
 
 if __name__ == "__main__":
 
@@ -3517,7 +3551,7 @@ if __name__ == "__main__":
     for agency in gtfs_dataset["agencies"]:
         authority_dataset = netex_build_authority_dataset(agency, gtfs_indexes)
 
-        stops_and_info_per_trip = netex_helper_extract_stops_and_info_in_a_trip(authority_dataset["stop_times"])
+        stops_and_info_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
         stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
         shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
         shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
@@ -3527,5 +3561,5 @@ if __name__ == "__main__":
 
         netex_create_line_xmls(authority_dataset)
 
-        netex_create_stops_xml(authority_dataset)
+        netex_create_stops_xml(agency, authority_dataset)
 
