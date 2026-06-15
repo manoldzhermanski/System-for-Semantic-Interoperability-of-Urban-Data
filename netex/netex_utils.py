@@ -3294,60 +3294,94 @@ def netex_helper_stream_service_journey_interchange(xml_file, transfers: list[di
 #  NeTEx <ServiceJourney>
 # -----------------------------------------------------
 
-def netex_helper_build_service_journey(route_structure: dict[str, Any]) -> etree.Element:
+def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list[etree.Element]:
     
     route_id = route_structure["route_id"]
     route_id_value = route_id.split(":")[-1] if route_id else "unknown"
     
     agency_id = route_structure["agency_id"]
-    agency_id_value = route_id.split(":")[-1] if agency_id else "unknown"
+    agency_id_value = agency_id.split(":")[-1] if agency_id else "unknown"
 
     sequence = route_structure["stop_sequence"]
     stop_times = route_structure.get("stop_times", [])
-    
-    service_id = route_structure["trips"].get("service_id")
-    service_id_value = "unknown"
-    if service_id:
-        service_id_value = service_id.split(":")[-1]
-    
-    service_journey = etree.Element("ServiceJourney", version = "1",
-                                    id = f"{config.NETEX_AUTHORITY}:ServiceJourney:{route_id_value}_{sequence[0]}_{sequence[-1]}")
-    
-    route_long_name = route_structure.get("route_long_name")
 
-    if route_long_name:
-        etree.SubElement(service_journey, "Name").text = route_long_name
-        
-    day_types = etree.SubElement(service_journey, "dayTypes")
-    etree.SubElement(day_types, "DayTypeRef", ref = f"{config.NETEX_AUTHORITY}:DayType:{service_id_value}")
-    
-    etree.SubElement(service_journey, "JourneyPatternRef",
-                     ref = f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}", version = "1")
-    
-    etree.SubElement(service_journey, "OperatorRef", ref = f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}")
-    
-    etree.SubElement(service_journey, "LineRef", ref = f"{config.NETEX_AUTHORITY}:Line:{route_id_value}", version = "1")
-    
-    passing_times = etree.SubElement(service_journey, "passingTimes")
-    
-    for order, (stop_id, stop_time) in enumerate(zip(sequence, stop_times), start=1):
-        
-        arrival_time = stop_time.get("arrivalTime", {}).get("value")
-        departure_time = stop_time.get("departureTime", {}).get("value")
-        
-        time_tabled_passing_time = etree.SubElement(passing_times, "TimetabledPassingTime", version = "1", 
-                                                    id = f"{config.NETEX_AUTHORITY}:TimetabledPassingTime:{uuid.uuid4}")
-        
-        etree.SubElement(time_tabled_passing_time, "StopPointInJourneyPatternRef",
-                         id = f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}", version = "1")
-        
-        if arrival_time:
-            etree.SubElement(time_tabled_passing_time, "ArrivalTime").text = arrival_time
-            
-        if departure_time:
-            etree.SubElement(time_tabled_passing_time, "DepartureTime").text = departure_time
-            
-    return service_journey
+    service_journeys = []
+
+    for trip in route_structure["trips"]:
+
+        trip_id = trip["trip_id"]
+        service_id = trip.get("service_id")
+
+        service_id_value = service_id.split(":")[-1] if service_id else "unknown"
+
+        service_journey = etree.Element(
+            "ServiceJourney",
+            version="1",
+            id=f"{config.NETEX_AUTHORITY}:ServiceJourney:{trip_id.split(':')[-1]}"
+        )
+
+        route_long_name = route_structure.get("route_long_name")
+
+        if route_long_name:
+            etree.SubElement(service_journey, "Name").text = route_long_name
+
+        day_types = etree.SubElement(service_journey, "dayTypes")
+        etree.SubElement(
+            day_types,
+            "DayTypeRef",
+            ref=f"{config.NETEX_AUTHORITY}:DayType:{service_id_value}"
+        )
+
+        etree.SubElement(
+            service_journey,
+            "JourneyPatternRef",
+            ref=f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}",
+            version="1"
+        )
+
+        etree.SubElement(
+            service_journey,
+            "OperatorRef",
+            ref=f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}"
+        )
+
+        etree.SubElement(
+            service_journey,
+            "LineRef",
+            ref=f"{config.NETEX_AUTHORITY}:Line:{route_id_value}",
+            version="1"
+        )
+
+        passing_times = etree.SubElement(service_journey, "passingTimes")
+
+        for order, (stop_id, stop_time) in enumerate(zip(sequence, stop_times), start=1):
+
+            arrival_time = stop_time.get("arrivalTime", {}).get("value")
+            departure_time = stop_time.get("departureTime", {}).get("value")
+
+            time_tabled_passing_time = etree.SubElement(
+                passing_times,
+                "TimetabledPassingTime",
+                version="1",
+                id=f"{config.NETEX_AUTHORITY}:TimetabledPassingTime:{trip_id.split(':')[-1]}:{stop_id}"
+            )
+
+            etree.SubElement(
+                time_tabled_passing_time,
+                "StopPointInJourneyPatternRef",
+                ref=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}",
+                version="1"
+            )
+
+            if arrival_time:
+                etree.SubElement(time_tabled_passing_time, "ArrivalTime").text = arrival_time
+
+            if departure_time:
+                etree.SubElement(time_tabled_passing_time, "DepartureTime").text = departure_time
+
+        service_journeys.append(service_journey)
+
+    return service_journeys
 
 def netex_helper_stream_service_journey(xml_file, route_structures: list[dict[str, Any]]) -> None:
     
@@ -3361,11 +3395,12 @@ def netex_helper_stream_service_journey(xml_file, route_structures: list[dict[st
         
         for structure in route_structures:
 
-            service_journey = netex_helper_build_service_journey(structure)
+            service_journeys = netex_helper_build_service_journeys(structure)
 
             counter += 1
 
-            xml_file.write(service_journey, pretty_print=True)
+            for service_journey in service_journeys:
+                xml_file.write(service_journey, pretty_print=True)
 
         logger.info("Finished streaming %d ServiceJourneys", counter)
         
