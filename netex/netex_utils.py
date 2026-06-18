@@ -553,6 +553,7 @@ def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]) -> dict[str
 
 #     return stops_by_trip
 
+#TODO: Write unit tests from here onwards
 def netex_collect_stops(stop_times: list[dict[str, Any]], stops: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Collect all unique stop entities referenced by stop times.
