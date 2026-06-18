@@ -398,7 +398,7 @@ def netex_index_calendar_or_calendar_dates_by_service(calendar_or_calendar_dates
 
     return dict(calendar_or_calendar_dates_by_service)
 
-def netex_index_shape_by_trip(trips: list[dict[str, Any]], shapes: list[dict[str, Any]]) -> dict[str, str]:
+def netex_index_shape_by_trip(trips: list[dict[str, Any]], shapes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """
     Map each GtfsTrip to the GtfsShape it follows.
 
@@ -408,18 +408,7 @@ def netex_index_shape_by_trip(trips: list[dict[str, Any]], shapes: list[dict[str
     Returns:
         dict[str, str]: Dictionary mapping trip ID to shapes
     """
-    # Build shape lookup
-    shape_by_id = {}
-
-    for shape in shapes:
-
-        shape_id = shape.get("id")
-
-        if not shape_id:
-            logger.error("Shape missing ID: %r", shape)
-            continue
-
-        shape_by_id[shape_id] = shape
+    shape_by_id = { shape["id"]: shape for shape in shapes if shape.get("id") is not None}
 
     # Container
     shape_by_trip = {}
@@ -429,28 +418,26 @@ def netex_index_shape_by_trip(trips: list[dict[str, Any]], shapes: list[dict[str
 
         # Get trip ID and shape relationship
         trip_id = trip.get("id")
-        shape = trip.get("hasShape")
+        shape_ref = trip.get("hasShape")
 
-        # If missing, log error and continue
-        if not shape:
-            logger.error("Trip missing hasShape: %r", trip_id)
+        # From trips get it's ID and the shape it refers to
+        if not trip_id or not shape_ref:
+            logger.error("Trip missing data: %r", trip)
             continue
 
-        # Get shape ID
-        shape_id = shape.get("object")
-
-        # If invalid, log error and continue
+        # Extract shape ID
+        shape_id = shape_ref.get("object")
         if not shape_id:
             logger.error("Invalid hasShape structure: %r", trip_id)
             continue
 
+        # Extract shape entity 
         shape = shape_by_id.get(shape_id)
-
         if not shape:
-            logger.error("Shape with ID %s not found for trip %s", shape_id, trip_id)
+            logger.error("Shape not found: %s for trip %s", shape_id, trip_id)
             continue
 
-        # Add corresponding shape to trip id
+        # Create the trip ID - Shape entity relationship
         shape_by_trip[trip_id] = shape
 
     return shape_by_trip
