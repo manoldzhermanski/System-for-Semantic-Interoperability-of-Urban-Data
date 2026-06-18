@@ -92,14 +92,14 @@ def netex_helper_set_operating_city(city: str) -> None:
         raise TypeError("City must be a string")
 
     # Remove whitespaces around and set to title case
-    city = city.strip().title()
+    city = city.strip().title().replace(" ", "_").replace("-", "_")
 
     # If empty, raise ValueError
     if not city:
         raise ValueError("City cannot be empty")
 
     # Check that the city contains valid characters
-    if not re.fullmatch(r"[A-Za-zА-Яа-я_-]+", city):
+    if not re.fullmatch(r"[A-Za-zА-Яа-я_]+", city):
         raise ValueError("City contains invalid characters")
     
     # Set the parameter
