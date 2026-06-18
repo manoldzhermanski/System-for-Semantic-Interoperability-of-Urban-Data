@@ -48,7 +48,7 @@ def test_netex_index_routes_by_agency_missing_operated_by():
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Route missing operatedBy: %r", routes[0]["id"])
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing operatedBy: %r", routes[0]["id"])
 
 def test_netex_index_routes_by_agency_invalid_operated_by_structure():
     """
@@ -69,7 +69,7 @@ def test_netex_index_routes_by_agency_invalid_operated_by_structure():
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Invalid operatedBy structure: %r", routes[0]["id"])
+    netex_utils.logger.error.assert_called_once_with("Invalid or missing operatedBy: %r", routes[0]["id"])
 
 def test_netex_index_routes_by_agency_empty_input():
     """

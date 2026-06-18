@@ -97,7 +97,7 @@ def test_netex_index_calendar_or_calendar_dates_by_service_missing_service_calen
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Calendar / Calendar Date has missing service: %r", calendar[0]["id"])
+    netex_utils.logger.error.assert_called_once_with("Calendar / Calendar Date has missing or invalid service: %r", calendar[0]["id"])
     
 def test_netex_index_calendar_or_calendar_dates_by_service_missing_service_calendar_date():
     """
@@ -115,7 +115,7 @@ def test_netex_index_calendar_or_calendar_dates_by_service_missing_service_calen
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Calendar / Calendar Date has missing service: %r", calendar_dates[0]["id"])
+    netex_utils.logger.error.assert_called_once_with("Calendar / Calendar Date has missing or invalid service: %r", calendar_dates[0]["id"])
 
 def test_netex_index_calendar_or_calendar_dates_by_service_invalid_service_structure_calendar():
     """
@@ -136,8 +136,8 @@ def test_netex_index_calendar_or_calendar_dates_by_service_invalid_service_struc
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Invalid hasService structure: %r", calendar[0]["id"])
-    
+    netex_utils.logger.error.assert_called_once_with("Calendar / Calendar Date has missing or invalid service: %r", calendar[0]["id"])
+
 def test_netex_index_calendar_or_calendar_dates_by_service_invalid_service_structure_calendar_date():
     """
     Check that error is logged when `hasService` object is missing
@@ -157,7 +157,7 @@ def test_netex_index_calendar_or_calendar_dates_by_service_invalid_service_struc
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Invalid hasService structure: %r", calendar_dates[0]["id"])
+    netex_utils.logger.error.assert_called_once_with("Calendar / Calendar Date has missing or invalid service: %r", calendar_dates[0]["id"])
 
 def test_netex_index_calendar_dates_by_service_empty_input():
     """

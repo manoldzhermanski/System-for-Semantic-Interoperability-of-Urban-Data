@@ -8,6 +8,7 @@ from typing import Any
 from pathlib import Path
 from lxml import etree # type: ignore
 from pyproj import Transformer
+from collections import defaultdict
 from shapely.geometry import LineString, Point as ShapelyPoint
 from shapely.ops import substring
 from datetime import datetime
@@ -315,36 +316,25 @@ def netex_index_routes_by_agency(routes: list[dict[str, Any]]) -> dict[str, list
         dict[str, list[dict[str, Any]]]: Dictionary mapping agency IDs to lists of routes
     """
 
-    # Group containes
-    routes_by_agency = {}
+    # Group container
+    routes_by_agency = defaultdict(list)
 
     # Traverse all routes
     for route in routes:
         
-        # Get the agency that supports the route
+        # Get the agency relationship and extract the agency ID
         operated_by = route.get("operatedBy")
-
-        # If missing, log error and continue
-        if not operated_by:
-            logger.error("Route missing operatedBy: %r", route["id"])
-            continue
-
-        # Extract agency ID value
-        agency_id = operated_by.get("object")
+        agency_id = operated_by.get("object") if operated_by else None
 
         # If missing, log error and continue
         if not agency_id:
-            logger.error("Invalid operatedBy structure: %r", route["id"])
+            logger.error("Invalid or missing operatedBy: %r", route.get("id"))
             continue
-
-        # If agency is encountered for the first time add a list for it
-        if agency_id not in routes_by_agency:
-            routes_by_agency[agency_id] = []
 
         # Add route for the coresponding agency
         routes_by_agency[agency_id].append(route)
 
-    return routes_by_agency
+    return dict(routes_by_agency)
 
 def netex_index_trips_by_route(trips: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
@@ -358,35 +348,24 @@ def netex_index_trips_by_route(trips: list[dict[str, Any]]) -> dict[str, list[di
     """
 
     # Group container
-    trips_by_route = {}
+    trips_by_route = defaultdict(list)
 
     # Traverse all trips
     for trip in trips:
 
-        # Get route relationship
+        # Get route relationship and extract the route ID
         route = trip.get("route")
+        route_id = route.get("object") if route else None
 
         # If missing, log error and continue
-        if not route:
-            logger.error("Trip missing route: %r", trip["id"])
-            continue
-
-        # Extract route ID
-        route_id = route.get("object")
-
-        # If invalid, log error and continue
         if not route_id:
-            logger.error("Invalid route structure: %r", trip["id"])
+            logger.error("Trip missing or invalid route: %r", trip["id"])
             continue
-
-        # Initialize route bucket if first encounter
-        if route_id not in trips_by_route:
-            trips_by_route[route_id] = []
 
         # Add trip to corresponding route
         trips_by_route[route_id].append(trip)
 
-    return trips_by_route
+    return dict(trips_by_route)
  
 def netex_index_calendar_or_calendar_dates_by_service(calendar_or_calendar_dates: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
@@ -400,35 +379,24 @@ def netex_index_calendar_or_calendar_dates_by_service(calendar_or_calendar_dates
     """
 
     # Group container
-    calendar_or_calendar_dates_by_service = {}
+    calendar_or_calendar_dates_by_service = defaultdict(list)
 
     # Traverse all calendar dates
     for calendar_or_calendar_date in calendar_or_calendar_dates:
 
-        # Get service relationship
+        # Get service relationship and extract service ID
         service = calendar_or_calendar_date.get("hasService")
+        service_id = service.get("object") if service else None
 
         # If missing, log error and continue
-        if not service:
-            logger.error("Calendar / Calendar Date has missing service: %r", calendar_or_calendar_date["id"])
-            continue
-
-        # Extract route ID
-        service_id = service.get("object")
-
-        # If invalid, log error and continue
         if not service_id:
-            logger.error("Invalid hasService structure: %r", calendar_or_calendar_date["id"])
+            logger.error("Calendar / Calendar Date has missing or invalid service: %r", calendar_or_calendar_date["id"])
             continue
-
-        # Initialize service bucket if first encounter
-        if service_id not in calendar_or_calendar_dates_by_service:
-            calendar_or_calendar_dates_by_service[service_id] = []
 
         # Add calendar date to corresponding service
         calendar_or_calendar_dates_by_service[service_id].append(calendar_or_calendar_date)
 
-    return calendar_or_calendar_dates_by_service
+    return dict(calendar_or_calendar_dates_by_service)
 
 def netex_index_shape_by_trip(trips: list[dict[str, Any]], shapes: list[dict[str, Any]]) -> dict[str, str]:
     """

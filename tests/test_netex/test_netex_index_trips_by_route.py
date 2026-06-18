@@ -55,7 +55,7 @@ def test_netex_index_trips_by_route_missing_route_relationship():
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Trip missing route: %r", trips[0]["id"])
+    netex_utils.logger.error.assert_called_once_with("Trip missing or invalid route: %r", trips[0]["id"])
 
 def test_netex_index_trips_by_route_invalid_route_relationship_structure():
     """
@@ -74,7 +74,7 @@ def test_netex_index_trips_by_route_invalid_route_relationship_structure():
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Invalid route structure: %r", trips[0]["id"])
+    netex_utils.logger.error.assert_called_once_with("Trip missing or invalid route: %r", trips[0]["id"])
 
 def test_netex_index_trips_by_route_empty_input():
     """
