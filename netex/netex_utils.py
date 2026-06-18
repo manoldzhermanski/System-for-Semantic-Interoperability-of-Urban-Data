@@ -1,13 +1,14 @@
 import re
 import sys
 import uuid
+import shutil
 import logging
+import zipfile
 from typing import Any
 from pathlib import Path
 from lxml import etree # type: ignore
 from pyproj import Transformer
 from shapely.geometry import LineString, Point as ShapelyPoint
-from shapely.geometry.base import BaseGeometry
 from shapely.ops import substring
 from datetime import datetime
 from pprint import pprint
@@ -36,6 +37,38 @@ NSMAP = {
 }
 
 etree.register_namespace("gis", GIS_NS)
+
+# -----------------------------------------------------
+# Output Functions
+# -----------------------------------------------------
+
+def netex_helper_prepare_output_directory() -> None:
+    """
+    Recreate NeTEx output directory.
+    """
+    # Remove existing content if the output directory already exists
+    if config.NETEX_OUTPUT_DIR.exists():
+        shutil.rmtree(config.NETEX_OUTPUT_DIR)
+
+    # Create the output directory
+    config.NETEX_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+def netex_helper_create_otp_zip() -> None:
+    """
+    Create a ZIP archive containing all generated NeTEx XML files.
+    """
+
+    # Define the path for the ZIP archive
+    zip_path = config.OTP_DATA_DIR / "netex.zip"
+
+    # Create a ZIP archive and add all XML files from the output directory
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+
+        # Add each XML file in the output directory to the archive
+        for xml_file in config.NETEX_OUTPUT_DIR.glob("*.xml"):
+            archive.write(xml_file, arcname=xml_file.name)
+
+    logger.info("Created OTP archive: %s", zip_path)
 
 # -----------------------------------------------------
 # Get Data Functions
@@ -927,6 +960,7 @@ def netex_build_authority_dataset(agency: dict[str, Any], indexes: dict[str, Any
         "calendar": [],
         "calendar_dates": [],
         "stop_times": [],
+        "stop_times_by_trip": [],
         "stops": [],
         "shapes": [],
         "transfers": []
@@ -974,6 +1008,7 @@ def netex_build_authority_dataset(agency: dict[str, Any], indexes: dict[str, Any
     # STOP TIMES
     # -----------------------------
     dataset["stop_times_by_trip"] = {trip["id"]: indexes["stop_times_by_trip"].get(trip["id"], []) for trip in trips}
+    dataset["stop_times"] = [stop_time for stop_times in dataset["stop_times_by_trip"].values() for stop_time in stop_times]
     # -----------------------------
     # STOPS
     # -----------------------------
@@ -1106,11 +1141,11 @@ def netex_build_frame_defaults(agency: dict[str, Any]) -> etree.Element:
     frame_default_locale = etree.SubElement(frame_defaults, "DefaultLocale")
 
     # Add TimeZone element
-    default_time_zone = etree.SubElement(frame_default_locale, "TimeZone").text = time_zone
+    etree.SubElement(frame_default_locale, "TimeZone").text = time_zone
 
     # If the optional language field is provided, add the DefaultLanguage element
     if language:
-        default_language = etree.SubElement(frame_default_locale, "DefaultLanguage").text = language
+        etree.SubElement(frame_default_locale, "DefaultLanguage").text = language
 
     # Return FrameDefaults
     return frame_defaults
@@ -3456,7 +3491,7 @@ def netex_create_shared_data_xml(
         calendar_dates: list[dict[str, Any]]
         ) -> None:
     
-    with etree.xmlfile(f"_{config.NETEX_AUTHORITY}_shared_data.xml", encoding="utf-8") as xml_file:
+    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/_{config.NETEX_AUTHORITY}_shared_data.xml", encoding="utf-8") as xml_file:
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
@@ -3482,7 +3517,7 @@ def netex_create_line_xmls(authority_dataset: dict[str, Any]) -> None:
     Create one NeTEx Line XML file for every route belonging to the authority.
 
     Args:
-        authority_dataset (dict[str, Any]): Dataset of an autority contianing all the entities involved
+        authority_dataset (dict[str, Any]): Dataset of an authority contianing all the entities involved
 
     Returns:
         None
@@ -3503,12 +3538,6 @@ def netex_create_line_xmls(authority_dataset: dict[str, Any]) -> None:
             continue
 
         route_dataset = netex_build_route_dataset(route, authority_dataset)
-
-        # route_names = netex_helper_get_route_id_and_name(route_dataset["routes"])
-        # trip_directions = netex_helper_get_trip_direction(route_dataset["trips"])
-        # groups = netex_helper_group_trips_by_route_direction_and_sequence(trip_directions, stops_per_trip)
-        # route_data = netex_helper_create_route_structures(groups, route_names)
-        # netex_routes = netex_generate_routes(route_data)
 
         try:
             netex_create_line_xml(route_dataset)
@@ -3533,7 +3562,7 @@ def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
     route_name = "_".join(route_name.split())
     route_name = re.sub(r"_+", "_", route_name)
 
-    with etree.xmlfile(f"{config.NETEX_AUTHORITY}_{config.NETEX_AUTHORITY}-Line-{route_name}.xml", encoding="utf-8") as xml_file:
+    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/{config.NETEX_AUTHORITY}_{config.NETEX_AUTHORITY}-Line-{route_name}.xml", encoding="utf-8") as xml_file:
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
@@ -3550,7 +3579,7 @@ def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
 
 def netex_create_stops_xml(agency, authority_dataset):
 
-    with etree.xmlfile(f"_stops.xml", encoding="utf-8") as xml_file:
+    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/_{config.NETEX_AUTHORITY}_stops.xml", encoding="utf-8") as xml_file:
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
@@ -3563,22 +3592,29 @@ def netex_create_stops_xml(agency, authority_dataset):
                 netex_stream_site_frame_for_stops_xml(xml_file, agency, authority_dataset)
 
 if __name__ == "__main__":
+    netex_helper_prepare_output_directory()
 
     netex_helper_set_operating_city("Sofia")
+
     gtfs_dataset = netex_load_city_dataset()
+
     gtfs_indexes = netex_build_indexes_and_collections(gtfs_dataset)
+    
     for agency in gtfs_dataset["agencies"]:
         authority_dataset = netex_build_authority_dataset(agency, gtfs_indexes)
 
-        stops_and_info_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
-        stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
-        shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
-        shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
+        stops_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
+        print(len(stops_per_trip))
+    #     stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
+    #     shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
+    #     shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
 
-        netex_helper_set_netex_authority(agency)
-        netex_create_shared_data_xml(agency, authority_dataset["stops"], stop_coordinates, shape_linestrings, shape_per_trip, stops_and_info_per_trip, authority_dataset["calendar"], authority_dataset["calendar_dates"])
+    #     netex_helper_set_netex_authority(agency)
+    #     netex_create_shared_data_xml(agency, authority_dataset["stops"], stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, authority_dataset["calendar"], authority_dataset["calendar_dates"])
 
-        netex_create_line_xmls(authority_dataset)
+    #     netex_create_line_xmls(authority_dataset)
 
-        netex_create_stops_xml(agency, authority_dataset)
+    #     netex_create_stops_xml(agency, authority_dataset)
+
+    # netex_helper_create_otp_zip()
 

@@ -1,6 +1,7 @@
-from dotenv import load_dotenv
-from enum import Enum
 import os
+from enum import Enum
+from pathlib import Path
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -23,3 +24,8 @@ class OrionLDEndpoint(Enum):
 NETEX_AUTHORITY = None
 
 NETEX_OPERATING_CITY = None
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+
+NETEX_OUTPUT_DIR = PROJECT_ROOT / "netex" / "output"
+OTP_DATA_DIR = PROJECT_ROOT / "otp" / "data"
