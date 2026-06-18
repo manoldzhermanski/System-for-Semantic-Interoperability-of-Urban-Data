@@ -9,24 +9,18 @@ def test_netex_index_stop_times_by_trip_success():
     stop_times = [
         {
             "id": "urn:ngsi-ld:GtfsStopTime:Sofia:StopTime1",
-            "hasTrip": {
-                "type": "Relationship",
-                "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1"
-            }
+            "hasTrip": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1"},
+            "stopSequence": { "type": "Property", "value": 2}
         },
         {
             "id": "urn:ngsi-ld:GtfsStopTime:Sofia:StopTime2",
-            "hasTrip": {
-                "type": "Relationship",
-                "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1"
-            }
+            "hasTrip": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1"},
+            "stopSequence": { "type": "Property", "value": 1}
         },
         {
             "id": "urn:ngsi-ld:GtfsStopTime:Sofia:StopTime3",
-            "hasTrip": {
-                "type": "Relationship",
-                "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip2"
-            }
+            "hasTrip": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip2"},
+            "stopSequence": { "type": "Property", "value": 1}
         }
     ]
 
@@ -34,8 +28,8 @@ def test_netex_index_stop_times_by_trip_success():
 
     assert result == {
         "urn:ngsi-ld:GtfsTrip:Sofia:Trip1": [
-            stop_times[0],
-            stop_times[1]
+            stop_times[1],
+            stop_times[0]
         ],
         "urn:ngsi-ld:GtfsTrip:Sofia:Trip2": [
             stop_times[2]
@@ -57,7 +51,7 @@ def test_netex_index_stop_times_by_trip_missing_has_trip():
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Stop time missing hasTrip: %r", stop_times[0]["id"])
+    netex_utils.logger.error.assert_called_once_with("Stop time missing or invalid hasTrip: %r", stop_times[0]["id"])
 
 
 def test_netex_index_stop_times_by_trip_invalid_has_trip_structure():
@@ -67,9 +61,8 @@ def test_netex_index_stop_times_by_trip_invalid_has_trip_structure():
     stop_times = [
         {
             "id": "urn:ngsi-ld:GtfsStopTime:Sofia:StopTime1",
-            "hasTrip": {
-                "type": "Relationship"
-            }
+            "hasTrip": {"type": "Relationship"},
+            "stopSequence": { "type": "Property", "value": 1}
         }
     ]
 
@@ -79,7 +72,7 @@ def test_netex_index_stop_times_by_trip_invalid_has_trip_structure():
 
     assert result == {}
 
-    netex_utils.logger.error.assert_called_once_with("Invalid hasTrip structure: %r", stop_times[0]["id"])
+    netex_utils.logger.error.assert_called_once_with("Stop time missing or invalid hasTrip: %r", stop_times[0]["id"])
 
 
 def test_netex_index_stop_times_by_trip_empty_input():

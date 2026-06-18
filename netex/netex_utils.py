@@ -453,39 +453,28 @@ def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]) -> dict[str
         dict[str, list[dict[str, Any]]]: Dictionary mapping stop time IDs to lists of trips
     """
     # Group container
-    stop_times_by_trip = {}
+    stop_times_by_trip = defaultdict(list)
 
     # Traverse all stop times
     for stop_time in stop_times:
 
-        # Get trip relationship
+        # Get trip relationship and extract trip ID
         trip = stop_time.get("hasTrip")
+        trip_id = trip.get("object") if trip else None
 
         # If missing, log error and continue
-        if not trip:
-            logger.error("Stop time missing hasTrip: %r", stop_time["id"])
-            continue
-
-        # Extract route ID
-        trip_id = trip.get("object")
-
-        # If invalid, log error and continue
         if not trip_id:
-            logger.error("Invalid hasTrip structure: %r", stop_time["id"])
+            logger.error("Stop time missing or invalid hasTrip: %r", stop_time["id"])
             continue
-
-        # Initialize trip bucket if first encounter
-        if trip_id not in stop_times_by_trip:
-            stop_times_by_trip[trip_id] = []
 
         # Add stop time to corresponding trip
         stop_times_by_trip[trip_id].append(stop_time)
         
     # Sort by stopSequence as it will be needed later on
-    for trip_id, trip_stop_times in stop_times_by_trip.items():
-        trip_stop_times.sort(key=lambda st: st.get("stopSequence", {}).get("value", 0))
+    for trip_id in stop_times_by_trip:
+        stop_times_by_trip[trip_id].sort(key=lambda st: st.get("stopSequence", {}).get("value", 0))
 
-    return stop_times_by_trip
+    return dict(stop_times_by_trip)
 
 def netex_index_stops_by_trip(stop_times: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
