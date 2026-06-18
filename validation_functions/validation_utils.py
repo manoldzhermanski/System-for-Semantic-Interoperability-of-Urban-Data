@@ -374,7 +374,7 @@ def is_valid_pickup_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range or empty, False otherwise
     """
-    if value in (None, ""):
+    if value == "" or value == " ":
         return True
 
     if type(value) is not int:
@@ -390,7 +390,7 @@ def is_valid_drop_off_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range or empty, False otherwise
     """
-    if value in (None, ""):
+    if value == "" or value == " ":
         return True
 
     if type(value) is not int:

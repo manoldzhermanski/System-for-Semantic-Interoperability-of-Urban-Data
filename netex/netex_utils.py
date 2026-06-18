@@ -422,7 +422,7 @@ def netex_index_shape_by_trip(trips: list[dict[str, Any]], shapes: list[dict[str
 
         # From trips get it's ID and the shape it refers to
         if not trip_id or not shape_ref:
-            logger.error("Trip missing data: %r", trip)
+            logger.error("Trip missing data: %r", trip_id)
             continue
 
         # Extract shape ID
@@ -476,82 +476,82 @@ def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]) -> dict[str
 
     return dict(stop_times_by_trip)
 
-def netex_index_stops_by_trip(stop_times: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
-    """
-    Group GtfsStop entities based on the trip they follow
+# def netex_index_stops_by_trip(stop_times: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+#     """
+#     Group GtfsStop entities based on the trip they follow
 
-    Args:
-        stop_times (list[dict[str, Any]]): List of GtfsStopTime entities where the relationship stop - trip could be found
+#     Args:
+#         stop_times (list[dict[str, Any]]): List of GtfsStopTime entities where the relationship stop - trip could be found
 
-    Returns:
-        dict[str, list[dict[str, Any]]]: Dictionary mapping trip ID to list of stops
-    """
-    # Group container
-    stops_by_trip = {}
+#     Returns:
+#         dict[str, list[dict[str, Any]]]: Dictionary mapping trip ID to list of stops
+#     """
+#     # Group container
+#     stops_by_trip = {}
 
-    # Traverse all stop times
-    for stop_time in stop_times:
+#     # Traverse all stop times
+#     for stop_time in stop_times:
 
-        # Get trip relationship
-        trip = stop_time.get("hasTrip")
+#         # Get trip relationship
+#         trip = stop_time.get("hasTrip")
 
-        # If missing, log error and continue
-        if not trip:
-            logger.error("Stop time missing hasTrip: %r", stop_time["id"])
-            continue
+#         # If missing, log error and continue
+#         if not trip:
+#             logger.error("Stop time missing hasTrip: %r", stop_time["id"])
+#             continue
 
-        # Extract trip ID
-        trip_id = trip.get("object")
+#         # Extract trip ID
+#         trip_id = trip.get("object")
         
-        # If invalid, log error and continue
-        if not trip_id:
-            logger.error("Invalid hasTrip structure: %r", stop_time["id"])
-            continue
+#         # If invalid, log error and continue
+#         if not trip_id:
+#             logger.error("Invalid hasTrip structure: %r", stop_time["id"])
+#             continue
 
-        trip_id_value = trip_id.split(":")[-1]
+#         trip_id_value = trip_id.split(":")[-1]
         
-        # Get stop relationship
-        stop = stop_time.get("hasStop")
+#         # Get stop relationship
+#         stop = stop_time.get("hasStop")
         
-        # If missing, log error and continue
-        if not stop:
-            logger.error("Stop time missing hasStop: %r", stop_time["id"])
-            continue
+#         # If missing, log error and continue
+#         if not stop:
+#             logger.error("Stop time missing hasStop: %r", stop_time["id"])
+#             continue
         
-        # Extract stop ID
-        stop_id = stop.get("object")
+#         # Extract stop ID
+#         stop_id = stop.get("object")
         
-        # If invalid, log error and continue
-        if not stop_id:
-            logger.error("Invalid hasStop structure: %r", stop_time["id"])
-            continue 
+#         # If invalid, log error and continue
+#         if not stop_id:
+#             logger.error("Invalid hasStop structure: %r", stop_time["id"])
+#             continue 
 
-        stop_id_value = stop_id.split(":")[-1]
+#         stop_id_value = stop_id.split(":")[-1]
 
-        # Get stop sequence
-        sequence = stop_time.get("stopSequence", {}).get("value")
+#         # Get stop sequence
+#         sequence = stop_time.get("stopSequence", {}).get("value")
 
-        # If invalid, log error and continue
-        if not isinstance(sequence, int):
-            logger.error("Invalid stopSequence: %r", stop_time["id"])
-            continue
+#         # If invalid, log error and continue
+#         if not isinstance(sequence, int):
+#             logger.error("Invalid stopSequence: %r", stop_time["id"])
+#             continue
 
-        # Create container if trip id is encountered for the first time
-        if trip_id_value not in stops_by_trip:
-            stops_by_trip[trip_id_value] = []
+#         # Create container if trip id is encountered for the first time
+#         if trip_id_value not in stops_by_trip:
+#             stops_by_trip[trip_id_value] = []
 
-        # Add sequence and stop ID tuple
-        stops_by_trip[trip_id_value].append((sequence, stop_id_value))
+#         # Add sequence and stop ID tuple
+#         stops_by_trip[trip_id_value].append((sequence, stop_id_value))
 
-    for trip_id_value in stops_by_trip:
+#     for trip_id_value in stops_by_trip:
 
-        # Sort stops by sequence number
-        stops_by_trip[trip_id_value].sort(key=lambda x: x[0])
+#         # Sort stops by sequence number
+#         stops_by_trip[trip_id_value].sort(key=lambda x: x[0])
 
-        # Keep only the stop IDs in the final output
-        stops_by_trip[trip_id_value] = [stop_id_value for _, stop_id_value in stops_by_trip[trip_id_value]]
+#         # Keep only the stop IDs in the final output
+#         stops_by_trip[trip_id_value] = [stop_id_value for _, stop_id_value in stops_by_trip[trip_id_value]]
 
-    return stops_by_trip
+#     return stops_by_trip
 
 def netex_collect_stops(stop_times: list[dict[str, Any]], stops: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
@@ -574,34 +574,16 @@ def netex_collect_stops(stop_times: list[dict[str, Any]], stops: list[dict[str, 
 
         # Get stop relationship
         stop = stop_time.get("hasStop")
+        stop_id = stop.get("object") if stop else None
 
         # If missing, log error and continue
-        if not stop:
-            logger.error("Stop time missing hasStop: %r", stop_time.get("id"))
-            continue
-
-        stop_id = stop.get("object")
-
         if not stop_id:
-            logger.error("Invalid hasStop structure: %r", stop_time.get("id"))
+            logger.error("Stop time missing or invalid hasStop: %r", stop_time.get("id"))
             continue
 
         stop_ids.add(stop_id)
 
-    # Container for unique stop entities
-    result = []
-
-    # Traverse all stops
-    for stop in stops:
-
-        # Get stop ID
-        stop_id = stop.get("id")
-
-        # If stop ID is in the set of unique stop IDs, add the stop entity
-        if stop_id in stop_ids:
-            result.append(stop)
-
-    return result
+    return [stop for stop in stops if stop.get("id") in stop_ids]
    
 def netex_helper_filter_valid_transfers_for_service_journey_interchanges(transfers: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
@@ -2395,7 +2377,6 @@ def netex_stream_service_calendar_frame_for_shared_data_xml(xml_file, calendars,
     all_entities = calendars + calendar_dates
 
     # Stream the <ServiceCalendarFrame> element with its child elements
-    xml_file.write(b"\n")
     with xml_file.element("ServiceCalendarFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceCalendarFrame:{uuid.uuid4()}"):
 
         netex_helper_stream_day_types(xml_file, all_entities)

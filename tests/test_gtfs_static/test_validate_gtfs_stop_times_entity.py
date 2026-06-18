@@ -328,7 +328,7 @@ def test_validate_gtfs_stop_times_invalid_pickup_type_value():
     with pytest.raises(ValueError) as err:
         validate_gtfs_stop_times_entity(entity, city)
 
-    assert "must be 0, 1, 2 or 3, got" in str(err.value)
+    assert "must be 0, 1, 2, 3 or empty, got" in str(err.value)
 
 def test_validate_gtfs_stop_times_pickup_type_forbidden_with_location():
     """
@@ -385,7 +385,7 @@ def test_validate_gtfs_stop_times_invalid_drop_off_type_value():
     with pytest.raises(ValueError) as err:
         validate_gtfs_stop_times_entity(entity, city)
         
-    assert " must be 0, 1, 2 or 3, got" in str(err.value)
+    assert "must be 0, 1, 2, 3 or empty, got" in str(err.value)
 
 def test_validate_gtfs_stop_times_invalid_continuous_pickup():
     """

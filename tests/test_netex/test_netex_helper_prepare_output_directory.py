@@ -23,7 +23,8 @@ def test_netex_helper_prepare_output_directory_recreates_existing_directory(tmp_
     Check that if output directory exists, netex_helper_prepare_output_directory deletes it's content
     """
     output_dir = tmp_path / "netex" / "output"
-    output_dir.mkdir()
+
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     test_file = output_dir / "dummy.xml"
     test_file.write_text("test")

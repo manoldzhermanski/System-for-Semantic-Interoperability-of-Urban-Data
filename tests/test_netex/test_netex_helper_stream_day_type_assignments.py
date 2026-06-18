@@ -53,7 +53,7 @@ def test_stream_day_type_assignment_writes_day_type_assignmentss():
 
     assert len(day_types) == 1
 
-    assert day_types[0].get("id") == "TEST:DayTypeAssignment:WeekdayId-1"
+    assert day_types[0].get("id") == "TEST:DayTypeAssignment:WeekdayId_1"
 
 
 def test_stream_day_type_assignments_skips_invalid_entities():

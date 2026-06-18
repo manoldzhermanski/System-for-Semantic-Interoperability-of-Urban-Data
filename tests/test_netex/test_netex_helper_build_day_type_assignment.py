@@ -42,9 +42,9 @@ def test_netex_helper_build_day_type_assignment_with_gtfs_calendar_rule():
     result_xml = netex_utils.netex_helper_build_day_type_assignment(entity, index=1)
 
     expected_xml = """
-    <DayTypeAssignment order="1" version="1" id="TEST:DayTypeAssignment:Weekday-1">
+    <DayTypeAssignment order="1" version="1" id="TEST:DayTypeAssignment:Weekday_1">
         <OperatingPeriodRef version="1" ref="TEST:OperatingPeriod:Weekday"/>
-        <DayTypeRef version="1" ref="TEST:DayType:Weekday-1"/>
+        <DayTypeRef version="1" ref="TEST:DayType:Weekday_1"/>
     </DayTypeAssignment>
     """
 
@@ -66,7 +66,7 @@ def test_netex_helper_build_day_type_assignment_with_gtfs_calendar_date_rule():
     result_xml = netex_utils.netex_helper_build_day_type_assignment(entity, index=5)
 
     expected_xml = """
-    <DayTypeAssignment order="5" version="1" id="TEST:DayTypeAssignment:WeekdayId-5">
+    <DayTypeAssignment order="5" version="1" id="TEST:DayTypeAssignment:WeekdayId_5">
         <Date>2026-04-14</Date>
         <DayTypeRef version="1" ref="TEST:DayType:WeekdayId"/>
         <IsAvailable>true</IsAvailable>

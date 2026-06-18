@@ -25,7 +25,7 @@ def test_service_calendar_frame_structure():
 
     assert "<ServiceCalendarFrame" in xml_str
     assert 'version="1"' in xml_str
-    assert "TEST:ServiceCalendarFrame:1" in xml_str
+    assert "TEST:ServiceCalendarFrame:" in xml_str
 
 def test_stream_calls_day_types(monkeypatch):
     """

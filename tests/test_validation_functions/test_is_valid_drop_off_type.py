@@ -6,6 +6,8 @@ def test_is_valid_drop_off_type_valid_values():
     assert is_valid_drop_off_type(1) is True
     assert is_valid_drop_off_type(2) is True
     assert is_valid_drop_off_type(3) is True
+    assert is_valid_drop_off_type("") is True
+    assert is_valid_drop_off_type(" ") is True
 
 def test_is_valid_drop_off_type_invalid_values():
     assert is_valid_drop_off_type(-1) is False

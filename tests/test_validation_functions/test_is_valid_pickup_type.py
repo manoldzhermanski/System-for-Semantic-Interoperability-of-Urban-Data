@@ -6,6 +6,8 @@ def test_is_valid_pickup_type_valid_values():
     assert is_valid_pickup_type(1) is True
     assert is_valid_pickup_type(2) is True
     assert is_valid_pickup_type(3) is True
+    assert is_valid_pickup_type("") is True
+    assert is_valid_pickup_type(" ") is True
 
 def test_is_valid_pickup_type_invalid_values():
     assert is_valid_pickup_type(-1) is False
