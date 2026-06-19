@@ -553,7 +553,6 @@ def netex_index_stop_times_by_trip(stop_times: list[dict[str, Any]]) -> dict[str
 
 #     return stops_by_trip
 
-#TODO: Write unit tests from here onwards
 def netex_collect_stops(stop_times: list[dict[str, Any]], stops: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Collect all unique stop entities referenced by stop times.
@@ -610,7 +609,7 @@ def netex_helper_filter_valid_transfers_for_service_journey_interchanges(transfe
     for transfer in transfers:
 
         # Get transfer id
-        transfer_id = transfer["id"]
+        transfer_id = transfer.get("id")
 
         # If `hasOrigin` (from_stop_id) is missing, continue
         has_origin = transfer.get("hasOrigin", {}).get("object")
@@ -640,44 +639,6 @@ def netex_helper_filter_valid_transfers_for_service_journey_interchanges(transfe
         valid_transfers.append(transfer)
 
     return valid_transfers
-
-def netex_index_transfers_by_trip_pair(transfers: list[dict[str, Any]]) -> dict[tuple[str, str], list[dict[str, Any]]]:
-    """
-    Group valid GtfsTransferRule by (from_trip_id, to_trip_id).
-
-    The function has a function call to netex_helper_filter_valid_transfers_for_service_journey_interchanges which removes
-    entities which could not be converted to NeTEx due to missing data
-
-    Args:
-        transfers (list[dict[str, Any]]): List of GtfsTransferRule entities
-
-    Returns:
-        dict[tuple[str, str], list[dict[str, Any]]]: Dictionary mapping trip pairs to transfer rules.
-    """
-    # Get only the GtfsTransferRule entities who are valid for NeTEx conversion
-    valid_transfers = netex_helper_filter_valid_transfers_for_service_journey_interchanges(transfers)
-
-    # Group container
-    transfers_by_trip_pair = {}
-
-    # Traverse all valid transfers
-    for transfer in valid_transfers:
-
-        # Get from trip and to trip IDs
-        from_trip = transfer["from_trip_id"]["object"]
-        to_trip = transfer["to_trip_id"]["object"]
-
-        # Form a key
-        key = (from_trip, to_trip)
-
-        # Initialize transfer key bucket if first encounter
-        if key not in transfers_by_trip_pair:
-            transfers_by_trip_pair[key] = []
-
-        # Add transfer
-        transfers_by_trip_pair[key].append(transfer)
-
-    return transfers_by_trip_pair
 
 def netex_index_transfers_by_origin_trip(transfers: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
@@ -735,7 +696,6 @@ def netex_build_indexes_and_collections(dataset: dict[str, Any]) -> dict[str, An
         "stop_times_by_trip": netex_index_stop_times_by_trip(dataset["stop_times"]),
         # "ordered_stops_by_trip": netex_index_stops_by_trip(dataset["stop_times"]),
         # "stops": netex_collect_stops(dataset["stop_times"], dataset["stops"]),
-        # "valid_transfers": netex_index_transfers_by_trip_pair(dataset["transfers"]),
         "transfers_by_origin_trip": netex_index_transfers_by_origin_trip(dataset["transfers"]),
     }
 
