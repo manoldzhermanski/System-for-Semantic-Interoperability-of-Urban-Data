@@ -672,27 +672,27 @@ def netex_index_transfers_by_origin_trip(transfers: list[dict[str, Any]]) -> dic
 
     return dict(transfers_by_origin_trip)
 
-def netex_build_indexes_and_collections(dataset: dict[str, Any]) -> dict[str, Any]:
+def netex_build_indexes_and_collections(city_dataset: dict[str, Any]) -> dict[str, Any]:
     """
     Build all lookup indexes required for NeTEx generation.
 
     Args:
-        dataset (dict[str, Any]): Complete GTFS dataset for a city
+        city_dataset (dict[str, Any]): Complete GTFS dataset for a city
 
     Returns:
         dict[str, Any]: Collection of lookup indexes
     """
 
     return {
-        "routes_by_agency": netex_index_routes_by_agency(dataset["routes"]),
-        "trips_by_route": netex_index_trips_by_route(dataset["trips"]),
-        "shape_by_trip": netex_index_shape_by_trip(dataset["trips"], dataset["shapes"]),
-        "calendar_by_service": netex_index_calendar_or_calendar_dates_by_service(dataset["calendar"]),
-        "calendar_dates_by_service": netex_index_calendar_or_calendar_dates_by_service(dataset["calendar_dates"]),
-        "stop_times_by_trip": netex_index_stop_times_by_trip(dataset["stop_times"]),
+        "routes_by_agency": netex_index_routes_by_agency(city_dataset["routes"]),
+        "trips_by_route": netex_index_trips_by_route(city_dataset["trips"]),
+        "shape_by_trip": netex_index_shape_by_trip(city_dataset["trips"], city_dataset["shapes"]),
+        "calendar_by_service": netex_index_calendar_or_calendar_dates_by_service(city_dataset["calendar"]),
+        "calendar_dates_by_service": netex_index_calendar_or_calendar_dates_by_service(city_dataset["calendar_dates"]),
+        "stop_times_by_trip": netex_index_stop_times_by_trip(city_dataset["stop_times"]),
         # "ordered_stops_by_trip": netex_index_stops_by_trip(dataset["stop_times"]),
         # "stops": netex_collect_stops(dataset["stop_times"], dataset["stops"]),
-        "transfers_by_origin_trip": netex_index_transfers_by_origin_trip(dataset["transfers"]),
+        "transfers_by_origin_trip": netex_index_transfers_by_origin_trip(city_dataset["transfers"]),
     }
 
 # -----------------------------------------------------
