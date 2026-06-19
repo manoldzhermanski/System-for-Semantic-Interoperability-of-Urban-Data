@@ -891,7 +891,7 @@ def netex_build_authority_dataset(agency: dict[str, Any], indexes: dict[str, Any
     # STOP TIMES
     # -----------------------------
     dataset["stop_times_by_trip"] = {trip["id"]: indexes["stop_times_by_trip"].get(trip["id"], []) for trip in trips}
-    dataset["stop_times"] = [stop_time for stop_times in dataset["stop_times_by_trip"].values() for stop_time in stop_times]
+    dataset["stop_times"] = netex_helper_collect_entities_by_trip(trips, indexes.get("stop_times_by_trip", {}), "stop times")
     # -----------------------------
     # STOPS
     # -----------------------------
@@ -1393,13 +1393,15 @@ def netex_helper_extract_stops_in_a_trip(gtfs_stop_time_entities: list[dict[str,
         if not isinstance(trip_id, str) or ":" not in trip_id:
             logger.error("Invalid or missing ID for GtfsTrip: %r", trip_id)
             continue
+
         trip_id_value = trip_id.split(":")[-1]
 
         if not isinstance(stop_id, str) or ":" not in stop_id:
             logger.error("Invalid or missing ID for GtfsStop: %r", stop_id)
             continue
-        stop_id_value = stop_id.split(":")[-1]
 
+        stop_id_value = stop_id.split(":")[-1]
+        
         if not isinstance(sequence, int):
             logger.error("Invalid or missing stop sequence: %r", sequence)
             continue
@@ -1779,10 +1781,8 @@ def netex_helper_create_line_string_segments_between_stop_pairs(
     # Return the segment of the shape geometry between the two stops
     return netex_helper_cut_shape_between_distances(shape_geometry, start_distance, end_distance)
     
-def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]],
-                                           stop_coordinates: dict[str, Point],
-                                          shape_geometries: dict[str, LineString],
-                                            shape_per_trip: dict[str, str]):
+def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]], stop_coordinates: dict[str, Point],
+                                          shape_geometries: dict[str, LineString], shape_per_trip: dict[str, str]):
     """
     Yield ServiceLink information objects.
 
@@ -1799,7 +1799,6 @@ def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]],
     if not(stops_per_trip and stop_coordinates and shape_geometries and shape_per_trip):
         logger.error("Missing required input data")
         return
-
     
     stop_pairs_per_trip = netex_helper_split_stops_into_pairs(stops_per_trip)
 
@@ -1879,7 +1878,6 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.
     from_stop = service_link_data["from_stop"]
     to_stop = service_link_data["to_stop"]
 
-    
     # Build the <ServiceLink> element
     service_link = etree.Element(f"ServiceLink", id=f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}", version="1")
     
@@ -1940,7 +1938,7 @@ def netex_stream_service_links(xml_file, service_links_data: list[dict]) -> None
             xml_file.write(service_link, pretty_print=True)
 
     logger.info("Finished streaming %d ServiceLinks", len(seen))
-    
+
 # --------------------------------------------
 # Helper Functions for <OperatingPeriod> creation
 # --------------------------------------------
@@ -3486,17 +3484,16 @@ if __name__ == "__main__":
         authority_dataset = netex_build_authority_dataset(agency, gtfs_indexes)
 
         stops_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
-        print(len(stops_per_trip))
-    #     stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
-    #     shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
-    #     shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
+        stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
+        shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
+        shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
 
-    #     netex_helper_set_netex_authority(agency)
-    #     netex_create_shared_data_xml(agency, authority_dataset["stops"], stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, authority_dataset["calendar"], authority_dataset["calendar_dates"])
+        netex_helper_set_netex_authority(agency)
+        netex_create_shared_data_xml(agency, authority_dataset["stops"], stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, authority_dataset["calendar"], authority_dataset["calendar_dates"])
 
-    #     netex_create_line_xmls(authority_dataset)
+        netex_create_line_xmls(authority_dataset)
 
-    #     netex_create_stops_xml(agency, authority_dataset)
+        netex_create_stops_xml(agency, authority_dataset)
 
-    # netex_helper_create_otp_zip()
+    netex_helper_create_otp_zip()
 
