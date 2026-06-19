@@ -55,16 +55,45 @@ def test_netex_index_transfers_by_origin_trip_empty_input():
 
     assert result == {}
 
-
-def test_netex_index_transfers_by_origin_trip_calls_filter():
+def test_netex_index_transfers_by_origin_trip_filters_transfers():
     """
-    Check that transfer filtering is performed before indexing.
+    Test that the helper function filters the incorrect transfers before indexing
     """
+    transfers = [
+        {
+            "id": "urn:ngsi-ld:GtfsTransferRule:Sofia:Transfer1",
+            "hasOrigin": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsStop:Sofia:Stop1"},
+            "hasDestination": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsStop:Sofia:Stop2"},
+            "from_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1"},
+            "to_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip2"}
+        },
+        {
+            "id": "urn:ngsi-ld:GtfsTransferRule:Sofia:Transfer2",
+            "hasOrigin": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsStop:Sofia:Stop1"},
+            "from_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1"},
+            "to_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip2"}
+        },
+        {
+            "id": "urn:ngsi-ld:GtfsTransferRule:Sofia:Transfer3",
+            "hasOrigin": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsStop:Sofia:Stop1"},
+            "hasDestination": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsStop:Sofia:Stop2"},
+            "from_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip3"},
+            "to_trip_id": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsTrip:Sofia:Trip4"}
+        }
+    ]
+    
+    valid_transfers = [
+        transfers[0],
+        transfers[2],
+    ]
 
-    transfers = [{"id": "urn:ngsi-ld:GtfsTransferRule:Sofia:Transfer1"}]
+    netex_utils.netex_helper_filter_valid_transfers_for_service_journey_interchanges = MagicMock(
+        return_value=valid_transfers
+    )
 
-    netex_utils.netex_helper_filter_valid_transfers_for_service_journey_interchanges = MagicMock(return_value=[])
+    result = netex_utils.netex_index_transfers_by_origin_trip(transfers)
 
-    netex_utils.netex_index_transfers_by_trip_pair(transfers)
-
-    netex_utils.netex_helper_filter_valid_transfers_for_service_journey_interchanges.assert_called_once_with(transfers)
+    assert result == {
+        "urn:ngsi-ld:GtfsTrip:Sofia:Trip1": [transfers[0]],
+        "urn:ngsi-ld:GtfsTrip:Sofia:Trip3": [transfers[2]],
+}

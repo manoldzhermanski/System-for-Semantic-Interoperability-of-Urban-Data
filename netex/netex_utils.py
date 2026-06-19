@@ -659,22 +659,18 @@ def netex_index_transfers_by_origin_trip(transfers: list[dict[str, Any]]) -> dic
     valid_transfers = netex_helper_filter_valid_transfers_for_service_journey_interchanges(transfers)
 
     # Group container
-    transfers_by_origin_trip = {}
+    transfers_by_origin_trip = defaultdict(list)
 
     # Traverse all valid transfers
     for transfer in valid_transfers:
 
         # Extract origin trip ID
         from_trip_id = transfer["from_trip_id"]["object"]
-
-        # Initialize bucket if first encounter
-        if from_trip_id not in transfers_by_origin_trip:
-            transfers_by_origin_trip[from_trip_id] = []
-
+        
         # Add transfer
         transfers_by_origin_trip[from_trip_id].append(transfer)
 
-    return transfers_by_origin_trip
+    return dict(transfers_by_origin_trip)
 
 def netex_build_indexes_and_collections(dataset: dict[str, Any]) -> dict[str, Any]:
     """
