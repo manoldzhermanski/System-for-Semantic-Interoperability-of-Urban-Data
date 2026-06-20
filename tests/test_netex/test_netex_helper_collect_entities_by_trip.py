@@ -53,7 +53,7 @@ def test_netex_helper_collect_entities_by_trip_logs_when_no_entities(caplog):
     result = netex_helper_collect_entities_by_trip(trips, {}, "stop times")
 
     assert result == []
-    assert "No stop times found for trip trip1" in caplog.text
+    assert "No stop times found for trip urn:ngsi-ld:GtfsTrip:Sofia:Trip1" in caplog.text
     
 def test_netex_helper_collect_entities_by_trip_empty_trips():
     """
