@@ -6,8 +6,8 @@ def test_netex_helper_collect_entities_by_service_collects_entities():
     Test happy path
     """
     trips = [
-        {"id": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1", "service": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsService:Sofia:Service1"}},
-        {"id": "urn:ngsi-ld:GtfsTrip:Sofia:Trip2", "service": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsService:Sofia:Service2"}},
+        {"id": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1", "hasService": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsService:Sofia:Service1"}},
+        {"id": "urn:ngsi-ld:GtfsTrip:Sofia:Trip2", "hasService": {"type": "Relationship", "object": "urn:ngsi-ld:GtfsService:Sofia:Service2"}},
     ]
 
     index = {
@@ -43,7 +43,7 @@ def test_netex_helper_collect_entities_by_service_logs_when_no_entities(caplog):
     trips = [
         {
             "id": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1",
-            "service": {"type": "Relationship:", "object": "urn:ngsi-ld:GtfsService:Sofia:Service1"},
+            "hasService": {"type": "Relationship:", "object": "urn:ngsi-ld:GtfsService:Sofia:Service1"},
         }
     ]
 

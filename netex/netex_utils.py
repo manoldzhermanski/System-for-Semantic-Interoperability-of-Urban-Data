@@ -760,8 +760,7 @@ def netex_helper_collect_entities_by_service(trips: list[dict[str, Any]], index:
     for trip in trips:
 
         # Get service id
-        service = trip.get("service") or {}
-        service_id = service.get("object") or trip.get("hasService", {}).get("object")
+        service_id = trip.get("hasService", {}).get("object") if trip else None
 
         if not isinstance(service_id, str):
             logger.warning("Invalid or missing service id for trip %s", trip.get("id"))
