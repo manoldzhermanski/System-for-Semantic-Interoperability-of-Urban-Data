@@ -13,9 +13,9 @@ async def test_update_vehicle_positions_loop_happy_path():
 
     with (
         patch("backend_api.main.gtfs_realtime_get_ngsi_ld_data", return_value=mock_ngsi_entities) as mock_get_ngsi,
-        patch("backend_api.main.orion_ld_define_header", return_value={"header": "x"}) as mock_header,
-        patch("backend_api.main.orion_ld_batch_replace_entity_data") as mock_batch,
-        patch("backend_api.main.orion_ld_get_entities_by_type", return_value=mock_orion_entities) as mock_get_entities,
+        patch("backend_api.main.fiware_scorpio_define_header", return_value={"header": "x"}) as mock_header,
+        patch("backend_api.main.fiware_scorpio_batch_replace_entity_data") as mock_batch,
+        patch("backend_api.main.fiware_scorpio_get_entities_by_type", return_value=mock_orion_entities) as mock_get_entities,
         patch("backend_api.main.ngsi_ld_vehicle_positions_to_feed_message", return_value=mock_feed) as mock_build_feed,
         patch("backend_api.main.asyncio.sleep", side_effect=asyncio.CancelledError),
         patch("backend_api.main.logger") as mock_logger,

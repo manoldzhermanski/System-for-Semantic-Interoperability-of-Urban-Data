@@ -3071,9 +3071,15 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
 
             for row in reader:
                 # Convert the GTFS row into NGSI-LD entities
-                entities = transformer([row], city)
+                result = transformer([row], city)
+                
+                if isinstance(result, dict):
+                    entities = [result]
+                else:
+                    entities = result
 
                 for entity in entities:
+                    
                     batch.append(entity)
 
                     # Yield when batch size limit is reached
@@ -3087,6 +3093,6 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
 
 
 if __name__ == "__main__":
-    for batch in gtfs_static_get_ngsi_ld_batches("stops", "Sofia"):
+    for batch in gtfs_static_get_ngsi_ld_batches("calendar_dates", "Sofia"):
         print(json.dumps(batch, indent=2, ensure_ascii=False))
         

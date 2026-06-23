@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import requests
-from orion_ld.orion_ld_crud_operations import orion_ld_get_entities_by_query_expression
+from fiware_scorpio.fiware_scorpio_crud_operations import fiware_scorpio_get_entities_by_query_expression
 
 def test_get_entities_by_query_single_page():
     headers = {"Content-Type": "application/ld+json"}
@@ -20,10 +20,10 @@ def test_get_entities_by_query_single_page():
     mock_response_2.encoding = "utf-8"
 
     with patch(
-        "orion_ld.orion_ld_crud_operations.requests.get",
+        "fiware_scorpio.fiware_scorpio_crud_operations.requests.get",
         side_effect=[mock_response_1, mock_response_2]
     ) as mock_get:
-        result = orion_ld_get_entities_by_query_expression("Test", headers, query)
+        result = fiware_scorpio_get_entities_by_query_expression("Test", headers, query)
 
     assert result == sample_entities
 
@@ -37,8 +37,8 @@ def test_get_entities_by_query_http_error():
     
     headers = {"Content-Type": "application/ld+json"}
     
-    with patch("orion_ld.orion_ld_crud_operations.requests.get", side_effect = requests.exceptions.HTTPError("404 Not Found")):
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.requests.get", side_effect = requests.exceptions.HTTPError("404 Not Found")):
         with pytest.raises(requests.exceptions.RequestException) as err:
-            orion_ld_get_entities_by_query_expression("Test", headers, 'name=="Test"')
+            fiware_scorpio_get_entities_by_query_expression("Test", headers, 'name=="Test"')
 
     assert "404 Not Found" in str(err.value)

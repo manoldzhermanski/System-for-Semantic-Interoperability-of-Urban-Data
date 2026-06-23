@@ -1,6 +1,6 @@
 import sys
 
-from orion_ld import orion_ld_crud_operations as olcd
+from fiware_scorpio import fiware_scorpio_crud_operations as olcd
 from gtfs_static import gtfs_static_utils as gsu
 from json_ld import json_ld_utils as jlu
 
@@ -52,7 +52,7 @@ def load_gtfs_static(cities: list[str]):
     print("Loading GTFS static data...")
     
     # Define GTFS Static Context Header for Orion-LD
-    header = olcd.orion_ld_define_header("gtfs_static")
+    header = olcd.fiware_scorpio_define_header("gtfs_static")
 
     # Iterate through the selected cities
     for city in cities:
@@ -71,7 +71,7 @@ def load_gtfs_static(cities: list[str]):
                 continue
 
             # Load data into Orion-LD
-            olcd.orion_ld_batch_load_to_context_broker(data, header)
+            olcd.fiware_scorpio_batch_load_to_context_broker(data, header)
 
 # -----------------------------------------------------
 # Load PoI data in Orion-LD
@@ -84,7 +84,7 @@ def load_pois():
     print("Loading Points of Interest...")
     
     # Define PoI Context Header for Orion-LD
-    header = olcd.orion_ld_define_header("pois")
+    header = olcd.fiware_scorpio_define_header("pois")
 
     # Iterate through the supported PoI Types
     for entity_type in POIS_TYPES:
@@ -95,7 +95,7 @@ def load_pois():
         data = jlu.json_ld_get_ngsi_ld_data(entity_type)
         
         # Load data into Orion-LD
-        olcd.orion_ld_batch_load_to_context_broker(data, header)
+        olcd.fiware_scorpio_batch_load_to_context_broker(data, header)
 
 def main():
     # Read command-line arguments

@@ -1,7 +1,7 @@
 import pytest
 import requests
 from unittest.mock import patch, Mock
-from orion_ld.orion_ld_crud_operations import orion_ld_get_entities_by_type
+from fiware_scorpio.fiware_scorpio_crud_operations import fiware_scorpio_get_entities_by_type
 
 def test_get_entities_by_type_multiple_pages():
     """
@@ -29,9 +29,9 @@ def test_get_entities_by_type_multiple_pages():
     mock_response_3.json.return_value = []
     mock_response_3.encoding = "utf-8"
 
-    with patch("orion_ld.orion_ld_crud_operations.requests.get",
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.requests.get",
                side_effect=[mock_response_1, mock_response_2, mock_response_3]) as mock_get:
-        result = orion_ld_get_entities_by_type("Test", headers)
+        result = fiware_scorpio_get_entities_by_type("Test", headers)
 
     assert result == first_page + second_page
     assert mock_get.call_count == 3
@@ -43,8 +43,8 @@ def test_get_entities_by_type_http_error():
     """
     headers = {"Content-Type": "application/ld+json"}
 
-    with patch("orion_ld.orion_ld_crud_operations.requests.get", side_effect=requests.exceptions.HTTPError("404 Not Found")):
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.requests.get", side_effect=requests.exceptions.HTTPError("404 Not Found")):
         with pytest.raises( requests.exceptions.RequestException) as err:
-            orion_ld_get_entities_by_type("GtfsRoute", headers)
+            fiware_scorpio_get_entities_by_type("GtfsRoute", headers)
             
     assert "404 Not Found" in str(err.value)

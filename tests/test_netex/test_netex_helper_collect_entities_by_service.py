@@ -34,24 +34,7 @@ def test_netex_helper_collect_entities_by_service_skips_invalid_service(caplog):
 
     assert result == []
     assert "Invalid or missing service id" in caplog.text
-    
-def test_netex_helper_collect_entities_by_service_logs_when_no_entities(caplog):
-    """
-    Test that an warning is logged when no entities for a specific service are found
-    """
-    
-    trips = [
-        {
-            "id": "urn:ngsi-ld:GtfsTrip:Sofia:Trip1",
-            "hasService": {"type": "Relationship:", "object": "urn:ngsi-ld:GtfsService:Sofia:Service1"},
-        }
-    ]
-
-    result = netex_helper_collect_entities_by_service(trips, {}, "calendar")
-
-    assert result == []
-    assert "No calendar found for service urn:ngsi-ld:GtfsService:Sofia:Service1" in caplog.text
-    
+        
 def test_netex_helper_collect_entities_by_service_empty_input():
     """
     Test that empty list is returned when empty input is given

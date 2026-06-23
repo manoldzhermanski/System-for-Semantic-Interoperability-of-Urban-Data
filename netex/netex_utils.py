@@ -13,16 +13,16 @@ from shapely.geometry import LineString, Point as ShapelyPoint
 from shapely.ops import substring
 from datetime import datetime
 from pprint import pprint
-
+from itertools import islice
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
 import config
 
-from orion_ld.orion_ld_crud_operations import (
-    orion_ld_define_header,
-    orion_ld_get_entities_by_type,
+from fiware_scorpio.fiware_scorpio_crud_operations import (
+    fiware_scorpio_define_header,
+    fiware_scorpio_get_entities_by_type,
     )
 
 logger = logging.getLogger("NeTEx_Converter")
@@ -119,12 +119,12 @@ def netex_get_all_gtfs_agencies_of_a_city() -> list[dict[str, Any]]:
     Raises:
         ValueError: When config.NETEX_OPERATING_CITY is not set
     """
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
 
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_type("GtfsAgency", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsAgency", header, config.NETEX_OPERATING_CITY)
     
 def netex_get_all_gtfs_routes_of_a_city() -> list[dict[str, Any]]:
     """
@@ -140,12 +140,12 @@ def netex_get_all_gtfs_routes_of_a_city() -> list[dict[str, Any]]:
         ValueError: If config.NETEX_OPERATING_CITY is not set
     """
     # Define header
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
 
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_type("GtfsRoute", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsRoute", header, config.NETEX_OPERATING_CITY)
 
 def netex_get_all_gtfs_trips_of_a_city() -> list[dict[str, Any]]:
     """
@@ -160,12 +160,12 @@ def netex_get_all_gtfs_trips_of_a_city() -> list[dict[str, Any]]:
     Raises:
         ValueError: If config.NETEX_OPERATING_CITY is not set
     """
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
     
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_type("GtfsTrip", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsTrip", header, config.NETEX_OPERATING_CITY)
 
 def netex_get_all_gtfs_calendar_of_a_city() -> list[dict[str, Any]]:
     """
@@ -180,12 +180,12 @@ def netex_get_all_gtfs_calendar_of_a_city() -> list[dict[str, Any]]:
     Raises:
         ValueError: If config.NETEX_OPERATING_CITY is not set
     """
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
     
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_type("GtfsCalendarRule", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsCalendarRule", header, config.NETEX_OPERATING_CITY)
 
 def netex_get_all_gtfs_calendar_dates_of_a_city() -> list[dict[str, Any]]:
     """
@@ -200,12 +200,12 @@ def netex_get_all_gtfs_calendar_dates_of_a_city() -> list[dict[str, Any]]:
     Raises:
         ValueError: If config.NETEX_OPERATING_CITY is not set
     """
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
     
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_type("GtfsCalendarDateRule", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsCalendarDateRule", header, config.NETEX_OPERATING_CITY)
 
 def netex_get_all_gtfs_shapes_of_a_city() -> list[dict[str, Any]]:
     """
@@ -220,12 +220,12 @@ def netex_get_all_gtfs_shapes_of_a_city() -> list[dict[str, Any]]:
     Raises:
         ValueError: If config.NETEX_OPERATING_CITY is not set
     """
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
     
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_type("GtfsShape", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsShape", header, config.NETEX_OPERATING_CITY)
 
 def netex_get_all_gtfs_stop_times_of_a_city() -> list[dict[str, Any]]:
     """
@@ -240,12 +240,12 @@ def netex_get_all_gtfs_stop_times_of_a_city() -> list[dict[str, Any]]:
     Raises:
         ValueError: If config.NETEX_OPERATING_CITY is not set
     """
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
     
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_type("GtfsStopTime", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsStopTime", header, config.NETEX_OPERATING_CITY)
 
 def netex_get_all_gtfs_stops_of_city() -> list[dict[str, Any]]:
     """
@@ -260,12 +260,12 @@ def netex_get_all_gtfs_stops_of_city() -> list[dict[str, Any]]:
     Raises:
         ValueError: If config.NETEX_OPERATING_CITY is not set
     """
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
     
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_type("GtfsStop", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsStop", header, config.NETEX_OPERATING_CITY)
 
 def netex_get_all_gtfs_transfers_of_city() -> list[dict[str, Any]]:
     """
@@ -280,12 +280,12 @@ def netex_get_all_gtfs_transfers_of_city() -> list[dict[str, Any]]:
     Raises:
         ValueError: If config.NETEX_OPERATING_CITY is not set
     """
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
     
     if not config.NETEX_OPERATING_CITY:
         raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
     
-    return orion_ld_get_entities_by_type("GtfsTransfer", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsTransfer", header, config.NETEX_OPERATING_CITY)
 
 def netex_load_city_dataset() -> dict[str, Any]:
     
@@ -760,8 +760,9 @@ def netex_helper_collect_entities_by_service(trips: list[dict[str, Any]], index:
     for trip in trips:
 
         # Get service id
-        service_id = trip.get("hasService", {}).get("object") if trip else None
-
+        service = trip.get("service") or trip.get("hasService")
+        service_id = service.get("object") if service else None
+        
         if not isinstance(service_id, str):
             logger.warning("Invalid or missing service id for trip %s", trip.get("id"))
             continue
@@ -771,7 +772,8 @@ def netex_helper_collect_entities_by_service(trips: list[dict[str, Any]], index:
 
         # Log if no entities of a specific type are found
         if not entities:
-            logger.warning("No %s found for service %s", entity_name, service_id)
+            pass
+            # logger.warning("No %s found for service %s", entity_name, service_id)
 
         # Extend container
         collected.extend(entities)
@@ -3481,7 +3483,7 @@ if __name__ == "__main__":
     
     for agency in gtfs_dataset["agencies"]:
         authority_dataset = netex_build_authority_dataset(agency, gtfs_indexes)
-
+                
         stops_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
         stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
         shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])

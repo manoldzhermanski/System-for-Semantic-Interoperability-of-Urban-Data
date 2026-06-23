@@ -21,10 +21,10 @@ STORAGE_DIR = os.path.join(project_root, "otp", "data")
 os.makedirs(STORAGE_DIR, exist_ok=True)
 
 
-from orion_ld.orion_ld_crud_operations import (
-    orion_ld_get_entities_by_type,
-    orion_ld_define_header,
-    orion_ld_batch_replace_entity_data
+from fiware_scorpio.fiware_scorpio_crud_operations import (
+    fiware_scorpio_get_entities_by_type,
+    fiware_scorpio_define_header,
+    fiware_scorpio_batch_replace_entity_data
 )
 
 from gtfs_realtime.gtfs_realtime_utils import (
@@ -309,13 +309,13 @@ async def update_vehicle_positions_loop(interval: int = 30):
             ngsild_entities = gtfs_realtime_get_ngsi_ld_data("VehiclePosition")
 
             # Set correct header for Orion-LD operations
-            header = orion_ld_define_header("gtfs_realtime")
+            header = fiware_scorpio_define_header("gtfs_realtime")
 
              # Replace existing entity data in Orion-LD with the new batch
-            orion_ld_batch_replace_entity_data(ngsild_entities, header)
+            fiware_scorpio_batch_replace_entity_data(ngsild_entities, header)
 
             # Fetch the processed GtfsRealtimeVehiclePosition entities
-            entities = orion_ld_get_entities_by_type("GtfsRealtimeVehiclePosition", header)
+            entities = fiware_scorpio_get_entities_by_type("GtfsRealtimeVehiclePosition", header)
 
             # Convert NGSI-LD entities into a GTFS-Realtime feed
             gtfs_realtime_feed = ngsi_ld_vehicle_positions_to_feed_message(entities)
@@ -420,10 +420,10 @@ def get_gtfs_stops():
     """
 
     # Select proper header for Orion-LD operations
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
 
     # Fetch GTFS stop entities from Orion-LD
-    entities = orion_ld_get_entities_by_type("GtfsStop", header)
+    entities = fiware_scorpio_get_entities_by_type("GtfsStop", header)
 
     # Convert entities with valid location data into GeoJSON features
     features = [
@@ -448,10 +448,10 @@ def get_gtfs_shape():
     as a GeoJSON FeatureCollection.
     """
     # Select proper header for Orion-LD operations
-    header = orion_ld_define_header("gtfs_static")
+    header = fiware_scorpio_define_header("gtfs_static")
 
     # Fetch GTFS shape entities from Orion-LD
-    entities = orion_ld_get_entities_by_type("GtfsShape", header)
+    entities = fiware_scorpio_get_entities_by_type("GtfsShape", header)
 
     # Convert entities with valid location data into GeoJSON features
     features = [
@@ -480,10 +480,10 @@ def get_json_ld_pois():
     as a GeoJSON FeatureCollection.
     """
     # Select proper header for Orion-LD operations
-    header = orion_ld_define_header("pois")
+    header = fiware_scorpio_define_header("pois")
 
     # Fetch PoI entities from Orion-LD
-    entities = orion_ld_get_entities_by_type("PointOfInterest", header)
+    entities = fiware_scorpio_get_entities_by_type("PointOfInterest", header)
 
     # Convert entities with valid location data into GeoJSON features
     features = [
@@ -732,18 +732,18 @@ def build_gtfs_zip() -> str:
     """
     zip_path = os.path.join(STORAGE_DIR, f"gtfs.zip")
     
-    header = orion_ld_define_header("gtfs_static")
-    agencies = orion_ld_get_entities_by_type("GtfsAgency", header)
-    stops = orion_ld_get_entities_by_type("GtfsStop", header)
-    routes = orion_ld_get_entities_by_type("GtfsRoute", header)
-    trips = orion_ld_get_entities_by_type("GtfsTrip", header)
-    stop_times = orion_ld_get_entities_by_type("GtfsStopTime", header)
-    calendar_dates = orion_ld_get_entities_by_type("GtfsCalendarDateRule", header)
-    fare_attributes = orion_ld_get_entities_by_type("GtfsFareAttributes", header)
-    shapes = orion_ld_get_entities_by_type("GtfsShape", header)
-    transfers = orion_ld_get_entities_by_type("GtfsTransferRule", header)
-    pathways = orion_ld_get_entities_by_type("GtfsPathway", header)
-    levels = orion_ld_get_entities_by_type("GtfsLevel", header)
+    header = fiware_scorpio_define_header("gtfs_static")
+    agencies = fiware_scorpio_get_entities_by_type("GtfsAgency", header)
+    stops = fiware_scorpio_get_entities_by_type("GtfsStop", header)
+    routes = fiware_scorpio_get_entities_by_type("GtfsRoute", header)
+    trips = fiware_scorpio_get_entities_by_type("GtfsTrip", header)
+    stop_times = fiware_scorpio_get_entities_by_type("GtfsStopTime", header)
+    calendar_dates = fiware_scorpio_get_entities_by_type("GtfsCalendarDateRule", header)
+    fare_attributes = fiware_scorpio_get_entities_by_type("GtfsFareAttributes", header)
+    shapes = fiware_scorpio_get_entities_by_type("GtfsShape", header)
+    transfers = fiware_scorpio_get_entities_by_type("GtfsTransferRule", header)
+    pathways = fiware_scorpio_get_entities_by_type("GtfsPathway", header)
+    levels = fiware_scorpio_get_entities_by_type("GtfsLevel", header)
 
     data = {
         "agency.txt": agencies,

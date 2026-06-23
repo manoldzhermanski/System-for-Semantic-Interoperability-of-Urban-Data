@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from orion_ld.orion_ld_crud_operations import orion_ld_batch_load_to_context_broker
+from fiware_scorpio.fiware_scorpio_crud_operations import fiware_scorpio_batch_load_to_context_broker
 
 def test_batch_load_sends_multiple_batches():
     """
@@ -21,10 +21,10 @@ def test_batch_load_sends_multiple_batches():
 
     headers = {"Content-Type": "application/ld+json"}
 
-    with patch("orion_ld.orion_ld_crud_operations.orion_ld_post_batch_request") as mock_post, \
-         patch("orion_ld.orion_ld_crud_operations.time.sleep"):
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.fiware_scorpio_post_batch_request") as mock_post, \
+         patch("fiware_scorpio.fiware_scorpio_crud_operations.time.sleep"):
 
-        orion_ld_batch_load_to_context_broker(iter(batches), headers, delay=0.01)
+        fiware_scorpio_batch_load_to_context_broker(iter(batches), headers, delay=0.01)
 
         # Expect 3 calls (5 entities, batch size 2)
         assert mock_post.call_count == 3

@@ -12,8 +12,8 @@ def test_netex_get_all_gtfs_agencies_of_a_city_success():
 
     mock_entities = [{"id": "urn:ngsi-ld:GtfsAgency:Sofia:A"}]
 
-    netex_utils.orion_ld_get_entities_by_type = Mock(return_value=mock_entities)
-    netex_utils.orion_ld_define_header = Mock(return_value={"test": "header"})
+    netex_utils.fiware_scorpio_get_entities_by_type = Mock(return_value=mock_entities)
+    netex_utils.fiware_scorpio_define_header = Mock(return_value={"test": "header"})
 
     result = netex_utils.netex_get_all_gtfs_agencies_of_a_city()
 

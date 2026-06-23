@@ -26,51 +26,57 @@ logging.basicConfig(
 # HEADER Definition Function
 # -----------------------------------------------------  
 
-def orion_ld_define_header(keyword: str) -> dict[str, str]:
+def fiware_scorpio_define_header(keyword: str, extra: dict[str, str] | None = None) -> dict[str, str]:
     """
-    Define headers for Orion-LD requests based on the provided keyword.
+    Define headers for NGSI-LD requests based on the provided keyword.
+
     Args:
-        keyword (str): 
-        Keyword to determine the type of headers to return.
+        keyword (str):
+            Determines which NGSI-LD context (and base headers) to use.
+
+        extra (dict[str, str] | None):
+            Optional additional headers (e.g. Prefer, custom flags for Scorpio/Orion).
+
     Returns:
-        dict[str, str]: 
-            Headers dictionary for the specified keyword.
+        dict[str, str]:
+            Headers dictionary for NGSI-LD requests.
     """
-    
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+
     if keyword == "gtfs_static":
-        return {
-            "Content-Type": "application/json",
-            "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs_static/gtfs_static_context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
-        }
+        headers["Link"] = '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs_static/gtfs_static_context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+
     elif keyword == "pois":
-        return {
-            "Content-Type": "application/json",
-            "Link": '<https://raw.githubusercontent.com/smart-data-models/dataModel.PointOfInterest/master/context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
-        }
+        headers["Link"] = '<https://raw.githubusercontent.com/smart-data-models/dataModel.PointOfInterest/master/context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+
     elif keyword == "gtfs_realtime":
-        return {
-            "Content-Type": "application/json",
-            "Link": '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs_realtime/gtfs_realtime_context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
-        }
+        headers["Link"] = '<https://manoldzhermanski.github.io/System-for-Semantic-Interoperability-of-Urban-Data/gtfs_realtime/gtfs_realtime_context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+
     else:
-        return {
-            "Content-Type": "application/json",
-            "Link": '<https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
-        }
+        headers["Link"] = '<https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+
+    # Allow backend-specific or query-specific overrides (Scorpio, Orion, debugging, etc.)
+    if extra:
+        headers.update(extra)
+
+    return headers
 
 # -----------------------------------------------------
 # POST Requests
 # -----------------------------------------------------  
 
-def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header: dict[str, str],) -> None:
+def fiware_scorpio_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header: dict[str, str],) -> None:
 
     max_retries = 3
 
     for attempt in range(1, max_retries + 1):
         try:
+            
             response = requests.post(config.OrionLDEndpoint.BATCH_CREATE_ENDPOINT.value, json=batch_ngsi_ld_data,
                                      headers=header, timeout=(10, 600))
-
 
             if response.status_code == 201:
                 logger.info("Batch OK (%d entities)", len(batch_ngsi_ld_data))
@@ -121,7 +127,7 @@ def orion_ld_post_batch_request(batch_ngsi_ld_data: list[dict[str, Any]], header
             time.sleep(2 * attempt)
 
 
-def orion_ld_batch_load_to_context_broker(batches_iterator, header: dict, delay: float = 0.1) -> None:
+def fiware_scorpio_batch_load_to_context_broker(batches_iterator, header: dict, delay: float = 0.1) -> None:
     """
     Accepts iterator of batches instead of giant list.
     Works with streaming pipeline.
@@ -129,15 +135,15 @@ def orion_ld_batch_load_to_context_broker(batches_iterator, header: dict, delay:
 
     for batch_index, batch in enumerate(batches_iterator, start=1):
         logger.debug("Sending batch %d (%d entities)", batch_index, len(batch))
-
-        orion_ld_post_batch_request(batch, header)
+                
+        fiware_scorpio_post_batch_request(batch, header)
         time.sleep(delay)
         
 # -----------------------------------------------------
 # GET Requests
 # -----------------------------------------------------  
 
-def orion_ld_get_entity_by_id(entity_id: str, header: dict[str, str]) -> dict[str, Any]:
+def fiware_scorpio_get_entity_by_id(entity_id: str, header: dict[str, str]) -> dict[str, Any]:
     """
     Get a single NGSI-LD entity from Orion-LD by its entity ID.
 
@@ -189,7 +195,7 @@ def orion_ld_get_entity_by_id(entity_id: str, header: dict[str, str]) -> dict[st
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when sending GET Request: {e}")
 
-def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str], id_pattern: str | None = None) -> list[dict[str, Any]]:
+def fiware_scorpio_get_entities_by_type(entity_type: str, header: dict[str, str], id_pattern: str | None = None) -> list[dict[str, Any]]:
     """
     Retrieve all entities of a specific NGSI-LD type from Orion-LD, handling pagination.
 
@@ -264,7 +270,7 @@ def orion_ld_get_entities_by_type(entity_type: str, header: dict[str, str], id_p
     # Return all entities
     return all_entities
 
-def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, query_expression: str, id_pattern: str | None = None, ids_only: bool = False) -> list[dict[str, Any]]:
+def fiware_scorpio_get_entities_by_query_expression(entity_type: str, header:dict, query_expression: str, id_pattern: str | None = None, ids_only: bool = False) -> list[dict[str, Any]]:
     """
     Retrieve all entities of a specific NGSI-LD type that match a given query expression.
 
@@ -361,7 +367,7 @@ def orion_ld_get_entities_by_query_expression(entity_type: str, header:dict, que
     # Return all entities
     return all_entities
 
-def orion_ld_get_attribute_values_from_etities(entity_ids: list[str], attribute_list: list[str], header: dict) -> list[dict[str, Any]]:
+def fiware_scorpio_get_attribute_values_from_etities(entity_ids: list[str], attribute_list: list[str], header: dict) -> list[dict[str, Any]]:
     """
     Retrieve specific attributes for a given list of NGSI-LD entities from Orion-LD.
 
@@ -406,7 +412,7 @@ def orion_ld_get_attribute_values_from_etities(entity_ids: list[str], attribute_
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when sending GET request: {e}")
 
-def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, str], id_pattern: str | None = None) -> int:
+def fiware_scorpio_get_count_of_entities_by_type(entity_type: str, header: dict[str, str], limit: int = 1000, id_pattern: str | None = None) -> int:
     """
     Retrieve the total number of NGSI-LD entities of a given type from Orion-LD.
 
@@ -432,13 +438,9 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, s
         - `limit=0` prevents returning any entity data, making the request lightweight.
 
     """
-    # Request parameters:
-    # - limit=0 ensures no entities are returned in the response body
-    # - options=count instructs Orion-LD to return the total count in the headers
     params = {
         "type": entity_type,
-        "limit": 0,
-        "options": "count"
+        "count": "true"
     }
 
     if id_pattern is not None:
@@ -467,7 +469,7 @@ def orion_ld_get_count_of_entities_by_type(entity_type: str, header: dict[str, s
 # UPDATE Requests
 # -----------------------------------------------------  
 
-def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: list[dict[str, Any]], header: dict[str, str]) -> None:
+def fiware_scorpio_batch_replace_entity_data(batch_ngsi_ld_data: list[dict[str, Any]], header: dict[str, str]) -> None:
     """
     Perform a batch replace operation for NGSI-LD entities in Orion-LD.
 
@@ -516,7 +518,7 @@ def orion_ld_batch_replace_entity_data(batch_ngsi_ld_data: list[dict[str, Any]],
 # DELETE Requests
 # -----------------------------------------------------  
 
-def orion_ld_delete_entity(entity_id: str, header: dict[str, str]) -> None:
+def fiware_scorpio_delete_entity(entity_id: str, header: dict[str, str]) -> None:
     """
     Delete an NGSI-LD entity from Orion-LD by its entity ID.
 
@@ -552,7 +554,7 @@ def orion_ld_delete_entity(entity_id: str, header: dict[str, str]) -> None:
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(f"Error when sending DELETE request for entity {entity_id}: {e}")
 
-def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict[str, str]) -> None:
+def fiware_scorpio_batch_delete_entities_by_type(entity_type: str, header: dict[str, str]) -> None:
     """
     Delete all NGSI-LD entities of a given type from Orion-LD in batches.
 
@@ -575,14 +577,14 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict[str, s
             If a batch delete request fails.
     """
     # Initial entity count
-    entity_count = orion_ld_get_count_of_entities_by_type(entity_type, header)
+    entity_count = fiware_scorpio_get_count_of_entities_by_type(entity_type, header)
     logger.info(f'Total entities: {entity_count}')
     
     # Continue deleting until no entities remain
     while entity_count > 0:
         
         # Orion-LD returns up to ~34k entities per call
-        entities = orion_ld_get_entities_by_type(entity_type, header)
+        entities = fiware_scorpio_get_entities_by_type(entity_type, header)
         
         # Extract entity IDs
         entity_ids = [entity['id'] for entity in entities]
@@ -605,14 +607,21 @@ def orion_ld_batch_delete_entities_by_type(entity_type: str, header: dict[str, s
                 raise requests.exceptions.RequestException(f"Batch DELETE Request Error: {e}")
         
         # Update remaining entity count      
-        entity_count = orion_ld_get_count_of_entities_by_type(entity_type, header)
+        entity_count = fiware_scorpio_get_count_of_entities_by_type(entity_type, header)
         logger.debug(f'Remaining entities: {entity_count}')
-
+        
 if __name__ == "__main__":
-    header = orion_ld_define_header("gtfs_static")
-    #orion_ld_batch_delete_entities_by_type("GtfsFareAttributes", header)
-    #print(orion_ld_get_count_of_entities_by_type("GtfsCalendarDateRule", header))
-    #print(json.dumps(orion_ld_get_entities_by_type("GtfsFareAttributes", header), indent=2, ensure_ascii=False))
-    #orion_ld_batch_load_to_context_broker(gtfs_static_get_ngsi_ld_data("fare_attributes", "Sofia"), header)    
-    #print(json.dumps(gtfs_static_get_ngsi_ld_data("fare_attributes", "Sofia"), indent=2, ensure_ascii=False))
-    pass
+    header = fiware_scorpio_define_header("gtfs_static")
+    
+    # POST Example
+    fiware_scorpio_batch_load_to_context_broker(gtfs_static_get_ngsi_ld_batches("calendar_dates", "Sofia"), header)
+    
+    # Count Example
+    # print(fiware_scorpio_get_count_of_entities_by_type("GtfsCalendarDateRule", header))
+    
+    # DELETE Example
+    # fiware_scorpio_batch_delete_entities_by_type("GtfsCalendarDateRule", header)
+    
+    # GET Example
+    # print(json.dumps(fiware_scorpio_get_entities_by_type("GtfsAgency", header), indent=2, ensure_ascii=False))
+    

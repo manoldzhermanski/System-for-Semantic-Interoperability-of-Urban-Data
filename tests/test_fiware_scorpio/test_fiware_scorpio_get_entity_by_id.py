@@ -1,7 +1,7 @@
 import pytest
 import requests
 from unittest.mock import patch, MagicMock
-from orion_ld.orion_ld_crud_operations import orion_ld_get_entity_by_id
+from fiware_scorpio.fiware_scorpio_crud_operations import fiware_scorpio_get_entity_by_id
 
 
 def test_get_entity_success_with_unicode():
@@ -26,8 +26,8 @@ def test_get_entity_success_with_unicode():
         }
     }
 
-    with patch("orion_ld.orion_ld_crud_operations.requests.get", return_value=mock_response):
-        result = orion_ld_get_entity_by_id("urn:ngsi-ld:Test:1",headers)
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.requests.get", return_value=mock_response):
+        result = fiware_scorpio_get_entity_by_id("urn:ngsi-ld:Test:1",headers)
 
     assert result["name"]["value"] == "Линия 94"
     assert result["operatedBy"]["object"] == "urn:ngsi-ld:Line:94"
@@ -39,9 +39,9 @@ def test_get_entity_http_error():
     """
     headers = {"Content-Type": "application/ld+json"}
     
-    with patch("orion_ld.orion_ld_crud_operations.requests.get", side_effect=requests.exceptions.HTTPError("404 Not Found")):
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.requests.get", side_effect=requests.exceptions.HTTPError("404 Not Found")):
         with pytest.raises(requests.exceptions.RequestException) as err:
-            orion_ld_get_entity_by_id("urn:ngsi-ld:NonExisting:1",headers)
+            fiware_scorpio_get_entity_by_id("urn:ngsi-ld:NonExisting:1",headers)
 
     assert "404 Not Found" in str(err.value)
 
@@ -64,7 +64,7 @@ def test_get_entity_without_unicode():
         }
     }
 
-    with patch("orion_ld.orion_ld_crud_operations.requests.get", return_value=mock_response):
-        result = orion_ld_get_entity_by_id("urn:ngsi-ld:Simple:1", headers)
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.requests.get", return_value=mock_response):
+        result = fiware_scorpio_get_entity_by_id("urn:ngsi-ld:Simple:1", headers)
 
     assert result["count"]["value"] == 1

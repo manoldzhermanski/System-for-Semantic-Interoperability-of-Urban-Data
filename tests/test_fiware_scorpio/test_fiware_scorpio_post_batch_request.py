@@ -2,7 +2,7 @@ import logging
 import requests
 import pytest
 from unittest.mock import patch, MagicMock
-from orion_ld.orion_ld_crud_operations import orion_ld_post_batch_request
+from fiware_scorpio.fiware_scorpio_crud_operations import fiware_scorpio_post_batch_request
 
 def test_batch_create_success_logs_info(caplog):
     """
@@ -20,8 +20,8 @@ def test_batch_create_success_logs_info(caplog):
 
     caplog.set_level(logging.INFO)
 
-    with patch("orion_ld.orion_ld_crud_operations.requests.post", return_value=mock_response):
-        orion_ld_post_batch_request(sample_entities, headers)
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.requests.post", return_value=mock_response):
+        fiware_scorpio_post_batch_request(sample_entities, headers)
 
     assert "Batch OK (2 entities)" in caplog.text
 
@@ -40,9 +40,9 @@ def test_batch_create_http_error_logs_error():
     mock_response.status_code = 400
     mock_response.text = "Bad Request"
 
-    with patch("orion_ld.orion_ld_crud_operations.requests.post", return_value=mock_response):
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.requests.post", return_value=mock_response):
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            orion_ld_post_batch_request(sample_entities, headers)
+            fiware_scorpio_post_batch_request(sample_entities, headers)
 
     assert "Batch failed (400)" in str(err.value)
     assert "Bad Request" in str(err.value)
@@ -58,8 +58,8 @@ def test_batch_create_request_exception_logs_exception():
     ]
     headers = {"Content-Type": "application/ld+json"}
 
-    with patch("orion_ld.orion_ld_crud_operations.requests.post",side_effect=requests.exceptions.Timeout("timeout")):
+    with patch("fiware_scorpio.fiware_scorpio_crud_operations.requests.post",side_effect=requests.exceptions.Timeout("timeout")):
         with pytest.raises(requests.exceptions.RequestException) as exc_info:
-            orion_ld_post_batch_request(sample_entities, headers)
+            fiware_scorpio_post_batch_request(sample_entities, headers)
 
     assert "timeout" in str(exc_info.value)
