@@ -844,7 +844,6 @@ def netex_build_authority_dataset(agency: dict[str, Any], indexes: dict[str, Any
         "calendar": [],
         "calendar_dates": [],
         "stop_times": [],
-        "stop_times_by_trip": [],
         "stops": [],
         "shapes": [],
         "transfers": []
@@ -891,7 +890,6 @@ def netex_build_authority_dataset(agency: dict[str, Any], indexes: dict[str, Any
     # -----------------------------
     # STOP TIMES
     # -----------------------------
-    dataset["stop_times_by_trip"] = {trip["id"]: indexes["stop_times_by_trip"].get(trip["id"], []) for trip in trips}
     dataset["stop_times"] = netex_helper_collect_entities_by_trip(trips, indexes.get("stop_times_by_trip", {}), "stop times")
     # -----------------------------
     # STOPS
@@ -933,13 +931,14 @@ def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str
 
     trip_ids = {trip["id"] for trip in trips if trip.get("id")}
 
-    stop_times_by_trip = {trip_id: authority_dataset["stop_times_by_trip"].get(trip_id, []) for trip_id in trip_ids}
+    stop_times = authority_dataset.get("stop_times", [])
 
-    shape_by_trip = authority_dataset.get("shape_by_trip", {})
+    stop_times_by_trip = {}
 
-    shape_ids = {shape_by_trip[trip_id] for trip_id in trip_ids if trip_id in shape_by_trip}
-
-    # shapes = [shape for shape in authority_dataset.get("shapes", []) if shape.get("id") in shape_ids]
+    for stop_time in stop_times:
+        trip_id = stop_time.get("hasTrip", {}).get("object")
+        if trip_id in trip_ids:
+            stop_times_by_trip.setdefault(trip_id, []).append(stop_time)
 
     transfers = [transfer for transfer in authority_dataset.get("transfers", []) 
                  if transfer.get("from_trip_id", {}).get("object") in trip_ids
@@ -951,18 +950,14 @@ def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str
 
     calendar_dates = [calendar_date for calendar_date in authority_dataset["calendar_dates"] if calendar_date.get("hasService", {}).get("object") in service_ids]
     
-    # stops = netex_index_stops_by_trip(stop_times)
-
     return {
         "agency": authority_dataset["agency"],
         "route": route,
         "trips": trips,
         "stop_times": stop_times_by_trip,
-        # "shapes": shapes,
         "transfers": transfers,
         "calendar": calendars,
         "calendar_dates": calendar_dates,
-        # "stops": stops
     }
 
 # -----------------------------------------------------
@@ -994,46 +989,56 @@ def netex_helper_set_netex_authority(agency: dict[str, Any]) -> None:
 # -----------------------------------------------------
 # Generate <FrameDefaults>
 # -----------------------------------------------------
-
-def netex_build_frame_defaults(agency: dict[str, Any]) -> etree.Element:
+def netex_helper_build_frame_defaults(agency: dict[str, Any]) -> etree.Element | None:
     """
-    Builds the NeTEx <FrameDefaults> element from a GtfsAgency entity
+    Builds a NeTEx <FrameDefaults> element.
 
     Args:
         agency (dict[str, Any]): GtfsAgency entity
 
     Returns:
-        An lxml.etree.Element object representing the <FrameDefaults> XML structure.
-        
-    Raises:
-        ValueError: If the entity is not of type `GtfsAgency`
+        etree.Element | None
     """
-    # Check if entity is of GtfsAgency type
-    if agency["type"] != "GtfsAgency":
-        raise ValueError(
-            "The provided entity for NeTEx Authority setting should be of type GtfsAgency"
-        )
-        
-    # Extract from the entity it's timezone (required field) and language (optional field)
+
+    entity_type = agency.get("type")
+
+    if entity_type != "GtfsAgency":
+        logger.error("Unsupported entity type for FrameDefaults conversion: %s", entity_type)
+        return None
+
     time_zone = agency.get("agency_timezone", {}).get("value")
     language = agency.get("agency_lang", {}).get("value")
 
-    # Build FrameDefaults
     frame_defaults = etree.Element("FrameDefaults")
 
-    # Add DefaultLocale element
-    frame_default_locale = etree.SubElement(frame_defaults, "DefaultLocale")
+    default_locale = etree.SubElement(frame_defaults, "DefaultLocale")
+    etree.SubElement(default_locale, "TimeZone").text = time_zone
 
-    # Add TimeZone element
-    etree.SubElement(frame_default_locale, "TimeZone").text = time_zone
-
-    # If the optional language field is provided, add the DefaultLanguage element
     if language:
-        etree.SubElement(frame_default_locale, "DefaultLanguage").text = language
+        etree.SubElement(default_locale, "DefaultLanguage").text = language
 
-    # Return FrameDefaults
     return frame_defaults
 
+def netex_helper_stream_frame_defaults(xml_file, agency: dict[str, Any]) -> None:
+    """
+    Streams a FrameDefaults element into XML.
+
+    Args:
+        xml_file: XML writer instance
+        agency (dict[str, Any]): GtfsAgency entity
+
+    Returns:
+        None
+    """
+    # Get the frame defaults
+    frame_defaults = netex_helper_build_frame_defaults(agency)
+
+    if frame_defaults is None:
+        return
+
+    # Write <FrameDefaults> into XML file
+    xml_file.write(frame_defaults, pretty_print=True)
+    
 # -----------------------------------------------------
 # GtfsAgency to NeTex <Authority> and <Operator>
 # -----------------------------------------------------
@@ -3358,7 +3363,7 @@ def netex_stream_site_frame_for_stops_xml(xml_file, agency, authority_dataset):
 
     xml_file.write(b"\n")
     with xml_file.element("SiteFrame", version="1", id=f"{config.NETEX_AUTHORITY}:SiteFrame:{uuid.uuid4()}"):
-        netex_build_frame_defaults(agency)
+        netex_helper_stream_frame_defaults(xml_file, agency)
         netex_helper_stream_stop_places(xml_file, transport_modes, authority_dataset["stops"])
     
 def netex_create_shared_data_xml(
@@ -3381,7 +3386,7 @@ def netex_create_shared_data_xml(
                 xml_file.write(b"\n")
                 with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
 
-                    frame = netex_build_frame_defaults(agency)
+                    frame = netex_helper_stream_frame_defaults(xml_file, agency)
                     xml_file.write(frame, pretty_print=True)
                     with xml_file.element("frames"):
                         netex_stream_resource_frame_for_shared_data_xml(xml_file, agency)
@@ -3451,8 +3456,7 @@ def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
             with xml_file.element("dataObjects"):
                 xml_file.write(b"\n")
                 with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
-                    frame = netex_build_frame_defaults(route_dataset["agency"])
-                    xml_file.write(frame, pretty_print=True)
+                    netex_helper_stream_frame_defaults(xml_file, route_dataset["agency"])
                     with xml_file.element("frames"):
                         netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_structures)
                         
