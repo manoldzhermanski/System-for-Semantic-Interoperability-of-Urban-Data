@@ -49,7 +49,6 @@ def test_stream_network_writes_valid_network():
 
     assert authority_ref.get("ref") == "TEST:Authority:Agency1_ID"
 
-
 def test_stream_network_returns_empty_and_logs_error():
 
     agency = {

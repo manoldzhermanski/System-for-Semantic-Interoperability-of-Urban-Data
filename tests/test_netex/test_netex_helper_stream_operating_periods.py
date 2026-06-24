@@ -1,6 +1,6 @@
 import pytest
 import logging
-from lxml import etree
+from lxml import etree # type: ignore
 from io import BytesIO
 from netex.netex_utils import netex_helper_stream_operating_periods
 

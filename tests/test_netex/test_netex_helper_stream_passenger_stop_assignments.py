@@ -1,6 +1,6 @@
 import logging
 from io import BytesIO
-from lxml import etree
+from lxml import etree # type: ignore
 
 from netex.netex_utils import netex_helper_stream_passenger_stop_assignments
 
