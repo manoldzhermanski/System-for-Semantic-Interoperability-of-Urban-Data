@@ -2395,14 +2395,34 @@ def netex_helper_get_transport_mode_and_submode(gtfs_route_type_code: int) -> tu
     }
     return gtfs_to_netex_map.get(gtfs_route_type_code, (None, None))
 
-def netex_helper_build_line(route: dict[str, Any]) -> etree.Element:
+def netex_helper_build_line(route: dict[str, Any]) -> etree.Element | None:
     """
     Build a single NeTEx Line element from a GtfsRoute entity.
+    
+    Args:
+        route: A GtfsRoute entity
+
+    Returns:
+        etree.Element | None
     """
-
+    # Get entity id and type
     route_id = route.get("id")
-    route_id_value = route_id.split(":")[-1] if route_id else "unknown"
+    entity_type = route.get("type")
+    
+    # If unsupported entity type, log an error and return None
+    if entity_type != "GtfsRoute":
+        logger.error("Unsupported entity type for Line conversion: %s", entity_type)
+        return None
+    
+    # If not correctly formatted, log an error and return None
+    if not isinstance(route_id, str) or ":" not in route_id:
+        logger.error("Invalid or missing ID for GtfsRoute: %r", route_id)
+        return None
 
+    # Extract ID Value
+    route_id_value = route_id.split(":")[-1]
+
+    # Build Line XML
     line = etree.Element("Line", version="1", id = f"{config.NETEX_AUTHORITY}:Line:{route_id_value}")
 
     route_long_name = route.get("name", {}).get("value")
@@ -2459,10 +2479,10 @@ def netex_helper_build_line(route: dict[str, Any]) -> etree.Element:
     if agency_id:
         agency_id_value = agency_id.split(":")[-1]
 
-        etree.SubElement(line, "OperatorRef", ref = f"{agency_id_value}:Operator:{agency_id_value}")
+        etree.SubElement(line, "OperatorRef", ref = f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}")
 
         etree.SubElement(line,"RepresentedByGroupRef",
-                         ref = f"{agency_id_value}:Authority:{agency_id_value}Nett")
+                         ref = f"{config.NETEX_AUTHORITY}:Network:{agency_id_value}Nett")
 
     route_colour = route.get("routeColor", {}).get("value")
     route_text_colour = route.get("routeTextColor", {}).get("value")
@@ -2480,16 +2500,20 @@ def netex_helper_build_line(route: dict[str, Any]) -> etree.Element:
     return line
 
 def netex_helper_stream_line(xml_file, route: dict[str, Any]) -> None:
-
-    xml_file.write(b"\n")
-
+    """
+    Stream NeTEx <Line> entity into a <lines> container
+    Args:
+        xml_file: An instance of a streaming XML writer
+        route (dict[str, Any]): A GtfsRoute entity
+    """
     logger.info("Streaming Line")
 
     with xml_file.element("lines"):
 
         line = netex_helper_build_line(route)
-
-        xml_file.write(line, pretty_print=True)
+        
+        if line is not None:
+            xml_file.write(line, pretty_print=True)
 
     logger.info("Finished streaming Line")
 
