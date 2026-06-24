@@ -2608,25 +2608,40 @@ def netex_helper_stream_scheduled_stop_points(xml_file, gtfs_stops: list[dict[st
 # -----------------------------------------------------
 # GtfsStop to NeTEx <StopPlace>
 # -----------------------------------------------------
-
 def netex_helper_get_transport_modes_per_stop(authority_dataset):
 
     transport_modes_per_stop = {}
 
-    route_types = [route.get("routeType", {}).get("value") for route in authority_dataset["routes"]]
+    route_modes = {}
 
-    for route_type in route_types:
+    for route in authority_dataset["routes"]:
+        route_id = route["id"]
+        route_type = route.get("routeType", {}).get("value")
 
-        transport_mode = netex_helper_get_transport_mode_and_submode(route_type)
+        route_modes[route_id] = netex_helper_get_transport_mode_and_submode(route_type)
 
-        for stop in authority_dataset["stops"]:
+    trip_to_route = {}
 
-            stop_id_value = stop["id"].split(":")[-1]
+    for trip in authority_dataset["trips"]:
+        trip_id = trip["id"]
+        route_id = trip["route"]["object"]
 
-            if stop_id_value not in transport_modes_per_stop:
-                transport_modes_per_stop[stop_id_value] = set()
+        trip_to_route[trip_id] = route_id
 
-            transport_modes_per_stop[stop_id_value].add(transport_mode)
+    for stop_time in authority_dataset["stop_times"]:
+
+        trip_id = stop_time["hasTrip"]["object"]
+        stop_id = stop_time["hasStop"]["object"]
+
+        route_id = trip_to_route.get(trip_id)
+        if route_id is None:
+            continue
+
+        mode = route_modes.get(route_id)
+        if mode is None:
+            continue
+
+        transport_modes_per_stop.setdefault(stop_id, set()).add(mode)
 
     return transport_modes_per_stop
 
