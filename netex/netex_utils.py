@@ -1338,18 +1338,6 @@ def netex_helper_transform_point_to_projected(point: Point) -> Point:
     """
     return wgs84_to_projected.transform(*point)
 
-def netex_helper_transform_point_to_wgs84(point: Point) -> Point:
-    """
-    Transforms a point from the projected CRS (EPSG:7801) to WGS84 (EPSG:4326)
-    
-    Args:
-        point (Point): A tuple representing the (x, y) coordinates of the point in the projected CRS
-
-    Returns:
-        Point: A tuple representing the (longitude, latitude) coordinates of the point in WGS84 CRS
-    """
-    return projected_to_wgs84.transform(*point)
-
 def netex_helper_transform_line_string_to_wgs84(polyline_projected: LineString) -> LineString:
     """
     Transform a LineString from projected CRS (EPSG:7801) to WGS84 (EPSG:4326)

@@ -18,7 +18,7 @@ def assert_xml_equal(generated_xml, expected_xml_str):
 
     assert etree.tostring(generated) == etree.tostring(expected)
     
-def test_netex_helper_build_authority_returns_expected_xml():
+def test_netex_helper_build_operator_returns_expected_xml():
     """
     Test happy path
     """
@@ -31,10 +31,10 @@ def test_netex_helper_build_authority_returns_expected_xml():
         "agency_email": {"type": "Property", "value": "sofia_transport@gmail.com"}
     }
     
-    result_xml = netex_utils.netex_helper_build_authority(entity, 5)
+    result_xml = netex_utils.netex_helper_build_operator(entity, 5)
     
     expected_xml = """
-        <Authority version="1" id="TEST:Authority:Sofia_1_ID">
+        <Operator version="1" id="TEST:Operator:Sofia_1">
             <CompanyNumber>5</CompanyNumber>
             <Name>Sofia</Name>
             <LegalName>Sofia</LegalName>
@@ -43,12 +43,12 @@ def test_netex_helper_build_authority_returns_expected_xml():
                 <Phone>0895555555</Phone>
                 <Url>https://www.sofia_transport.bg</Url>
             </ContactDetails>
-            <OrganisationType>authority</OrganisationType>
-        </Authority>
+            <OrganisationType>operator</OrganisationType>
+        </Operator>
     """
     assert_xml_equal(result_xml, expected_xml)
     
-def test_netex_helper_build_network_returns_none_when_encountering_an_unsupported_type():
+def test_netex_helper_build_operator_returns_none_when_encountering_an_unsupported_type():
     """
     Test that when encountering an unsupported GTFS type, None is returned
     """
@@ -56,12 +56,12 @@ def test_netex_helper_build_network_returns_none_when_encountering_an_unsupporte
 
     netex_utils.logger.error = MagicMock()
     
-    result_xml = netex_utils.netex_helper_build_authority(entity, 5)
+    result_xml = netex_utils.netex_helper_build_operator(entity, 5)
 
     assert result_xml is None
-    netex_utils.logger.error.assert_called_once_with("Unsupported entity type for Authority conversion: %s", "GtfsStop")
+    netex_utils.logger.error.assert_called_once_with("Unsupported entity type for Operator conversion: %s", "GtfsStop")
     
-def test_netex_helper_build_authority_returns_none_if_id_format_is_not_correct():
+def test_netex_helper_build_operator_returns_none_if_id_format_is_not_correct():
     """
     Test that if the `id` field is not in the correct format, None is returned
     """
@@ -76,7 +76,7 @@ def test_netex_helper_build_authority_returns_none_if_id_format_is_not_correct()
     
     netex_utils.logger.error = MagicMock()
 
-    result_xml = netex_utils.netex_helper_build_authority(entity, 5)
+    result_xml = netex_utils.netex_helper_build_operator(entity, 5)
 
     assert result_xml is None
     netex_utils.logger.error.assert_called_once_with("Invalid or missing ID for GtfsAgency: %r", "broken_id")
