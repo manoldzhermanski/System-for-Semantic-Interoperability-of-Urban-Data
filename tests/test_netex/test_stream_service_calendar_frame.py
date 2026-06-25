@@ -1,6 +1,6 @@
 import pytest
 import logging
-from lxml import etree
+from lxml import etree #type: ignore
 from io import BytesIO
 from unittest.mock import MagicMock
 

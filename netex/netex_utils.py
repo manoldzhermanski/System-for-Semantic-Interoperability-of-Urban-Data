@@ -2797,13 +2797,13 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
 def netex_helper_stream_stop_places(xml_file, transport_modes_per_stop: dict[str, set[tuple[str, str]]], gtfs_stop_entities: list[dict[str, Any]]) -> None:
 
     logger.info("Streaming StopPlaces")
-
-    counter = 0
+    
+    seen = set()
 
     # Create container for <stopPlaces> elements
     with xml_file.element("stopPlaces"):
 
-        for index, entity in enumerate(gtfs_stop_entities):
+        for entity in gtfs_stop_entities:
 
             # Build <stopPlaces> element
             stop_place = netex_helper_build_stop_place(entity, transport_modes_per_stop)
@@ -2811,13 +2811,22 @@ def netex_helper_stream_stop_places(xml_file, transport_modes_per_stop: dict[str
             # Continue when unsuccessful
             if stop_place is None:
                 continue
+            
+            # Extract <StopPlace> ID
+            stop_place_id = stop_place.get("id")
 
-            counter += 1
+            # Skip if encountered
+            if stop_place_id in seen:
+                continue
 
-            # Stream the <PassengerStopAssignment> element into the XML file
+            # Add to encountered
+            seen.add(stop_place_id)
+
+
+            # Stream the <StopPlace> element into the XML file
             xml_file.write(stop_place, pretty_print=True)
 
-    logger.info("Finished streaming %d stopPlaces", counter)
+    logger.info("Finished streaming %d stopPlaces", len(seen))
 
 # -----------------------------------------------------
 # GtfsStop to NeTex <PassengerStopAssignment>
