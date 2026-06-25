@@ -2338,7 +2338,7 @@ def netex_stream_service_calendar_frame_for_shared_data_xml(xml_file, calendars,
 # GtfsRoute to NeTEx <Line>
 # -----------------------------------------------------------------------
 
-def netex_helper_get_transport_mode_and_submode(gtfs_route_type_code: int) -> tuple:
+def netex_helper_get_transport_mode_and_submode(gtfs_route_type_code: int) -> tuple[str, str] | tuple[None, None]:
     """
     Retrieves the NeTEx transport mode and submode based on the GTFS route type code.
 
@@ -2453,12 +2453,12 @@ def netex_helper_build_line(route: dict[str, Any]) -> etree.Element | None:
         "other": "OtherSubMode",
     }
 
-    submode_tag = submode_tag_map.get(transport_mode)
-
-    if not submode_tag:
+    if transport_mode is None or transport_submode is None:
         raise ValueError(
-            f"Unknown Transport Mode: '{transport_mode}'"
+            f"Invalid or unknown transport mode and submode: {route_type}"
         )
+
+    submode_tag = submode_tag_map.get(transport_mode)
 
     transport_submode_element = etree.SubElement(line, "TransportSubmode")
 
@@ -2608,17 +2608,27 @@ def netex_helper_stream_scheduled_stop_points(xml_file, gtfs_stops: list[dict[st
 # -----------------------------------------------------
 # GtfsStop to NeTEx <StopPlace>
 # -----------------------------------------------------
-def netex_helper_get_transport_modes_per_stop(authority_dataset):
+def netex_helper_get_transport_modes_per_stop(authority_dataset: dict[str, Any]) -> dict[str, set[tuple[str, str]]]:
+    """
+    Create a lookup for each stop how it is categorized in terms of transport mode based on
+    the routes that go through them
 
+    Args:
+        authority_dataset (dict[str, Any]): Authority dataset which containes the needed data
+                                            for lookup creation
+
+    Returns:
+        dict[str, set]: Lookup displaying how each stop is categorized in terms of transport mode
+    """
     transport_modes_per_stop = {}
 
-    route_modes = {}
+    route_modes_and_submodes = {}
 
     for route in authority_dataset["routes"]:
         route_id = route["id"]
         route_type = route.get("routeType", {}).get("value")
 
-        route_modes[route_id] = netex_helper_get_transport_mode_and_submode(route_type)
+        route_modes_and_submodes[route_id] = netex_helper_get_transport_mode_and_submode(route_type)
 
     trip_to_route = {}
 
@@ -2637,22 +2647,22 @@ def netex_helper_get_transport_modes_per_stop(authority_dataset):
         if route_id is None:
             continue
 
-        mode = route_modes.get(route_id)
-        if mode is None:
+        mode_and_submode = route_modes_and_submodes.get(route_id)
+        if mode_and_submode is None:
             continue
 
-        transport_modes_per_stop.setdefault(stop_id, set()).add(mode)
+        transport_modes_per_stop.setdefault(stop_id, set()).add(mode_and_submode)
 
     return transport_modes_per_stop
 
-def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_modes_per_stop: dict[str, set[tuple[str, str]]], index: int) -> etree.Element | None:
+def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_modes_per_stop: dict[str, set[tuple[str, str]]]) -> etree.Element | None:
 
     # Get entity type and ID
     stop_id = gtfs_stop_entity["id"]
     entity_type = gtfs_stop_entity["type"]
     
     if entity_type != "GtfsStop":
-        logger.error("Unsupported entity type: %s", entity_type)
+        logger.error("Unsupported entity type for StopPlace conversion: %s", entity_type)
         return None
 
     # If not correctly formatted, log an error and return None    
@@ -2693,7 +2703,7 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
 
     # Add AccessibilityAssessment and AccessibilityLimitation elements if wheelchair boarding information is present
     if wheelchair:
-        accessibility_assessment = etree.SubElement(stop_place, "AccessibilityAssessment", version = "1", id = f"{config.NETEX_AUTHORITY}:AccessibilityAssessment:{str(index)}")
+        accessibility_assessment = etree.SubElement(stop_place, "AccessibilityAssessment", version = "1", id = f"{config.NETEX_AUTHORITY}:AccessibilityAssessment:{uuid.uuid4()}")
         etree.SubElement(accessibility_assessment, "MobilityImpairedAccess").text = "partial"
         limitations = etree.SubElement(accessibility_assessment, "limitations")
         accessibility_limitation = etree.SubElement(limitations, "AccessibilityLimitation", version = "1", id = f"{uuid.uuid4()}")
@@ -2704,7 +2714,7 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
         
         # If tts_stop_name is present, we can assume that audible signs are available, otherwise we set it to unknown
         if tts_stop_name:
-            etree.SubElement(accessibility_limitation, "AudibleSignsAvailable").text = "true"
+            etree.SubElement(accessibility_limitation, "AudibleSignalsAvailable").text = "true"
         else:
             etree.SubElement(accessibility_limitation, "AudibleSignsAvailable").text = "unknown"
         etree.SubElement(accessibility_limitation, "VisualSignsAvailable").text = "unknown"
@@ -2717,19 +2727,56 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
         etree.SubElement(stop_place, "ParentSiteRef", ref = f"{config.NETEX_AUTHORITY}:StopPlace:{parent_station_value}", version = "1")
 
     # Determine transport mode and submode for the stop based on the routes that pass through it
-    mode = "unknown"
-    submode = "unknown"
+    transport_mode = "unknown"
+    transport_submode = "unknown"
     
     # Get transport modes for the stop from the provided mapping
-    transport_modes = transport_modes_per_stop.get(stop_id, set())
+    transport_modes = transport_modes_per_stop.get(stop_id)
 
     # Choose the first transport mode and submode
     if transport_modes:
-        mode, submode = sorted(transport_modes)[0]  
+        transport_mode, transport_submode = sorted(transport_modes)[0]  
 
+    if transport_mode is None or transport_submode is None:
+        raise ValueError(f"Invalid or unknown transport mode and submode for stop {stop_id_value}")
+        
     # Add TransportMode and StopPlaceType elements
-    etree.SubElement(stop_place, "TransportMode").text = mode
-    etree.SubElement(stop_place, "StopPlaceType").text = submode
+    etree.SubElement(stop_place, "TransportMode").text = transport_mode
+    
+    submode_tag_map = {
+        "rail": "RailSubmode",
+        "coach": "CoachSubmode",
+        "metro": "MetroSubmode",
+        "bus": "BusSubmode",
+        "trolleyBus": "TrolleyBusSubmode",
+        "tram": "TramSubmode",
+        "water": "WaterSubmode",
+        "cableway": "TelecabinSubmode",
+        "funicular": "FunicularSubmode",
+        "taxi": "TaxiSubMode",
+        "other": "OtherSubMode",
+    }
+    
+    stop_place_tag_map = {
+        "rail": "railStation",
+        "metro": "metroStation",
+        "bus": "onstreetBus",
+        "tram": "onstreetTram",
+        "water": "ferryStop",
+        "cableway": "liftStation",
+        "taxi": "taxiStand",
+    }
+
+    # Get submode type tag
+    submode_tag = submode_tag_map.get(transport_mode)
+    
+    # Add transport submode
+    etree.SubElement(stop_place, submode_tag).text = transport_submode
+    
+    #Add StopPlaceType
+    stop_place_type = stop_place_tag_map.get(transport_mode)
+    
+    etree.SubElement(stop_place, "StopPlaceType").text = stop_place_type
         
     # Add Quay element with its data
     quays_container = etree.SubElement(stop_place, "quays")
@@ -2756,10 +2803,10 @@ def netex_helper_stream_stop_places(xml_file, transport_modes_per_stop: dict[str
     # Create container for <stopPlaces> elements
     with xml_file.element("stopPlaces"):
 
-        for index, entity in enumerate(gtfs_stop_entities, start=1):
+        for index, entity in enumerate(gtfs_stop_entities):
 
             # Build <stopPlaces> element
-            stop_place = netex_helper_build_stop_place(entity, transport_modes_per_stop, index)
+            stop_place = netex_helper_build_stop_place(entity, transport_modes_per_stop)
 
             # Continue when unsuccessful
             if stop_place is None:

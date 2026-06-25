@@ -113,4 +113,4 @@ def test_netex_helper_build_line_invalid_transport_mode():
     with pytest.raises(ValueError) as err:
         netex_utils.netex_helper_build_line(route)
         
-    assert "Unknown Transport Mode" in str(err.value)
+    assert "Invalid or unknown transport mode and submode" in str(err.value)
