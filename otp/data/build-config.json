@@ -1,0 +1,20 @@
+{
+  "transitFeeds": [
+    {
+      "type": "netex",
+      "feedId": "SOFIA",
+      "source": "netex.zip",
+      "sharedFilePattern" : "_stops.xml",
+      "sharedGroupFilePattern": "AXX_shared_data\\.xml",
+      "groupFilePattern": "(AXX_.*)\\.xml"
+      
+    }
+  ],
+  "osm": [
+    {
+      "source": "sofia.osm.pbf",
+      "timeZone": "Europe/Sofia"
+    }
+  ],
+  "osmCacheDataInMem": true
+}

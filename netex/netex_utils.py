@@ -32,7 +32,7 @@ GIS_NS = "http://www.opengis.net/gml/3.2"
 SIRI_NS = "http://www.siri.org.uk/siri"
 
 NSMAP = {
-    "n": NETEX_NS,
+    None: NETEX_NS,
     "gis": GIS_NS,
     "siri": SIRI_NS
 }
@@ -976,15 +976,21 @@ def netex_helper_set_netex_authority(agency: dict[str, Any]) -> None:
     """
     # Check if entity is of GtfsAgency type
     if agency["type"] != "GtfsAgency":
-        raise ValueError(
-            "The provided entity for NeTEx Authority setting should be of type GtfsAgency"
-        )
+        raise ValueError("The provided entity for NeTEx Authority setting should be of type GtfsAgency")
 
     # Try setting config.NETEX_Authority
     try:
-        config.NETEX_AUTHORITY = agency["id"].split(":")[-1]
+        raw_id = agency["id"].split(":")[-1]
     except KeyError:
         raise ValueError("Entity should have an ID")
+
+    # Normalize to exactly 3 characters
+    if len(raw_id) < 3:
+        authority = raw_id.ljust(3, "X")  # padding if too short
+    else:
+        authority = raw_id[:3]  # truncate if longer than 3
+
+    config.NETEX_AUTHORITY = authority
 
 # -----------------------------------------------------
 # Generate <FrameDefaults>
@@ -2734,12 +2740,15 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
     transport_modes = transport_modes_per_stop.get(stop_id)
 
     # Choose the first transport mode and submode
-    if transport_modes:
+    if transport_modes is not None:
         transport_mode, transport_submode = sorted(transport_modes)[0]  
 
     if transport_mode is None or transport_submode is None:
         raise ValueError(f"Invalid or unknown transport mode and submode for stop {stop_id_value}")
-        
+    
+    if transport_mode == "unknown" and transport_submode == "unknown":
+        logger.warning("Skipping %s with transport mode and submode as unknown as it's not a valid stop for conversion")
+        return
     # Add TransportMode and StopPlaceType elements
     etree.SubElement(stop_place, "TransportMode").text = transport_mode
     
@@ -2769,6 +2778,8 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
 
     # Get submode type tag
     submode_tag = submode_tag_map.get(transport_mode)
+    
+    etree.SubElement(stop_place, submode_tag).text = transport_submode
     
     # Add transport submode
     etree.SubElement(stop_place, submode_tag).text = transport_submode
@@ -3187,7 +3198,7 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
     if route_long_name:
         etree.SubElement(journey_pattern, "Name").text = route_long_name
 
-    etree.SubElement(journey_pattern, "RouteRef", ref=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}", version="1")
+    etree.SubElement(journey_pattern, "RouteRef", ref=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}", version="1")
 
     points_in_sequence = etree.SubElement(journey_pattern, "pointsInSequence")
 
@@ -3460,7 +3471,7 @@ def netex_create_shared_data_xml(
         calendar_dates: list[dict[str, Any]]
         ) -> None:
     
-    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/_{config.NETEX_AUTHORITY}_shared_data.xml", encoding="utf-8") as xml_file:
+    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/{config.NETEX_AUTHORITY}_shared_data.xml", encoding="utf-8") as xml_file:
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
@@ -3531,7 +3542,7 @@ def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
     route_name = "_".join(route_name.split())
     route_name = re.sub(r"_+", "_", route_name)
 
-    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/{config.NETEX_AUTHORITY}_{config.NETEX_AUTHORITY}-Line-{route_name}.xml", encoding="utf-8") as xml_file:
+    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/{config.NETEX_AUTHORITY}_{route_name}.xml", encoding="utf-8") as xml_file:
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
@@ -3547,7 +3558,7 @@ def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
 
 def netex_create_stops_xml(agency, authority_dataset):
 
-    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/_{config.NETEX_AUTHORITY}_stops.xml", encoding="utf-8") as xml_file:
+    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/_stops.xml", encoding="utf-8") as xml_file:
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
