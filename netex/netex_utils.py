@@ -287,6 +287,26 @@ def netex_get_all_gtfs_transfers_of_city() -> list[dict[str, Any]]:
     
     return fiware_scorpio_get_entities_by_type("GtfsTransfer", header, config.NETEX_OPERATING_CITY)
 
+def netex_get_all_gtfs_translations_of_city() -> list[dict[str, Any]]:
+    """
+    Get all GtfsTranslation entities of a city
+
+    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsTransfer
+    entities for the operating city.
+    
+    Returns:
+        list[dict[str, Any]]: A list of all GtfsTranslation entities for the operating city
+        
+    Raises:
+        ValueError: If config.NETEX_OPERATING_CITY is not set
+    """
+    header = fiware_scorpio_define_header("gtfs_static")
+    
+    if not config.NETEX_OPERATING_CITY:
+        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    
+    return fiware_scorpio_get_entities_by_type("GtfsTranslation", header, config.NETEX_OPERATING_CITY)
+
 def netex_load_city_dataset() -> dict[str, Any]:
     
     return {
@@ -299,6 +319,7 @@ def netex_load_city_dataset() -> dict[str, Any]:
         "stop_times": netex_get_all_gtfs_stop_times_of_a_city(),
         "stops": netex_get_all_gtfs_stops_of_city(),
         "transfers": netex_get_all_gtfs_transfers_of_city(),
+        "translations": netex_get_all_gtfs_translations_of_city()
     }
 
 # -----------------------------------------------------
