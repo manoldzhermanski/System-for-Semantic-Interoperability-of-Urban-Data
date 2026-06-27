@@ -789,6 +789,35 @@ def parse_gtfs_trips_data(entity: dict[str, str]) -> dict[str, Any]:
         "cars_allowed": parse_int(entity.get("cars_allowed"), "cars_allowed")
     }
 
+def parse_gtfs_translations_data(entity: dict[str, str]) -> dict[str, Any]:
+    """
+    Parses a single GTFS translation record into typed and cleaned dictionary.
+
+    Args:
+        entity (dict[str, str]): A dictionary representing a GTFS 'translations.txt' row, with string values for all fields.
+
+    Returns:
+        dict[str, Any]: A dictionary with cleaned and typed fields:
+            - table_name: str | None
+            -field_name: str | None
+            - language: str | None
+            - translation: str | None
+            - record_id: str | None
+            - record_sub_id: str | None
+            - field_value: str | None
+            
+    Raises:
+        ValueError: If any integer field cannot be parsed correctly.
+    """
+    return {
+        "table_name": cleanup_string(entity.get("table_name")),
+        "field_name": cleanup_string(entity.get("field_name")),
+        "language": cleanup_string(entity.get("language")),
+        "translation": cleanup_string(entity.get("translation")),
+        "record_id": cleanup_string(entity.get("record_id")),
+        "record_sub_id": cleanup_string(entity.get("record_sub_id")),
+        "field_value": cleanup_string(entity.get("field_value")),
+    }
 # -----------------------------------------------------
 # Validate GTFS-Static data
 # -----------------------------------------------------
@@ -1512,6 +1541,65 @@ def validate_gtfs_trips_entity(entity: dict[str, Any], city: str) -> None:
     cars_allowed = entity.get("cars_allowed")
     if cars_allowed is not None and not validation_utils.is_valid_cars_allowed(cars_allowed):
         raise ValueError(f"'cars_allowed' must be 0, 1 or 2, got {cars_allowed}")
+
+def validate_gtfs_translations_entity(entity: dict[str, Any], city: str) -> None:
+    """
+    Validates a parsed GTFS translations entity.
+
+    This function performs:
+    - Validation of required fields
+    - Validate of 'table_name' values
+    - Validate that 'language' is a valid language code
+
+    Args:
+        entity (dict[str, Any]): A parsed GTFS translations entity.
+
+    Raises:
+        ValueError: If any required field is missing or any field value is invalid.
+    """
+    # Required fields
+    required_fields = ["table_name", "field_name", "language", "translation"]
+    validate_required_fields(entity, required_fields)
+    
+    table_name = entity["table_name"]
+    if not validation_utils.is_valid_table_name(table_name):
+        raise ValueError(f"""
+                         'table_name' must be agency, stops, routes, trips, stop_times, pathways, 
+                         levels, feed_info, attributions, got {table_name}
+                         """)
+        
+    record_id = entity.get("record_id")
+    
+    # If record_id is defined, turn it into URN NGSI-LD format
+    if record_id is not None:
+    
+        ngsi_ld_handle = {
+            "agency": f"urn:ngsi-ld:GtfsAgency:{city}:",
+            "stops": f"urn:ngsi-ld:GtfsStop:{city}:",
+            "routes": f"urn:ngsi-ld:GtfsRoute:{city}:",
+            "trips": f"urn:ngsi-ld:GtfsTrip:{city}:",
+            "stop_times": f"urn:ngsi-ld:GtfsTrip:{city}:",
+            "pathways": f"urn:ngsi-ld:GtfsPathway:{city}:",
+            "levels": f"urn:ngsi-ld:GtfsLevel:{city}:"
+            # feed_info is not implemented in the project
+        }
+    
+        prefix = ngsi_ld_handle.get(table_name)
+        if prefix is None:
+            raise ValueError(f"Translations for table_name '{table_name}' are not implemented")
+
+        entity["record_id"] = prefix + str(record_id)
+        
+    field_value = entity.get("field_value")
+    
+    # Check that either record_id or field_value is defined
+    if record_id is None and field_value is None:
+        raise ValueError("Either 'record_id' or 'field_value' has to be defined")
+        
+    # Validate language code
+    language = entity.get("language")
+    if language and not validation_utils.is_valid_language_code(language):
+        raise ValueError(f"language must be a valid language code, got {language}")
 
 # -----------------------------------------------------
 # Convert GTFS-Static data to NGSI-LD
@@ -2312,6 +2400,57 @@ def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str
             }
         }
 
+def convert_gtfs_translations_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+    """
+    Maps a parsed GTFS translation entity to an NGSI-LD GtfsTranslation entity.
+
+    This function performs:
+    - Mapping of GTFS trip fields to NGSI-LD Properties and Relationships
+    Args:
+        entity (dict[str, Any]): A parsed GTFS trip entity.
+
+    Returns:
+        dict: An NGSI-LD entity of type GtfsTrip.
+    """
+    return {
+        "id": f"urn:ngsi-ld:GtfsTranslation:{city}:{entity.get("table_name")}:{entity.get("field_name")}:{entity.get("language")}:{entity.get("translation")}",
+        "type": "GtfsTranslation",
+        
+        "table_name": {
+            "type": "Property",
+            "value": entity.get("table_name")
+        },
+        
+        "field_name": {
+            "type": "Property",
+            "value": entity.get("field_name")
+        },
+        
+        "language": {
+            "type": "Property",
+            "value": entity.get("language")
+        },
+        
+        "translation": {
+            "type": "Property",
+            "value": entity.get("translation")
+        },
+        
+        "record_id": {
+            "type": "Relationship",
+            "object": entity.get("record_id")
+        },
+        
+        "record_sub_id": {
+            "type": "Property",
+            "value": entity.get("record_sub_id")
+        },
+        
+        "field_value": {
+            "type": "Property",
+            "value": entity.get("field_value")
+        }
+    }
 # -----------------------------------------------------
 # Aggregate GTFS Shape Points
 # -----------------------------------------------------
@@ -2985,6 +3124,51 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
     # Return the list of NGSI-LD GtfsTrip entities
     return ngsi_ld_data
 
+def gtfs_static_translations_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+    """
+    Converts GTFS static translations into NGSI-LD entities.
+
+    The function processes each GTFS trip entity by:
+    1. Parsing raw GTFS data transforming it to the according data types
+    2. Validating the parsed translation entity against GTFS rules.
+    3. Converting the validated entity into an NGSI-LD GtfsTranslation entity.
+    4. Removing attributes with None values from the resulting NGSI-LD entity.
+
+    Args:
+        raw_data (list[dict[str, Any]]):
+            A list of dictionaries representing GTFS translation entities
+
+    Returns:
+        list[dict[str, Any]]:
+            A list of NGSI-LD compliant entities, each representing GtfsTranslation
+
+    Raises:
+        ValueError:
+            If any parsed trip entity does not satisfy the GTFS validation rules.
+    """
+    # Container for the resulting NGSI-LD translation entities
+    ngsi_ld_data = []
+    
+    # Process each GTFS trip entity
+    for translation in raw_data:
+        
+        # Parse raw GTFS trip data to the according data types
+        parsed_entity = parse_gtfs_translations_data(translation)
+        
+        # Validate the parsed entity (mandatory fields, formats, domain constraints)
+        validate_gtfs_translations_entity(parsed_entity, city)
+        
+        # Convert the validated entity into NGSI-LD representation
+        ngsi_ld_entity = convert_gtfs_translations_to_ngsi_ld(parsed_entity, city)
+        
+        # Remove attributes with None values for NGSI-LD compliance
+        ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
+        
+        # Append the final NGSI-LD entity to the result list
+        ngsi_ld_data.append(ngsi_ld_entity)
+
+    # Return the list of NGSI-LD GtfsTrip entities
+    return ngsi_ld_data
 # -----------------------------------------------------
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------  
@@ -3040,6 +3224,7 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
         "stops": ("stops*.txt", gtfs_static_stops_to_ngsi_ld),
         "transfers": ("transfers*.txt", gtfs_static_transfers_to_ngsi_ld),
         "trips": ("trips*.txt", gtfs_static_trips_to_ngsi_ld),
+        "translations": ("translations*.txt", gtfs_static_translations_to_ngsi_ld)
     }
 
     # Validate requested GTFS type
@@ -3093,6 +3278,6 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
 
 
 if __name__ == "__main__":
-    for batch in gtfs_static_get_ngsi_ld_batches("calendar_dates", "Sofia"):
+    for batch in gtfs_static_get_ngsi_ld_batches("translations", "Sofia"):
         print(json.dumps(batch, indent=2, ensure_ascii=False))
         

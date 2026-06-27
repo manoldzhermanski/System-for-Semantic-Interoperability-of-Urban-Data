@@ -526,3 +526,10 @@ def is_valid_week_day(value: Any) -> bool:
     if type(value) is not int:
         return False
     return value in {0, 1}
+
+def is_valid_table_name(value: Any) -> bool:
+    
+    if type(value) is not str:
+        return False
+    return value in {"agency", "stops", "routes", "trips", "stop_times", "pathways", 
+                     "levels", "feed_info", "attributions"}

@@ -17,6 +17,7 @@ GTFS_STATIC_TYPES = (
     "stops",
     "transfers",
     "trips",
+    "translations"
 )
 
 POIS_TYPES = (
@@ -104,8 +105,8 @@ def main():
     # If no arguments are provided, show usage instructions
     if not args:
         print("Usage:")
-        print("  python load_orion_ld_data.py gtfs <city> [city...]")
-        print("  python load_orion_ld_data.py pois")
+        print("  python load_fiware_scorpio_data.py gtfs <city> [city...]")
+        print("  python load_fiware_scorpio_data.py pois")
         sys.exit(1)
 
     # Handle loading of GTFS static data

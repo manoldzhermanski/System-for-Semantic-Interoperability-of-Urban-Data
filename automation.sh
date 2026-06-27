@@ -142,7 +142,7 @@ load() {
   wait_for_scorpio
 
   echo "Loading data: $*"
-  python load_orion_ld_data.py "$@"
+  python load_fiware_scorpio_data.py "$@"
 }
 
 case "$COMMAND" in
