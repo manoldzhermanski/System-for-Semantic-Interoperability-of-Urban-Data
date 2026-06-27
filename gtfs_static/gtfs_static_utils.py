@@ -818,6 +818,7 @@ def parse_gtfs_translations_data(entity: dict[str, str]) -> dict[str, Any]:
         "record_sub_id": cleanup_string(entity.get("record_sub_id")),
         "field_value": cleanup_string(entity.get("field_value")),
     }
+
 # -----------------------------------------------------
 # Validate GTFS-Static data
 # -----------------------------------------------------
@@ -1569,6 +1570,12 @@ def validate_gtfs_translations_entity(entity: dict[str, Any], city: str) -> None
                          """)
         
     record_id = entity.get("record_id")
+    record_sub_id = entity.get("record_sub_id")
+    
+    if table_name == "stop_times":
+        if record_id is not None and record_sub_id is None:
+            raise ValueError(
+                "'record_sub_id' (stop_sequence) is required when table_name is 'stop_times'")
     
     # If record_id is defined, turn it into URN NGSI-LD format
     if record_id is not None:
