@@ -2778,9 +2778,7 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
 
     # Get submode type tag
     submode_tag = submode_tag_map.get(transport_mode)
-    
-    etree.SubElement(stop_place, submode_tag).text = transport_submode
-    
+        
     # Add transport submode
     etree.SubElement(stop_place, submode_tag).text = transport_submode
     

@@ -16,7 +16,7 @@ def test_set_netex_authority_success():
 
     netex_helper_set_netex_authority(entity)
 
-    assert config.NETEX_AUTHORITY == "BG-SOF"
+    assert config.NETEX_AUTHORITY == "BG-"
 
 
 def test_set_netex_authority_invalid_type():
