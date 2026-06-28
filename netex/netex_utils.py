@@ -693,6 +693,72 @@ def netex_index_transfers_by_origin_trip(transfers: list[dict[str, Any]]) -> dic
 
     return dict(transfers_by_origin_trip)
 
+def netex_build_field_value_index(translations: list[dict[str, Any]]) -> dict[tuple[str, str, str], dict[str, str]]:
+
+    index = defaultdict(dict)
+
+    for tr in translations:
+        table_name = tr.get("table_name", {}).get("value")
+        field_name = tr.get("field_name", {}).get("value")
+        language = tr.get("language", {}).get("value")
+        translation = tr.get("translation", {}).get("value")
+        field_value = tr.get("field_value", {}).get("value")
+
+        # only valid field-based translations
+        if not field_value:
+            continue
+
+        key = (table_name, field_name, field_value)
+        index[key][language] = translation
+
+    return dict(index)
+
+def netex_build_record_id_index(translations: list[dict[str, Any]]) -> dict[tuple[str, str, str, str | None], dict[str, str]]:
+
+    index = defaultdict(dict)
+
+    for tr in translations:
+        table_name = tr.get("table_name", {}).get("value")
+        field_name = tr.get("field_name", {}).get("value")
+        language = tr.get("language", {}).get("value")
+        translation = tr.get("translation", {}).get("value")
+
+        record_id = tr.get("record_id", {}).get("value")
+        record_sub_id = tr.get("record_sub_id", {}).get("value")
+
+        # only valid record-based translations
+        if not record_id:
+            continue
+
+        key = (table_name, field_name, record_id, record_sub_id)
+        index[key][language] = translation
+
+    return dict(index)
+
+def netex_build_translation_indexes(translations: list[dict[str, Any]]) -> dict[str, Any]:
+
+    return {
+        "by_field_value": netex_build_field_value_index(translations),
+        "by_record_id": netex_build_record_id_index(translations)
+    }
+    
+def netex_resolve_translation(indexes, table_name, field_name, 
+                              field_value=None,record_id=None, record_sub_id=None, language: str = "en",):
+
+    translations = {}
+    
+    # 1. record-based index
+    if record_id is not None:
+        key = (table_name, field_name, record_id, record_sub_id)
+        translations = indexes["by_record_id"].get(key, {})
+
+    # 2. field-based index
+    if field_value is not None:
+        key = (table_name, field_name, field_value)
+        translations = indexes["by_field_value"].get(key, {})
+
+    return translations.get(language)
+    
 def netex_build_indexes_and_collections(city_dataset: dict[str, Any]) -> dict[str, Any]:
     """
     Build all lookup indexes required for NeTEx generation.
@@ -711,9 +777,8 @@ def netex_build_indexes_and_collections(city_dataset: dict[str, Any]) -> dict[st
         "calendar_by_service": netex_index_calendar_or_calendar_dates_by_service(city_dataset["calendar"]),
         "calendar_dates_by_service": netex_index_calendar_or_calendar_dates_by_service(city_dataset["calendar_dates"]),
         "stop_times_by_trip": netex_index_stop_times_by_trip(city_dataset["stop_times"]),
-        # "ordered_stops_by_trip": netex_index_stops_by_trip(dataset["stop_times"]),
-        # "stops": netex_collect_stops(dataset["stop_times"], dataset["stops"]),
         "transfers_by_origin_trip": netex_index_transfers_by_origin_trip(city_dataset["transfers"]),
+        "translations": city_dataset["translations"]       
     }
 
 # -----------------------------------------------------
@@ -867,7 +932,8 @@ def netex_build_authority_dataset(agency: dict[str, Any], indexes: dict[str, Any
         "stop_times": [],
         "stops": [],
         "shapes": [],
-        "transfers": []
+        "transfers": [],
+        "translations": []
     }
 
     # -----------------------------
@@ -928,6 +994,12 @@ def netex_build_authority_dataset(agency: dict[str, Any], indexes: dict[str, Any
 
     dataset["transfers"] = netex_helper_collect_entities_by_trip(trips, indexes.get("transfers_by_origin_trip", {}), "transfers")
 
+    # -----------------------------
+    # TRANSLATIONS
+    # -----------------------------
+    
+    dataset["translations"] = indexes.get("translations", {})
+    
     return dataset
 
 def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str, Any]) -> dict[str, Any]:

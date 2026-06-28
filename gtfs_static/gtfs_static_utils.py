@@ -2458,6 +2458,7 @@ def convert_gtfs_translations_to_ngsi_ld(entity: dict[str, Any], city: str) -> d
             "value": entity.get("field_value")
         }
     }
+
 # -----------------------------------------------------
 # Aggregate GTFS Shape Points
 # -----------------------------------------------------
