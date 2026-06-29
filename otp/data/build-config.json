@@ -4,9 +4,9 @@
       "type": "netex",
       "feedId": "SOFIA",
       "source": "netex.zip",
-      "sharedFilePattern" : "_stops.xml",
-      "sharedGroupFilePattern": "AXX_shared_data\\.xml",
-      "groupFilePattern": "(AXX_.*)\\.xml"
+      "sharedFilePattern": "_stops.xml",
+      "sharedGroupFilePattern": "(AXX)_shared_data\\.xml",
+      "groupFilePattern": "(AXX)_.*\\.xml"
       
     }
   ],

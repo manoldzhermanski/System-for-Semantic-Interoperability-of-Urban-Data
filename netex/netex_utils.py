@@ -708,6 +708,8 @@ def netex_build_field_value_index(translations: list[dict[str, Any]]) -> dict[tu
         if not field_value:
             continue
 
+        field_value = field_value.strip().replace(" ", "_")
+        
         key = (table_name, field_name, field_value)
         index[key][language] = translation
 
@@ -743,7 +745,7 @@ def netex_build_translation_indexes(translations: list[dict[str, Any]]) -> dict[
     }
     
 def netex_resolve_translation(indexes, table_name, field_name, 
-                              field_value=None,record_id=None, record_sub_id=None, language: str = "en",):
+                              field_value=None, record_id=None, record_sub_id=None, language: str = "en") -> str | None:
 
     translations = {}
     
@@ -751,10 +753,11 @@ def netex_resolve_translation(indexes, table_name, field_name,
     if record_id is not None:
         key = (table_name, field_name, record_id, record_sub_id)
         translations = indexes["by_record_id"].get(key, {})
-
+        
     # 2. field-based index
-    if field_value is not None:
+    if not translations and field_value is not None:
         key = (table_name, field_name, field_value)
+        field_value = field_value.strip().replace(" ", "_")
         translations = indexes["by_field_value"].get(key, {})
 
     return translations.get(language)
@@ -778,7 +781,7 @@ def netex_build_indexes_and_collections(city_dataset: dict[str, Any]) -> dict[st
         "calendar_dates_by_service": netex_index_calendar_or_calendar_dates_by_service(city_dataset["calendar_dates"]),
         "stop_times_by_trip": netex_index_stop_times_by_trip(city_dataset["stop_times"]),
         "transfers_by_origin_trip": netex_index_transfers_by_origin_trip(city_dataset["transfers"]),
-        "translations": city_dataset["translations"]       
+        "translations": netex_build_translation_indexes(city_dataset["translations"])    
     }
 
 # -----------------------------------------------------
@@ -2557,11 +2560,12 @@ def netex_helper_build_line(route: dict[str, Any]) -> etree.Element | None:
             f"Invalid or unknown transport mode and submode: {route_type}"
         )
 
-    submode_tag = submode_tag_map.get(transport_mode)
+    if transport_mode != "trolleyBus":
+        submode_tag = submode_tag_map.get(transport_mode)
 
-    transport_submode_element = etree.SubElement(line, "TransportSubmode")
+        transport_submode_element = etree.SubElement(line, "TransportSubmode")
 
-    etree.SubElement(transport_submode_element, submode_tag).text = transport_submode
+        etree.SubElement(transport_submode_element, submode_tag).text = transport_submode
 
     route_url = route.get("route_url", {}).get("value")
 
@@ -3611,12 +3615,12 @@ def netex_create_line_xmls(authority_dataset: dict[str, Any]) -> None:
         route_dataset = netex_build_route_dataset(route, authority_dataset)
 
         try:
-            netex_create_line_xml(route_dataset)
+            netex_create_line_xml(route_dataset, authority_dataset)
 
         except Exception:
             logger.exception("Failed to create Line XML for route %s", route_id)
 
-def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
+def netex_create_line_xml(route_dataset: dict[str, Any], authority_dataset) -> None:
     """
     Create a NeTEx Line XML file for a given route dataset.
 
@@ -3629,11 +3633,18 @@ def netex_create_line_xml(route_dataset: dict[str, Any]) -> None:
     route_structures = netex_build_route_structures(route_dataset)
 
     route_name = (route_dataset["route"].get("name", {}).get("value") or route_dataset["route"].get("shortName", {}).get("value"))
-    route_name = re.sub(r"[^\w\s]", "_", route_name)
-    route_name = "_".join(route_name.split())
-    route_name = re.sub(r"_+", "_", route_name)
 
-    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/{config.NETEX_AUTHORITY}_{route_name}.xml", encoding="utf-8") as xml_file:
+    route_name = route_name.strip().replace(" ", "_")
+    
+    translated_route_name = netex_resolve_translation(authority_dataset["translations"], "routes", "long_name", route_name)
+            
+    route_name_str = translated_route_name if translated_route_name is not None else route_name
+        
+    route_name_str = re.sub(r"[^\w\s]", "_", route_name_str)
+    route_name_str = "_".join(route_name_str.split())
+    route_name_str = re.sub(r"_+", "_", route_name_str)
+
+    with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/{config.NETEX_AUTHORITY}_{route_name_str}.xml", encoding="utf-8") as xml_file:
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
