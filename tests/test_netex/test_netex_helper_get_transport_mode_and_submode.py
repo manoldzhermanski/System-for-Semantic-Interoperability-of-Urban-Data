@@ -29,7 +29,7 @@ from netex.netex_utils import netex_helper_get_transport_mode_and_submode
         (702, ('bus', 'expressBus')),
         (704, ('bus', 'localBus')),
         (715, ('bus', 'unknown')),
-        (800, ('trolleyBus', 'unknown')),
+        (800, ('bus', 'unknown')),
         (900, ('tram', 'unknown')),
         (1000, ('water', 'unknown')),
         (1200, ('water', 'unknown')),

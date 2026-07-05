@@ -39,6 +39,12 @@ NSMAP = {
 
 etree.register_namespace("gis", GIS_NS)
 
+ROUTE_COUNTER = 0
+LINE_COUNTER = 0
+JOURNEY_PATTERN_COUNTER = 0
+SERVICE_JOURNEY_COUNTER = 0
+SERVICE_JOURNEY_INTERCHANGE_COUNTER = 0
+
 # -----------------------------------------------------
 # Output Functions
 # -----------------------------------------------------
@@ -1346,7 +1352,7 @@ def netex_stream_resource_frame_for_shared_data_xml(xml_file, agencies: list[dic
     if not isinstance(agencies, list):
         agencies = [agencies]
 
-    xml_file.write(b"\n")
+    
     with xml_file.element("ResourceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ResourceFrame:{uuid.uuid4()}"):
         with xml_file.element("organisations"):
 
@@ -2451,17 +2457,17 @@ def netex_helper_get_transport_mode_and_submode(gtfs_route_type_code: int) -> tu
         A tuple containing the NeTEx transport mode and submode, or (None, None) if not found.
     """
     gtfs_to_netex_map = {
-        0: ('tram', 'unknown'),
-        1: ('metro', 'unknown'),
-        2: ('rail', 'unknown'),
-        3: ('bus', 'unknown'),
-        4: ('water', 'unknown'),
-        5: ('cableway', 'unkown'),
-        6: ('cableway', 'unknown'),
-        7: ('funicular', 'unknown'),
-        11: ('trolleyBus', 'unknown'),
-        12: ('rail', 'unknown'),
-        100: ('rail', 'unknown'),
+        0: ('tram', 'cityTram'),
+        1: ('metro', 'metro'),
+        2: ('rail', 'local'),
+        3: ('bus', 'localBus'),
+        4: ('water', 'localPassengerFerry'),
+        5: ('cableway', 'telecabin'),
+        6: ('cableway', 'telecabin'),
+        7: ('funicular', 'telecabin'),
+        11: ('bus', 'localBus'),
+        12: ('rail', 'local'),
+        100: ('rail', 'local'),
         101: ('rail', 'airportLinkRail'),
         102: ('rail', 'longDistance'),
         103: ('rail', 'interregionalRail'),
@@ -2470,7 +2476,7 @@ def netex_helper_get_transport_mode_and_submode(gtfs_route_type_code: int) -> tu
         107: ('rail', 'touristRailway'),
         108: ('rail', 'airportLinkRail'),
         109: ('rail', 'regionalRail'),
-        200: ('coach', 'unknown'),
+        200: ('coach', 'nationalCoach'),
         201: ('coach', 'internationalCoach'),
         202: ('coach', 'nationalCoach'),
         204: ('coach', 'touristCoach'),
@@ -2484,7 +2490,7 @@ def netex_helper_get_transport_mode_and_submode(gtfs_route_type_code: int) -> tu
         702: ('bus', 'expressBus'),
         704: ('bus', 'localBus'),
         715: ('bus', 'unknown'),
-        800: ('trolleyBus', 'unknown'), # not in the official documentation but found here https://github.com/entur/netex-gtfs-converter-java
+        800: ('bus', 'unknown'), # (renamed to bus as otp has problems) not in the official documentation but found here https://github.com/entur/netex-gtfs-converter-java
         900: ('tram', 'unknown'),
         1000: ('water', 'unknown'),
         1200: ('water', 'unknown'),
@@ -2546,7 +2552,7 @@ def netex_helper_build_line(route: dict[str, Any]) -> etree.Element | None:
         "coach": "CoachSubmode",
         "metro": "MetroSubmode",
         "bus": "BusSubmode",
-        "trolleyBus": "TrolleyBusSubmode",
+        # "trolleyBus": "TrolleyBusSubmode",
         "tram": "TramSubmode",
         "water": "WaterSubmode",
         "cableway": "TelecabinSubmode",
@@ -2609,16 +2615,97 @@ def netex_helper_stream_line(xml_file, route: dict[str, Any]) -> None:
         xml_file: An instance of a streaming XML writer
         route (dict[str, Any]): A GtfsRoute entity
     """
-    logger.info("Streaming Line")
-
-    with xml_file.element("lines"):
-
-        line = netex_helper_build_line(route)
         
-        if line is not None:
-            xml_file.write(line, pretty_print=True)
+    global LINE_COUNTER
+    
+    line = netex_helper_build_line(route)
+    
+    if line is not None:
+        with xml_file.element("lines"):
+            xml_file.write(line, pretty_print=True)      
+            LINE_COUNTER += 1
+                
+# -----------------------------------------------------
+# GtfsRoute to NeTEx <DestinationDisplay>
+# ----------------------------------------------------- 
+def netex_helper_build_destionation_display(route: dict[str, Any]) -> etree.Element | None:
+    """
+    Build a single <DestinationDisplay> element from a GtfsRoute entity
 
-    logger.info("Finished streaming Line")
+    Args:
+        route (dict[str, Any]): A GtfsRoute entity
+
+    Returns:
+        etree.Element | None
+    """
+    # Get entity id and type
+    route_id = route.get("id")
+    entity_type = route.get("type")
+    
+    # If unsupported entity type, log an error and return None
+    if entity_type != "GtfsRoute":
+        logger.error("Unsupported entity type for Line conversion: %s", entity_type)
+        return None
+    
+    # If not correctly formatted, log an error and return None
+    if not isinstance(route_id, str) or ":" not in route_id:
+        logger.error("Invalid or missing ID for GtfsRoute: %r", route_id)
+        return None
+
+    # Extract ID Value
+    route_id_value = route_id.split(":")[-1]
+    
+    # Bild <DestinationDisplay> element
+    route_name = (route.get("name", {}).get("value") or route.get("shortName", {}).get("value"))
+    
+    destination_display = etree.Element("DestinationDisplay", version="1", id=f"{config.NETEX_AUTHORITY}:DestinationDisplay:{route_id_value}")
+    etree.SubElement(destination_display, "Name").text = route_name
+    etree.SubElement(destination_display, "SideText").text = route_name
+    etree.SubElement(destination_display, "FrontText").text = route_name
+    
+    return destination_display
+
+def netex_helper_stream_destination_displays(xml_file, gtfs_routes):
+    """
+    Streams DestinationDisplay elements into a <destinationDisplays> container.
+
+    Args:
+        xml_file: Streaming XML writer
+        gtfs_routes: List of GtfsRoute entities
+
+    Returns:
+        None
+    """
+    logger.info("Streaming DestinationDisplays")
+
+    seen_ids = set()
+
+    # Create container for <DestinationDisplay> elements
+    with xml_file.element("destinationDisplays"):
+
+        for route in gtfs_routes:
+
+            # Build <DestinationDisplay> element
+            destination_display = netex_helper_build_destionation_display(route)
+
+            # Continue when unsuccessful
+            if destination_display is None:
+                continue
+
+            # Get <DestinationDisplay> element's ID
+            destination_display_id = destination_display.get("id")
+
+            # If encountered already, skip
+            if destination_display_id in seen_ids:
+                continue
+
+            # Add ID to seen IDs set
+            seen_ids.add(destination_display_id)
+
+            # Stream the <ScheduledStopPoint> element into the XML file
+            xml_file.write(destination_display,pretty_print=True)
+
+    logger.info("Finished streaming %d DestinationDisplays", len(seen_ids))
 
 # -----------------------------------------------------
 # GtfsStop to NeTEx <ScheduledStopPoint>
@@ -2854,7 +2941,7 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
         "coach": "CoachSubmode",
         "metro": "MetroSubmode",
         "bus": "BusSubmode",
-        "trolleyBus": "TrolleyBusSubmode",
+        # "trolleyBus": "TrolleyBusSubmode",
         "tram": "TramSubmode",
         "water": "WaterSubmode",
         "cableway": "TelecabinSubmode",
@@ -2874,15 +2961,17 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
     }
 
     # Get submode type tag
-    submode_tag = submode_tag_map.get(transport_mode)
+    if transport_mode != "trolleyBus":
+          
+        submode_tag = submode_tag_map.get(transport_mode)
+            
+        # Add transport submode
+        etree.SubElement(stop_place, submode_tag).text = transport_submode
+    
+        #Add StopPlaceType
+        stop_place_type = stop_place_tag_map.get(transport_mode)
         
-    # Add transport submode
-    etree.SubElement(stop_place, submode_tag).text = transport_submode
-    
-    #Add StopPlaceType
-    stop_place_type = stop_place_tag_map.get(transport_mode)
-    
-    etree.SubElement(stop_place, "StopPlaceType").text = stop_place_type
+        etree.SubElement(stop_place, "StopPlaceType").text = stop_place_type
         
     # Add Quay element with its data
     quays_container = etree.SubElement(stop_place, "quays")
@@ -3241,8 +3330,15 @@ def netex_helper_build_route(route_structure: dict[str, Any]) -> etree.Element:
         etree.SubElement(route, "DirectionType").text = direction
 
     points_in_sequence = etree.SubElement(route, "pointsInSequence")
+    
+    seen_stops = set()
 
     for order, stop_id in enumerate(sequence, start=1):
+        
+        if stop_id in seen_stops:
+            continue
+
+        seen_stops.add(stop_id)
 
         point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute",
          id=f"{config.NETEX_AUTHORITY}:PointOnRoute:{stop_id}",
@@ -3254,24 +3350,25 @@ def netex_helper_build_route(route_structure: dict[str, Any]) -> etree.Element:
     return route
 
 def netex_helper_stream_routes(xml_file, route_structures: list[dict[str, Any]]) -> None:
+    
+    global ROUTE_COUNTER
+    
+    valid_routes = []
 
-    logger.info("Streaming Routes")
+    for structure in route_structures:
+        route = netex_helper_build_route(structure)
 
-    counter = 0
+        if route is not None:
+            valid_routes.append(route)
+            
+    if not valid_routes:
+        return
 
     with xml_file.element("routes"):
 
-        xml_file.write(b"\n")
-
-        for structure in route_structures:
-
-            route = netex_helper_build_route(structure)
-
-            counter += 1
-
+        for route in valid_routes:
             xml_file.write(route, pretty_print=True)
-
-        logger.info("Finished streaming %d Routes", counter)
+            ROUTE_COUNTER += 1
 
 # -----------------------------------------------------
 #  NeTEx <JourneyPattern>
@@ -3306,12 +3403,13 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
                                           id=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}")
 
         etree.SubElement(point_on_route, "ScheduledStopPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id}")
-
-        for_boarding = pickup_type in (None, 0)
+        etree.SubElement(point_on_route, "DestinationDisplayRef", ref=f"{config.NETEX_AUTHORITY}:DestinationDisplay:{route_id_value}")
+        
+        for_boarding = pickup_type in (" ", 0)
 
         etree.SubElement(point_on_route, "ForBoarding").text = str(for_boarding).lower()
 
-        for_alighting = drop_off_type in (None, 0)
+        for_alighting = drop_off_type in (" ", 0)
 
         etree.SubElement(point_on_route, "ForAlighting").text = str(for_alighting).lower()
 
@@ -3331,23 +3429,23 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
 
 def netex_helper_stream_journey_patterns(xml_file, route_structures: list[dict[str, Any]]) -> None:
 
-    logger.info("Streaming JourneyPatterns")
+    global JOURNEY_PATTERN_COUNTER
+    
+    valid_journey_patterns = []
 
-    counter = 0
+    for structure in route_structures:
+        route = netex_helper_build_journey_pattern(structure)
+
+        if route is not None:
+            valid_journey_patterns.append(route)
+            
+    if not valid_journey_patterns:
+        return
 
     with xml_file.element("journeyPatterns"):
-
-        xml_file.write(b"\n")
-
-        for structure in route_structures:
-
-            journey_pattern = netex_helper_build_journey_pattern(structure)
-
-            counter += 1
-
-            xml_file.write(journey_pattern, pretty_print=True)
-
-        logger.info("Finished streaming %d JourneyPatterns", counter)
+        for journey_pattern in valid_journey_patterns:
+            xml_file.write(journey_pattern, pretty_print=True)    
+            JOURNEY_PATTERN_COUNTER += 1
 
 # -----------------------------------------------------
 #  GtfsTransfers to NeTEx <ServiceJourneyInterchange>
@@ -3382,32 +3480,33 @@ def netex_helper_build_service_journey_interchange(route_tansfer: dict[str, Any]
 
 def netex_helper_stream_service_journey_interchange(xml_file, transfers: list[dict[str, Any]]) -> None:
 
-    logger.info("Streaming ServiceJourneyInterchange")
-
-    counter = 0
-
+    global SERVICE_JOURNEY_INTERCHANGE_COUNTER
+    
+    valid_service_journey_interchanges = []
+    
     seen = set()
 
+    for transfer in transfers:
+        
+        transfer_id = transfer.get("id")
+
+        if transfer_id in seen:
+            continue
+
+        seen.add(transfer_id)
+        
+        service_journey_interchanges = netex_helper_build_service_journey_interchange(transfer)
+
+        if service_journey_interchanges is not None:
+            valid_service_journey_interchanges.append(service_journey_interchanges)
+            
+    if not valid_service_journey_interchanges:
+        return
+
     with xml_file.element("journeyInterchanges"):
-
-        xml_file.write(b"\n")
-
-        for transfer in transfers:
-
-            transfer_id = transfer.get("id")
-
-            if transfer_id in seen:
-                continue
-
-            seen.add(transfer_id)
-
-            service_journey_interchange = netex_helper_build_service_journey_interchange(transfer)
-
-            counter += 1
-
-            xml_file.write(service_journey_interchange, pretty_print=True)
-
-        logger.info("Finished streaming %d ServiceJourneyInterchanges", counter)
+        for journey_pattern in valid_service_journey_interchanges:
+            xml_file.write(journey_pattern, pretty_print=True)    
+            SERVICE_JOURNEY_INTERCHANGE_COUNTER += 1
 
 # -----------------------------------------------------
 #  NeTEx <ServiceJourney>
@@ -3461,56 +3560,62 @@ def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list
             departure_time = stop_time.get("departureTime", {}).get("value")
 
             time_tabled_passing_time = etree.SubElement(passing_times, "TimetabledPassingTime",
-                version="1", id=f"{config.NETEX_AUTHORITY}:TimetabledPassingTime:{trip_id_value}:{stop_id}")
+                version="1", id=f"{config.NETEX_AUTHORITY}:TimetabledPassingTime:{trip_id_value}_{stop_id}")
 
             etree.SubElement(time_tabled_passing_time, "StopPointInJourneyPatternRef",
                 ref=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}", version="1")
 
             if arrival_time:
                 etree.SubElement(time_tabled_passing_time, "ArrivalTime").text = arrival_time
+            else:
+                raise ValueError(f"Missing arrival time for stop {stop_id} in trip {trip_id}")
 
             if departure_time:
                 etree.SubElement(time_tabled_passing_time, "DepartureTime").text = departure_time
+            else:
+                raise ValueError(f"Missing departure time for stop {stop_id} in trip {trip_id}")
 
         service_journeys.append(service_journey)
 
     return service_journeys
 
 def netex_helper_stream_service_journey(xml_file, route_structures: list[dict[str, Any]]) -> None:
+
+    global SERVICE_JOURNEY_COUNTER
     
-    logger.info("Streaming ServiceJourneys")
+    valid_service_journeys = []
+    
+    for structure in route_structures:
+        service_journeys = netex_helper_build_service_journeys(structure)
 
-    counter = 0
+        if service_journeys:
+            valid_service_journeys.extend(service_journeys)
 
+    if not valid_service_journeys:
+        return
+    
     with xml_file.element("vehicleJourneys"):
-        
-        xml_file.write(b"\n")
-        
-        for structure in route_structures:
-
-            service_journeys = netex_helper_build_service_journeys(structure)
-
-            counter += 1
-
-            for service_journey in service_journeys:
-                xml_file.write(service_journey, pretty_print=True)
-
-        logger.info("Finished streaming %d ServiceJourneys", counter)
+        for service_journey in valid_service_journeys:
+            xml_file.write(service_journey, pretty_print=True)
+            SERVICE_JOURNEY_COUNTER += 1
         
 def netex_stream_service_frame_for_shared_data_xml(xml_file, 
                                agency, 
-                               stops, 
+                               stops,
+                               routes, 
                                stop_coordinates, 
                                shape_linestrings, 
                                shape_per_trip, 
                                stops_and_info_per_trip
                                ):
     # Create ServiceFrame element and add it's subelements
-    xml_file.write(b"\n")
+    
     with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:{uuid.uuid4()}"):
         netex_helper_stream_networks(xml_file, agency)
 
         netex_helper_stream_route_points(xml_file, stops)
+        
+        netex_helper_stream_destination_displays(xml_file, routes)
 
         netex_helper_stream_scheduled_stop_points(xml_file, stops)
 
@@ -3523,21 +3628,21 @@ def netex_stream_service_frame_for_shared_data_xml(xml_file,
 def netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_structure):
 
     # Create ServiceFrame element and add it's subelements
-    xml_file.write(b"\n")
+    
     with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:{uuid.uuid4()}"):
         netex_helper_stream_routes(xml_file, route_structure)
-
+        
         netex_helper_stream_line(xml_file, route_dataset["route"])
-
+        
         netex_helper_stream_journey_patterns(xml_file, route_structure)
 
 def netex_stream_time_table_frame_for_line_xml(xml_file, route_dataset, route_structure):
     
     with xml_file.element("TimetableFrame", version="1", id=f"{config.NETEX_AUTHORITY}:TimetableFrame:{uuid.uuid4()}"):
         netex_helper_stream_service_journey(xml_file, route_structure)
-
+        
         netex_helper_stream_service_journey_interchange(xml_file, route_dataset["transfers"])
-
+    
 def netex_stream_service_frame_for_stops_xml(xml_file, authority_dataset) -> None:
 
     with xml_file.element("ServiceFrame", version="1", id=f"{config.NETEX_AUTHORITY}:ServiceFrame:{uuid.uuid4()}"):
@@ -3550,29 +3655,28 @@ def netex_stream_site_frame_for_stops_xml(xml_file, agency, authority_dataset):
 
     transport_modes = netex_helper_get_transport_modes_per_stop(authority_dataset)
 
-    xml_file.write(b"\n")
+    
     with xml_file.element("SiteFrame", version="1", id=f"{config.NETEX_AUTHORITY}:SiteFrame:{uuid.uuid4()}"):
         netex_helper_stream_frame_defaults(xml_file, agency)
         netex_helper_stream_stop_places(xml_file, transport_modes, authority_dataset["stops"])
     
 def netex_create_shared_data_xml(
         agency: dict[str, Any], 
-        stops: list[dict[str, Any]], 
-        stop_coordinates: dict[str, Any], 
-        shape_linestrings: dict[str, Any], 
-        shape_per_trip: dict[str, Any], 
-        stops_and_info_per_trip: dict[str, Any], 
-        calendar: list[dict[str, Any]], 
-        calendar_dates: list[dict[str, Any]]
+        authority_dataset: dict[str, Any]
         ) -> None:
+    
+    stops_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
+    stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
+    shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
+    shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
     
     with etree.xmlfile(f"{config.NETEX_OUTPUT_DIR}/{config.NETEX_AUTHORITY}_shared_data.xml", encoding="utf-8") as xml_file:
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
-            xml_file.write(b"\n")
+            
             with xml_file.element("dataObjects"):
-                xml_file.write(b"\n")
+                
                 with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
 
                     frame = netex_helper_stream_frame_defaults(xml_file, agency)
@@ -3580,12 +3684,12 @@ def netex_create_shared_data_xml(
                     with xml_file.element("frames"):
                         netex_stream_resource_frame_for_shared_data_xml(xml_file, agency)
                         
-                        netex_stream_service_frame_for_shared_data_xml(xml_file, agency, stops,
+                        netex_stream_service_frame_for_shared_data_xml(xml_file, agency, authority_dataset["stops"], authority_dataset["routes"],
                                                                         stop_coordinates, shape_linestrings,
-                                                                          shape_per_trip, stops_and_info_per_trip)
+                                                                          shape_per_trip, stops_per_trip)
                         
                         netex_stream_service_calendar_frame_for_shared_data_xml(xml_file, 
-                                                                                calendar, calendar_dates)
+                                                                                authority_dataset["calendar"], authority_dataset["calendar_dates"])
 
 def netex_create_line_xmls(authority_dataset: dict[str, Any]) -> None:
     """
@@ -3604,6 +3708,12 @@ def netex_create_line_xmls(authority_dataset: dict[str, Any]) -> None:
         logger.warning("Authority dataset contains no routes")
         return
 
+    logger.info("Streaming Routes")
+    logger.info("Streaming Lines")
+    logger.info("Streaming JourneyPatterns")
+    logger.info("Streaming ServiceJourneys")
+    logger.info("Streaming ServiceJourneyInterchanges")
+
     for route in routes:
 
         route_id = route.get("id")
@@ -3619,6 +3729,12 @@ def netex_create_line_xmls(authority_dataset: dict[str, Any]) -> None:
 
         except Exception:
             logger.exception("Failed to create Line XML for route %s", route_id)
+            
+    logger.info("Finished streaming %d Routes", ROUTE_COUNTER)
+    logger.info("Finished streaming %d Lines", LINE_COUNTER)
+    logger.info("Finished streaming %d JourneyPatterns", JOURNEY_PATTERN_COUNTER)
+    logger.info("Finished streaming %d ServiceJourneys", SERVICE_JOURNEY_COUNTER)
+    logger.info("Finished streaming %d ServiceJourneyInterchanges", SERVICE_JOURNEY_INTERCHANGE_COUNTER)
 
 def netex_create_line_xml(route_dataset: dict[str, Any], authority_dataset) -> None:
     """
@@ -3648,9 +3764,9 @@ def netex_create_line_xml(route_dataset: dict[str, Any], authority_dataset) -> N
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
-            xml_file.write(b"\n")
+            
             with xml_file.element("dataObjects"):
-                xml_file.write(b"\n")
+                
                 with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
                     netex_helper_stream_frame_defaults(xml_file, route_dataset["agency"])
                     with xml_file.element("frames"):
@@ -3664,9 +3780,9 @@ def netex_create_stops_xml(agency, authority_dataset):
         xml_file.write_declaration()
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
-            xml_file.write(b"\n")
+            
             with xml_file.element("dataObjects"):
-                xml_file.write(b"\n")
+                
 
                 netex_stream_service_frame_for_stops_xml(xml_file, authority_dataset)
 
@@ -3684,17 +3800,16 @@ if __name__ == "__main__":
     for agency in gtfs_dataset["agencies"]:
         authority_dataset = netex_build_authority_dataset(agency, gtfs_indexes)
                 
-        stops_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
-        stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
-        shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
-        shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
+        # stops_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
+        # stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
+        # shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
+        # shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
 
         netex_helper_set_netex_authority(agency)
-        netex_create_shared_data_xml(agency, authority_dataset["stops"], stop_coordinates, shape_linestrings, shape_per_trip, stops_per_trip, authority_dataset["calendar"], authority_dataset["calendar_dates"])
+        netex_create_shared_data_xml(agency, authority_dataset)
 
         netex_create_line_xmls(authority_dataset)
 
         netex_create_stops_xml(agency, authority_dataset)
 
     netex_helper_create_otp_zip()
-
