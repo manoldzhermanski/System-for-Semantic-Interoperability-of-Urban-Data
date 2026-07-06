@@ -1,7 +1,9 @@
+import json
 import re
 import sys
 import uuid
 import shutil
+import hashlib
 import logging
 import zipfile
 from typing import Any
@@ -23,6 +25,7 @@ import config
 from fiware_scorpio.fiware_scorpio_crud_operations import (
     fiware_scorpio_define_header,
     fiware_scorpio_get_entities_by_type,
+    fiware_scorpio_get_entity_by_id
     )
 
 logger = logging.getLogger("NeTEx_Converter")
@@ -3276,7 +3279,7 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
                 "service_id": trip.get("service", {}).get("object")
             }
         )
-
+        
     # Convert grouped trips to Route structures
     route_structures = []
 
@@ -3309,8 +3312,11 @@ def netex_helper_build_route(route_structure: dict[str, Any]) -> etree.Element:
     route_id_value = route_id.split(":")[-1] if route_id else "unknown"
 
     sequence = route_structure["stop_sequence"]
+    
+    signature = "|".join(sequence)
+    unique_identified = hashlib.blake2b(signature.encode(),digest_size=5).hexdigest()
 
-    route = etree.Element("Route", version="1",id=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}")
+    route = etree.Element("Route", version="1",id=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identified}")
 
     route_long_name = route_structure.get("route_long_name")
 
@@ -3341,7 +3347,7 @@ def netex_helper_build_route(route_structure: dict[str, Any]) -> etree.Element:
         seen_stops.add(stop_id)
 
         point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute",
-         id=f"{config.NETEX_AUTHORITY}:PointOnRoute:{stop_id}",
+         id=f"{config.NETEX_AUTHORITY}:PointOnRoute:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identified}",
          order=str(order), version="1")
 
         etree.SubElement(point_on_route, "RoutePointRef",
@@ -3381,6 +3387,9 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
     
     sequence = route_structure["stop_sequence"]
     stop_times = route_structure.get("stop_times", [])
+    
+    signature = "|".join(sequence)
+    unique_identified = hashlib.blake2b(signature.encode(),digest_size=5).hexdigest()
 
     journey_pattern = etree.Element("JourneyPattern", version="1",
                                     id=f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}")
@@ -3390,26 +3399,35 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
     if route_long_name:
         etree.SubElement(journey_pattern, "Name").text = route_long_name
 
-    etree.SubElement(journey_pattern, "RouteRef", ref=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}", version="1")
+    etree.SubElement(journey_pattern, "RouteRef", ref=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identified}", version="1")
 
     points_in_sequence = etree.SubElement(journey_pattern, "pointsInSequence")
-
+    
     for order, (stop_id, stop_time) in enumerate(zip(sequence, stop_times), start=1):
+        
+        is_first = (order == 1)
+        is_last = (order == len(sequence))
 
         pickup_type = stop_time.get("pickupType", {}).get("value")
         drop_off_type = stop_time.get("dropOffType", {}).get("value")
 
         point_on_route = etree.SubElement(points_in_sequence, "StopPointInJourneyPattern", order=str(order), version="1",
-                                          id=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}")
+                                          id=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}_{stop_id}")
 
         etree.SubElement(point_on_route, "ScheduledStopPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id}")
         etree.SubElement(point_on_route, "DestinationDisplayRef", ref=f"{config.NETEX_AUTHORITY}:DestinationDisplay:{route_id_value}")
         
-        for_boarding = pickup_type in (" ", 0)
+        if is_last:
+            for_boarding = False
+        else:
+            for_boarding = pickup_type in (" ", 0)
 
         etree.SubElement(point_on_route, "ForBoarding").text = str(for_boarding).lower()
 
-        for_alighting = drop_off_type in (" ", 0)
+        if is_first:
+            for_alighting = False
+        else:
+            for_alighting = drop_off_type in (" ", 0)
 
         etree.SubElement(point_on_route, "ForAlighting").text = str(for_alighting).lower()
 
@@ -3563,7 +3581,7 @@ def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list
                 version="1", id=f"{config.NETEX_AUTHORITY}:TimetabledPassingTime:{trip_id_value}_{stop_id}")
 
             etree.SubElement(time_tabled_passing_time, "StopPointInJourneyPatternRef",
-                ref=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{stop_id}", version="1")
+                ref=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}_{stop_id}", version="1")
 
             if arrival_time:
                 etree.SubElement(time_tabled_passing_time, "ArrivalTime").text = arrival_time
@@ -3675,6 +3693,14 @@ def netex_create_shared_data_xml(
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
             
+            publication_timestamp = etree.Element("PublicationTimestamp")
+            publication_timestamp.text = datetime.now().isoformat(timespec="milliseconds")
+            xml_file.write(publication_timestamp)
+
+            participant_ref = etree.Element("ParticipantRef")
+            participant_ref.text = config.NETEX_AUTHORITY
+            xml_file.write(participant_ref)
+            
             with xml_file.element("dataObjects"):
                 
                 with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
@@ -3765,6 +3791,14 @@ def netex_create_line_xml(route_dataset: dict[str, Any], authority_dataset) -> N
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
             
+            publication_timestamp = etree.Element("PublicationTimestamp")
+            publication_timestamp.text = datetime.now().isoformat(timespec="milliseconds")
+            xml_file.write(publication_timestamp)
+
+            participant_ref = etree.Element("ParticipantRef")
+            participant_ref.text = config.NETEX_AUTHORITY
+            xml_file.write(participant_ref)
+            
             with xml_file.element("dataObjects"):
                 
                 with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
@@ -3781,8 +3815,15 @@ def netex_create_stops_xml(agency, authority_dataset):
 
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
             
+            publication_timestamp = etree.Element("PublicationTimestamp")
+            publication_timestamp.text = datetime.now().isoformat(timespec="milliseconds")
+            xml_file.write(publication_timestamp)
+
+            participant_ref = etree.Element("ParticipantRef")
+            participant_ref.text = config.NETEX_AUTHORITY
+            xml_file.write(participant_ref)
+            
             with xml_file.element("dataObjects"):
-                
 
                 netex_stream_service_frame_for_stops_xml(xml_file, authority_dataset)
 
@@ -3800,11 +3841,6 @@ if __name__ == "__main__":
     for agency in gtfs_dataset["agencies"]:
         authority_dataset = netex_build_authority_dataset(agency, gtfs_indexes)
                 
-        # stops_per_trip = netex_helper_extract_stops_in_a_trip(authority_dataset["stop_times"])
-        # stop_coordinates = netex_helper_extract_stop_coordinates(authority_dataset["stops"])
-        # shape_linestrings = netex_helper_extract_shape_linestrings(authority_dataset["shapes"])
-        # shape_per_trip = netex_helper_map_trips_to_shapes(authority_dataset["trips"])
-
         netex_helper_set_netex_authority(agency)
         netex_create_shared_data_xml(agency, authority_dataset)
 
@@ -3813,3 +3849,11 @@ if __name__ == "__main__":
         netex_create_stops_xml(agency, authority_dataset)
 
     netex_helper_create_otp_zip()
+    
+        # header = fiware_scorpio_define_header("gtfs_static")
+        # route = fiware_scorpio_get_entity_by_id("urn:ngsi-ld:GtfsRoute:Sofia:TB1", header)
+        # route_dataset = netex_build_route_dataset(route, authority_dataset)
+        # route_structure = netex_build_route_structures(route_dataset)
+
+        # with open("trip_groups_debug.jsonl", "a", encoding="utf-8") as f:
+        #     f.write(json.dumps(route_structure, ensure_ascii=False) + "\n")
