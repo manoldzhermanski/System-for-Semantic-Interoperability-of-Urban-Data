@@ -4,4 +4,5 @@ gtfs_realtime_pb2.py
 gtfs_static/helsinki
 gtfs_static/sofia
 json_ld/data
+netex/output
 __pycache__

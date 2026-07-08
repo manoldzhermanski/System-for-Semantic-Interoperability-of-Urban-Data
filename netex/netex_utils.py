@@ -13,9 +13,7 @@ from pyproj import Transformer
 from collections import defaultdict
 from shapely.geometry import LineString, Point as ShapelyPoint
 from shapely.ops import substring
-from datetime import datetime
-from pprint import pprint
-from itertools import islice
+from datetime import datetime, timedelta
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
@@ -47,6 +45,8 @@ LINE_COUNTER = 0
 JOURNEY_PATTERN_COUNTER = 0
 SERVICE_JOURNEY_COUNTER = 0
 SERVICE_JOURNEY_INTERCHANGE_COUNTER = 0
+
+now_time = datetime.now()
 
 # -----------------------------------------------------
 # Output Functions
@@ -1033,8 +1033,22 @@ def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str
         return {}
 
     trips = [trip for trip in authority_dataset.get("trips", []) if trip.get("route", {}).get("object") == route_id]
+    
+    if not trips:
+        logger.warning("Skipping route %s: no trips found.", route_id)
+        return {}
 
     trip_ids = {trip["id"] for trip in trips if trip.get("id")}
+    
+    trip_shapes = {}
+
+    for trip in trips:
+        trip_id = trip.get("id")
+        shape_ref = trip.get("hasShape", {}).get("object")
+
+        if trip_id and shape_ref:
+            trip_shapes[trip_id] = shape_ref.split(":")[-1]
+    
 
     stop_times = authority_dataset.get("stop_times", [])
 
@@ -1044,13 +1058,17 @@ def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str
         trip_id = stop_time.get("hasTrip", {}).get("object")
         if trip_id in trip_ids:
             stop_times_by_trip.setdefault(trip_id, []).append(stop_time)
+            
+    # if not stop_times_by_trip:
+    #     logger.warning("Skipping route %s: no stop times found.", route_id)
+    #     return {}
 
     transfers = [transfer for transfer in authority_dataset.get("transfers", []) 
                  if transfer.get("from_trip_id", {}).get("object") in trip_ids
                  ]
 
     service_ids = {trip.get("service", {}).get("object") for trip in trips}
-    
+        
     calendars = [calendar for calendar in authority_dataset["calendar"] if calendar.get("hasService", {}).get("object") in service_ids]
 
     calendar_dates = [calendar_date for calendar_date in authority_dataset["calendar_dates"] if calendar_date.get("hasService", {}).get("object") in service_ids]
@@ -1059,6 +1077,7 @@ def netex_build_route_dataset(route: dict[str, Any], authority_dataset: dict[str
         "agency": authority_dataset["agency"],
         "route": route,
         "trips": trips,
+        "trip_shapes": trip_shapes,
         "stop_times": stop_times_by_trip,
         "transfers": transfers,
         "calendar": calendars,
@@ -1097,6 +1116,37 @@ def netex_helper_set_netex_authority(agency: dict[str, Any]) -> None:
 
     config.NETEX_AUTHORITY = authority
 
+# -----------------------------------------------------
+# Generate <validityConditions>
+# -----------------------------------------------------
+def netex_helper_build_validity_conditions(now_time) -> etree.Element:
+    """
+    Build validityConditions container for all NeTEx files
+
+    Returns:
+        etree.Element
+    """
+    validity_conditions = etree.Element("validityConditions")
+    availability_condition = etree.SubElement(validity_conditions, "AvailabilityCondition", version = "1",
+                                              id = f"{config.NETEX_AUTHORITY}:AvailabilityCondition:{uuid.uuid4()}")
+    etree.SubElement(availability_condition, "FromDate").text = now_time.isoformat(timespec="milliseconds")
+    etree.SubElement(availability_condition, "ToDate").text = (now_time + timedelta(days=365)).isoformat(timespec="milliseconds")
+    
+    return validity_conditions
+    
+def netex_helper_stream_validity_conditions(xml_file, now_time) -> None:
+    """
+    Stream <validityConditions> in NeTEx files
+    
+    Returns:
+        None
+    """
+    # Build <validityConditions>
+    validity_condition = netex_helper_build_validity_conditions(now_time)
+    
+    # Stream <validityConditions> into NeTEx file
+    xml_file.write(validity_condition, pretty_print=True)
+    
 # -----------------------------------------------------
 # Generate <FrameDefaults>
 # -----------------------------------------------------
@@ -1940,6 +1990,7 @@ def netex_helper_create_service_link_info(stops_per_trip: dict[str, list[str]], 
 
             yield {
                 "trip_id": trip_id,
+                "shape_id": shape_id,
                 "from_stop": from_stop,
                 "to_stop": to_stop,
                 "distance": (stop_distances[to_stop] - stop_distances[from_stop]),
@@ -1982,18 +2033,19 @@ def netex_helper_build_service_link(service_link_data: dict[str, Any]) -> etree.
     distance = service_link_data["distance"]
     from_stop = service_link_data["from_stop"]
     to_stop = service_link_data["to_stop"]
+    shape_id = service_link_data["shape_id"]
 
     # Build the <ServiceLink> element
-    service_link = etree.Element(f"ServiceLink", id=f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}", version="1")
+    service_link = etree.Element(f"ServiceLink", id=f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}_{shape_id}", version="1")
     
     etree.SubElement(service_link, f"Distance").text = f"{distance:.6f}"
 
     projections = etree.SubElement(service_link, f"projections")
     link_seq = etree.SubElement(projections, f"LinkSequenceProjection",
-                                id=f"{config.NETEX_AUTHORITY}:LinkSequenceProjection:{from_stop}_{to_stop}", version="1")
+                                id=f"{config.NETEX_AUTHORITY}:LinkSequenceProjection:{from_stop}_{to_stop}_{shape_id}", version="1")
 
     line_string = etree.SubElement(link_seq, f"{{{GIS_NS}}}LineString", srsName="4326", srsDimension="2")
-    line_string.set(f"{{{GIS_NS}}}id", f"LS_{from_stop}_{to_stop}")
+    line_string.set(f"{{{GIS_NS}}}id", f"LS_{from_stop}_{to_stop}_{shape_id}")
 
     etree.SubElement(line_string, f"{{{GIS_NS}}}posList", count=str(len(geometry_wgs84.coords)), srsDimension="2").text = pos_list
 
@@ -2631,7 +2683,7 @@ def netex_helper_stream_line(xml_file, route: dict[str, Any]) -> None:
 # -----------------------------------------------------
 # GtfsRoute to NeTEx <DestinationDisplay>
 # ----------------------------------------------------- 
-def netex_helper_build_destionation_display(route: dict[str, Any]) -> etree.Element | None:
+def netex_helper_build_destionation_display(stop: dict[str, Any]) -> etree.Element | None:
     """
     Build a single <DestinationDisplay> element from a GtfsRoute entity
 
@@ -2642,39 +2694,39 @@ def netex_helper_build_destionation_display(route: dict[str, Any]) -> etree.Elem
         etree.Element | None
     """
     # Get entity id and type
-    route_id = route.get("id")
-    entity_type = route.get("type")
+    route_id = stop.get("id")
+    entity_type = stop.get("type")
     
     # If unsupported entity type, log an error and return None
-    if entity_type != "GtfsRoute":
-        logger.error("Unsupported entity type for Line conversion: %s", entity_type)
+    if entity_type != "GtfsStop":
+        logger.error("Unsupported entity type for DestinationDisplay conversion: %s", entity_type)
         return None
     
     # If not correctly formatted, log an error and return None
     if not isinstance(route_id, str) or ":" not in route_id:
-        logger.error("Invalid or missing ID for GtfsRoute: %r", route_id)
+        logger.error("Invalid or missing ID for GtfsStop: %r", route_id)
         return None
 
     # Extract ID Value
-    route_id_value = route_id.split(":")[-1]
+    stop_id_value = route_id.split(":")[-1]
     
     # Bild <DestinationDisplay> element
-    route_name = (route.get("name", {}).get("value") or route.get("shortName", {}).get("value"))
+    stop_name = stop.get("name", {}).get("value")
     
-    destination_display = etree.Element("DestinationDisplay", version="1", id=f"{config.NETEX_AUTHORITY}:DestinationDisplay:{route_id_value}")
-    etree.SubElement(destination_display, "Name").text = route_name
-    etree.SubElement(destination_display, "SideText").text = route_name
-    etree.SubElement(destination_display, "FrontText").text = route_name
+    destination_display = etree.Element("DestinationDisplay", version="1", id=f"{config.NETEX_AUTHORITY}:DestinationDisplay:{stop_id_value}")
+    etree.SubElement(destination_display, "Name").text = stop_name
+    etree.SubElement(destination_display, "SideText").text = stop_name
+    etree.SubElement(destination_display, "FrontText").text = stop_name
     
     return destination_display
 
-def netex_helper_stream_destination_displays(xml_file, gtfs_routes):
+def netex_helper_stream_destination_displays(xml_file, gtfs_stops):
     """
     Streams DestinationDisplay elements into a <destinationDisplays> container.
 
     Args:
         xml_file: Streaming XML writer
-        gtfs_routes: List of GtfsRoute entities
+        gtfs_stops: List of GtfsStop entities
 
     Returns:
         None
@@ -2686,10 +2738,10 @@ def netex_helper_stream_destination_displays(xml_file, gtfs_routes):
     # Create container for <DestinationDisplay> elements
     with xml_file.element("destinationDisplays"):
 
-        for route in gtfs_routes:
+        for stop in gtfs_stops:
 
             # Build <DestinationDisplay> element
-            destination_display = netex_helper_build_destionation_display(route)
+            destination_display = netex_helper_build_destionation_display(stop)
 
             # Continue when unsuccessful
             if destination_display is None:
@@ -2742,7 +2794,7 @@ def netex_helper_build_scheduled_stop_point(gtfs_stop: dict[str, Any]) -> etree.
     stop_id_value = stop_id.split(":")[-1]
 
     # Extract stop name if available
-    stop_name = gtfs_stop.get("stop_name", {}).get("value")
+    stop_name = gtfs_stop.get("name", {}).get("value")
 
     # Build and return the <ScheduledStopPoint> element with the extracted ID value, name and location reference
     scheduled_stop_point = etree.Element("ScheduledStopPoint", version="1", 
@@ -2750,8 +2802,6 @@ def netex_helper_build_scheduled_stop_point(gtfs_stop: dict[str, Any]) -> etree.
 
     if stop_name:
         etree.SubElement(scheduled_stop_point,"Name").text = stop_name
-
-    etree.SubElement(scheduled_stop_point,"LocationRef", ref=f"{config.NETEX_AUTHORITY}:StopPlace:{stop_id_value}", version="1")
 
     return scheduled_stop_point
 
@@ -2884,11 +2934,11 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
     if stop_code_value:
         etree.SubElement(stop_place, "PublicCode").text = str(stop_code_value)
 
-    if coords:
-        centroid = etree.SubElement(stop_place, "Centroid")
-        location = etree.SubElement(centroid, "Location")
-        etree.SubElement(location, "Longitude").text = str(coords[0])
-        etree.SubElement(location, "Latitude").text = str(coords[1])
+    # if coords:
+    #     centroid = etree.SubElement(stop_place, "Centroid")
+    #     location = etree.SubElement(centroid, "Location")
+    #     etree.SubElement(location, "Longitude").text = str(coords[0])
+    #     etree.SubElement(location, "Latitude").text = str(coords[1])
 
     # Extract wheelchair boarding and tts_stop_name for accessibility information
     wheelchair = gtfs_stop_entity.get("wheelchair_boarding", {}).get("value")
@@ -3213,6 +3263,7 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
     route = route_dataset["route"]
     trips = route_dataset["trips"]
     stop_times_by_trip = route_dataset["stop_times"]
+    trip_shapes = route_dataset["trip_shapes"]
 
     route_id = route.get("id")
 
@@ -3226,6 +3277,10 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
     for trip in trips:
 
         trip_id = trip.get("id")
+        shape_id = trip_shapes.get(trip_id)
+        
+        if not shape_id:
+            logger.warning("Trip %s has no shape_id", trip_id)
 
         if not trip_id:
             logger.error("Trip missing ID: %r", trip)
@@ -3265,7 +3320,7 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
         elif direction_id == 1:
             direction = "inbound"
 
-        key = (direction, tuple(stop_sequence))
+        key = (direction, shape_id, tuple(stop_sequence))
 
         if key not in trip_groups:
             trip_groups[key] = {
@@ -3276,14 +3331,16 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
         trip_groups[key]["trips"].append(
             {
                 "trip_id": trip_id,
-                "service_id": trip.get("service", {}).get("object")
+                "service_id": trip.get("service", {}).get("object"),
+                "shape_id": shape_id
             }
         )
         
     # Convert grouped trips to Route structures
     route_structures = []
 
-    for (direction, stop_sequence), group in trip_groups.items():
+    # (direction, shape_id, stop_sequence)
+    for (direction, shape_id, stop_sequence), group in trip_groups.items():
 
         route_structure = {
             "route_id": route_id,
@@ -3310,13 +3367,14 @@ def netex_helper_build_route(route_structure: dict[str, Any]) -> etree.Element:
 
     route_id = route_structure["route_id"]
     route_id_value = route_id.split(":")[-1] if route_id else "unknown"
+    shape_id = route_structure["trips"][0]["shape_id"] if route_structure["trips"] else "unknown"
 
     sequence = route_structure["stop_sequence"]
     
-    signature = "|".join(sequence)
-    unique_identified = hashlib.blake2b(signature.encode(),digest_size=5).hexdigest()
+    signature = "|".join(sequence) + f"|{shape_id}"
+    unique_identifier = hashlib.blake2b(signature.encode(),digest_size=5).hexdigest()
 
-    route = etree.Element("Route", version="1",id=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identified}")
+    route = etree.Element("Route", version="1",id=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identifier}")
 
     route_long_name = route_structure.get("route_long_name")
 
@@ -3347,7 +3405,7 @@ def netex_helper_build_route(route_structure: dict[str, Any]) -> etree.Element:
         seen_stops.add(stop_id)
 
         point_on_route = etree.SubElement(points_in_sequence, "PointOnRoute",
-         id=f"{config.NETEX_AUTHORITY}:PointOnRoute:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identified}",
+         id=f"{config.NETEX_AUTHORITY}:PointOnRoute:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identifier}_{order}",
          order=str(order), version="1")
 
         etree.SubElement(point_on_route, "RoutePointRef",
@@ -3384,22 +3442,23 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
 
     route_id = route_structure["route_id"]
     route_id_value = route_id.split(":")[-1] if route_id else "unknown"
+    shape_id = route_structure["trips"][0]["shape_id"] if route_structure["trips"] else "unknown"
     
     sequence = route_structure["stop_sequence"]
     stop_times = route_structure.get("stop_times", [])
-    
-    signature = "|".join(sequence)
-    unique_identified = hashlib.blake2b(signature.encode(),digest_size=5).hexdigest()
+        
+    signature = "|".join(sequence) + f"|{shape_id}"
+    unique_identifier = hashlib.blake2b(signature.encode(),digest_size=5).hexdigest()
 
     journey_pattern = etree.Element("JourneyPattern", version="1",
-                                    id=f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}")
+                                    id=f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identifier}")
 
     route_long_name = route_structure.get("route_long_name")
 
     if route_long_name:
         etree.SubElement(journey_pattern, "Name").text = route_long_name
 
-    etree.SubElement(journey_pattern, "RouteRef", ref=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identified}", version="1")
+    etree.SubElement(journey_pattern, "RouteRef", ref=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identifier}", version="1")
 
     points_in_sequence = etree.SubElement(journey_pattern, "pointsInSequence")
     
@@ -3412,24 +3471,26 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
         drop_off_type = stop_time.get("dropOffType", {}).get("value")
 
         point_on_route = etree.SubElement(points_in_sequence, "StopPointInJourneyPattern", order=str(order), version="1",
-                                          id=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}_{stop_id}")
+                                          id=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}_{stop_id}_{unique_identifier}")
 
         etree.SubElement(point_on_route, "ScheduledStopPointRef", ref=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id}")
-        etree.SubElement(point_on_route, "DestinationDisplayRef", ref=f"{config.NETEX_AUTHORITY}:DestinationDisplay:{route_id_value}")
         
-        if is_last:
-            for_boarding = False
-        else:
-            for_boarding = pickup_type in (" ", 0)
+        if not is_last:
+            etree.SubElement(point_on_route, "DestinationDisplayRef", ref=f"{config.NETEX_AUTHORITY}:DestinationDisplay:{stop_id}")
+        
+        # if is_last:
+        #     for_boarding = False
+        # else:
+        #     for_boarding = pickup_type in (" ", 0)
 
-        etree.SubElement(point_on_route, "ForBoarding").text = str(for_boarding).lower()
+        # etree.SubElement(point_on_route, "ForBoarding").text = str(for_boarding).lower()
 
-        if is_first:
-            for_alighting = False
-        else:
-            for_alighting = drop_off_type in (" ", 0)
+        # if is_first:
+        #     for_alighting = False
+        # else:
+        #     for_alighting = drop_off_type in (" ", 0)
 
-        etree.SubElement(point_on_route, "ForAlighting").text = str(for_alighting).lower()
+        # etree.SubElement(point_on_route, "ForAlighting").text = str(for_alighting).lower()
 
     links_in_sequence = etree.SubElement(journey_pattern, "linksInSequence")
 
@@ -3437,11 +3498,11 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
 
         service_link_in_journey_pattern = etree.SubElement(
             links_in_sequence, "ServiceLinkInJourneyPattern", order=str(order), version="1",
-            id=f"{config.NETEX_AUTHORITY}:ServiceLinkInJourneyPattern:{from_stop}_{to_stop}"
+            id=f"{config.NETEX_AUTHORITY}:ServiceLinkInJourneyPattern:{from_stop}_{to_stop}_{unique_identifier}"
         )
 
         etree.SubElement(service_link_in_journey_pattern, "ServiceLinkRef",
-                         ref=f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}")
+                         ref=f"{config.NETEX_AUTHORITY}:ServiceLink:{from_stop}_{to_stop}_{shape_id}")
 
     return journey_pattern
 
@@ -3529,17 +3590,43 @@ def netex_helper_stream_service_journey_interchange(xml_file, transfers: list[di
 # -----------------------------------------------------
 #  NeTEx <ServiceJourney>
 # -----------------------------------------------------
+def netex_helper_normalize_time(time_value: str) -> tuple[str, int]:
+    """
+    Convert GTFS extended time format (e.g. 26:30:00) to NeTEx time + day offset.
+    
+    Args:
+        time_value (str): Time which is a normalization candidate
+
+    Returns:
+        tuple[str, int]: normalized time, day offset
+    """
+
+    if not time_value:
+        return time_value, 0
+
+    hours, minutes, seconds = map(int, time_value.split(":"))
+
+    day_offset = hours // 24
+    hours = hours % 24
+
+    normalized_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    return normalized_time, day_offset
 
 def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list[etree.Element]:
     
     route_id = route_structure["route_id"]
     route_id_value = route_id.split(":")[-1] if route_id else "unknown"
+    shape_id = route_structure["trips"][0]["shape_id"] if route_structure["trips"] else "unknown"
     
     agency_id = route_structure["agency_id"]
     agency_id_value = agency_id.split(":")[-1] if agency_id else "unknown"
 
     sequence = route_structure["stop_sequence"]
     stop_times = route_structure.get("stop_times", [])
+    
+    signature = "|".join(sequence) + f"|{shape_id}"
+    unique_identifier = hashlib.blake2b(signature.encode(),digest_size=5).hexdigest()
 
     service_journeys = []
 
@@ -3563,7 +3650,7 @@ def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list
         etree.SubElement(day_types, "DayTypeRef", ref=f"{config.NETEX_AUTHORITY}:DayType:{service_id_value}")
 
         etree.SubElement(service_journey, "JourneyPatternRef",
-            ref=f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}",
+            ref=f"{config.NETEX_AUTHORITY}:JourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identifier}",
             version="1")
 
         etree.SubElement(service_journey, "OperatorRef", ref=f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}")
@@ -3573,25 +3660,58 @@ def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list
         passing_times = etree.SubElement(service_journey, "passingTimes")
 
         for order, (stop_id, stop_time) in enumerate(zip(sequence, stop_times), start=1):
+            
+            is_first = (order == 1)
+            is_last = (order == len(sequence))
 
             arrival_time = stop_time.get("arrivalTime", {}).get("value")
             departure_time = stop_time.get("departureTime", {}).get("value")
+            
+            arrival_offset = 0
+            departure_offset = 0
+
+            if arrival_time:
+                arrival_time, arrival_offset = netex_helper_normalize_time(arrival_time)
+
+            if departure_time:
+                departure_time, departure_offset = netex_helper_normalize_time(departure_time)
 
             time_tabled_passing_time = etree.SubElement(passing_times, "TimetabledPassingTime",
                 version="1", id=f"{config.NETEX_AUTHORITY}:TimetabledPassingTime:{trip_id_value}_{stop_id}")
 
             etree.SubElement(time_tabled_passing_time, "StopPointInJourneyPatternRef",
-                ref=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}_{stop_id}", version="1")
+                ref=f"{config.NETEX_AUTHORITY}:StopPointInJourneyPattern:{route_id_value}_{sequence[0]}_{sequence[-1]}_{stop_id}_{unique_identifier}", version="1")
 
-            if arrival_time:
+            if is_last:
+                if not arrival_time:
+                    raise ValueError(f"Missing arrival time for last stop {stop_id} in trip {trip_id}")
+
                 etree.SubElement(time_tabled_passing_time, "ArrivalTime").text = arrival_time
-            else:
-                raise ValueError(f"Missing arrival time for stop {stop_id} in trip {trip_id}")
+                
+                if arrival_offset > 0:
+                    etree.SubElement(time_tabled_passing_time, "ArrivalDayOffset").text = str(arrival_offset)
 
-            if departure_time:
-                etree.SubElement(time_tabled_passing_time, "DepartureTime").text = departure_time
+                if departure_time and departure_time != arrival_time:
+                    etree.SubElement(time_tabled_passing_time, "DepartureTime").text = departure_time
+                    
+                    if departure_offset > 0:
+                         etree.SubElement(time_tabled_passing_time, "DepartureDayOffset").text = str(departure_offset)
+
             else:
-                raise ValueError(f"Missing departure time for stop {stop_id} in trip {trip_id}")
+                if arrival_time and departure_time and arrival_time != departure_time:
+                    etree.SubElement(time_tabled_passing_time, "ArrivalTime").text = arrival_time
+
+                    if arrival_offset > 0:
+                        etree.SubElement(time_tabled_passing_time, "ArrivalDayOffset").text = str(arrival_offset)
+
+
+                if departure_time:
+                    etree.SubElement(time_tabled_passing_time, "DepartureTime").text = departure_time
+                    
+                    if departure_offset > 0:
+                        etree.SubElement(time_tabled_passing_time, "DepartureDayOffset").text = str(departure_offset)
+                else:
+                    raise ValueError(f"Missing departure time for stop {stop_id} in trip {trip_id}")
 
         service_journeys.append(service_journey)
 
@@ -3620,7 +3740,6 @@ def netex_helper_stream_service_journey(xml_file, route_structures: list[dict[st
 def netex_stream_service_frame_for_shared_data_xml(xml_file, 
                                agency, 
                                stops,
-                               routes, 
                                stop_coordinates, 
                                shape_linestrings, 
                                shape_per_trip, 
@@ -3633,7 +3752,7 @@ def netex_stream_service_frame_for_shared_data_xml(xml_file,
 
         netex_helper_stream_route_points(xml_file, stops)
         
-        netex_helper_stream_destination_displays(xml_file, routes)
+        netex_helper_stream_destination_displays(xml_file, stops)
 
         netex_helper_stream_scheduled_stop_points(xml_file, stops)
 
@@ -3694,7 +3813,7 @@ def netex_create_shared_data_xml(
         with xml_file.element(f"PublicationDelivery", nsmap=NSMAP, version="1"):
             
             publication_timestamp = etree.Element("PublicationTimestamp")
-            publication_timestamp.text = datetime.now().isoformat(timespec="milliseconds")
+            publication_timestamp.text = now_time.isoformat(timespec="milliseconds")
             xml_file.write(publication_timestamp)
 
             participant_ref = etree.Element("ParticipantRef")
@@ -3704,13 +3823,12 @@ def netex_create_shared_data_xml(
             with xml_file.element("dataObjects"):
                 
                 with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
-
-                    frame = netex_helper_stream_frame_defaults(xml_file, agency)
-                    xml_file.write(frame, pretty_print=True)
+                    netex_helper_stream_validity_conditions(xml_file, now_time)
+                    netex_helper_stream_frame_defaults(xml_file, agency)
                     with xml_file.element("frames"):
                         netex_stream_resource_frame_for_shared_data_xml(xml_file, agency)
                         
-                        netex_stream_service_frame_for_shared_data_xml(xml_file, agency, authority_dataset["stops"], authority_dataset["routes"],
+                        netex_stream_service_frame_for_shared_data_xml(xml_file, agency, authority_dataset["stops"],
                                                                         stop_coordinates, shape_linestrings,
                                                                           shape_per_trip, stops_per_trip)
                         
@@ -3749,6 +3867,10 @@ def netex_create_line_xmls(authority_dataset: dict[str, Any]) -> None:
             continue
 
         route_dataset = netex_build_route_dataset(route, authority_dataset)
+        
+        if not route_dataset:
+            logger.warning("No dataset found for route %s", route_id)
+            continue
 
         try:
             netex_create_line_xml(route_dataset, authority_dataset)
@@ -3773,6 +3895,10 @@ def netex_create_line_xml(route_dataset: dict[str, Any], authority_dataset) -> N
         None
     """
     route_structures = netex_build_route_structures(route_dataset)
+    
+    if not route_structures:
+        logger.warning("Skipping Line XML for route %s: no route structures generated.",route_dataset["route"]["id"])
+        return
 
     route_name = (route_dataset["route"].get("name", {}).get("value") or route_dataset["route"].get("shortName", {}).get("value"))
 
@@ -3802,6 +3928,7 @@ def netex_create_line_xml(route_dataset: dict[str, Any], authority_dataset) -> N
             with xml_file.element("dataObjects"):
                 
                 with xml_file.element("CompositeFrame", version="1", id=f"{config.NETEX_AUTHORITY}:CompositeFrame:{uuid.uuid4()}"):
+                    netex_helper_stream_validity_conditions(xml_file, now_time)
                     netex_helper_stream_frame_defaults(xml_file, route_dataset["agency"])
                     with xml_file.element("frames"):
                         netex_stream_service_frame_for_line_xml(xml_file, route_dataset, route_structures)
@@ -3850,10 +3977,3 @@ if __name__ == "__main__":
 
     netex_helper_create_otp_zip()
     
-        # header = fiware_scorpio_define_header("gtfs_static")
-        # route = fiware_scorpio_get_entity_by_id("urn:ngsi-ld:GtfsRoute:Sofia:TB1", header)
-        # route_dataset = netex_build_route_dataset(route, authority_dataset)
-        # route_structure = netex_build_route_structures(route_dataset)
-
-        # with open("trip_groups_debug.jsonl", "a", encoding="utf-8") as f:
-        #     f.write(json.dumps(route_structure, ensure_ascii=False) + "\n")
