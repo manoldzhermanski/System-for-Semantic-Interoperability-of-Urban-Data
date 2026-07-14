@@ -17,9 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
-STORAGE_DIR = os.path.join(project_root, "otp", "data")
-os.makedirs(STORAGE_DIR, exist_ok=True)
-
+import config
 
 from fiware_scorpio.fiware_scorpio_crud_operations import (
     fiware_scorpio_get_entities_by_type,
@@ -30,6 +28,19 @@ from fiware_scorpio.fiware_scorpio_crud_operations import (
 from gtfs_realtime.gtfs_realtime_utils import (
     gtfs_realtime_get_ngsi_ld_data,
     iso8601_to_unix
+)
+
+from netex.netex_utils import (
+    netex_helper_prepare_output_directory,
+    netex_helper_set_operating_city,
+    netex_load_city_dataset,
+    netex_build_indexes_and_collections,
+    netex_build_authority_dataset,
+    netex_helper_set_netex_authority,
+    netex_create_shared_data_xml,
+    netex_create_line_xmls,
+    netex_create_stops_xml,
+    netex_helper_create_otp_zip
 )
 
 import time
@@ -730,20 +741,21 @@ def build_gtfs_zip() -> str:
         "stops.txt": [...]
     }
     """
-    zip_path = os.path.join(STORAGE_DIR, f"gtfs.zip")
+    zip_path = os.path.join(config.OTP_DATA_DIR, f"gtfs.zip")
     
     header = fiware_scorpio_define_header("gtfs_static")
-    agencies = fiware_scorpio_get_entities_by_type("GtfsAgency", header)
-    stops = fiware_scorpio_get_entities_by_type("GtfsStop", header)
-    routes = fiware_scorpio_get_entities_by_type("GtfsRoute", header)
-    trips = fiware_scorpio_get_entities_by_type("GtfsTrip", header)
-    stop_times = fiware_scorpio_get_entities_by_type("GtfsStopTime", header)
-    calendar_dates = fiware_scorpio_get_entities_by_type("GtfsCalendarDateRule", header)
-    fare_attributes = fiware_scorpio_get_entities_by_type("GtfsFareAttributes", header)
-    shapes = fiware_scorpio_get_entities_by_type("GtfsShape", header)
-    transfers = fiware_scorpio_get_entities_by_type("GtfsTransferRule", header)
-    pathways = fiware_scorpio_get_entities_by_type("GtfsPathway", header)
-    levels = fiware_scorpio_get_entities_by_type("GtfsLevel", header)
+    agencies = fiware_scorpio_get_entities_by_type("GtfsAgency", header, "Sofia")
+    stops = fiware_scorpio_get_entities_by_type("GtfsStop", header, "Sofia")
+    routes = fiware_scorpio_get_entities_by_type("GtfsRoute", header, "Sofia")
+    trips = fiware_scorpio_get_entities_by_type("GtfsTrip", header, "Sofia")
+    stop_times = fiware_scorpio_get_entities_by_type("GtfsStopTime", header, "Sofia")
+    calendar_dates = fiware_scorpio_get_entities_by_type("GtfsCalendarDateRule", header, "Sofia")
+    fare_attributes = fiware_scorpio_get_entities_by_type("GtfsFareAttributes", header, "Sofia")
+    shapes = fiware_scorpio_get_entities_by_type("GtfsShape", header, "Sofia")
+    transfers = fiware_scorpio_get_entities_by_type("GtfsTransferRule", header, "Sofia")
+    pathways = fiware_scorpio_get_entities_by_type("GtfsPathway", header, "Sofia")
+    levels = fiware_scorpio_get_entities_by_type("GtfsLevel", header, "Sofia"),
+    translations = fiware_scorpio_get_entities_by_type("GtfsTranslation", header, "Sofia")
 
     data = {
         "agency.txt": agencies,
@@ -757,6 +769,7 @@ def build_gtfs_zip() -> str:
         "transfers.txt": transfers,
         "pathways.txt": pathways,
         "levels.txt": levels,
+        "translations.txt": translations
     }
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
@@ -774,7 +787,7 @@ def rebuild(bg: BackgroundTasks):
 
 @app.get("/api/gtfs_static/download")
 def download():
-    path = os.path.join(STORAGE_DIR, f"gtfs.zip")
+    path = os.path.join(config.OTP_DATA_DIR, f"gtfs.zip")
 
     if not os.path.exists(path):
         raise HTTPException(404, "GTFS not built yet")
@@ -783,4 +796,52 @@ def download():
         path,
         media_type="application/zip",
         filename=f"gtfs.zip",
+    )
+
+# -----------------------------------------------------
+# NGSI-LD → NeTEx Nordic conversion
+# -----------------------------------------------------
+def build_netex() -> str:
+
+    netex_helper_prepare_output_directory()
+
+    netex_helper_set_operating_city("Sofia")
+
+    gtfs_dataset = netex_load_city_dataset()
+
+    gtfs_indexes = netex_build_indexes_and_collections(gtfs_dataset)
+    
+    for agency in gtfs_dataset["agencies"]:
+        authority_dataset = netex_build_authority_dataset(agency, gtfs_indexes)
+                
+        netex_helper_set_netex_authority(agency)
+
+        netex_create_shared_data_xml(agency, authority_dataset)
+
+        netex_create_line_xmls(authority_dataset)
+
+        netex_create_stops_xml(agency, authority_dataset)
+
+    return netex_helper_create_otp_zip()
+
+@app.post("/api/netex/rebuild")
+def rebuild_netex(bg: BackgroundTasks):
+    bg.add_task(build_netex)
+
+    return {
+        "status": "NeTEx rebuild started"
+    }
+
+@app.get("/api/netex/download")
+def download_netex():
+
+    path = os.path.join(config.OTP_DATA_DIR, "netex.zip")
+
+    if not os.path.exists(path):
+        raise HTTPException(404, "NeTEx not built yet")
+
+    return FileResponse(
+        path,
+        media_type="application/zip",
+        filename="netex.zip",
     )

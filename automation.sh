@@ -19,6 +19,8 @@ usage() {
   echo "  ./automation.sh load pois"
   echo "  ./automation.sh otp_build"
   echo "  ./automation.sh gtfs_static_rebuild"
+  echo "  ./automation.sh netex_rebuild"
+  echo "  ./automation.sh download gtfs netex"
   echo "  ./automation.sh clear_all"
   exit 1
 }
@@ -70,6 +72,55 @@ gtfs_static_rebuild() {
 
   echo "Rebuilding GTFS static data..."
   curl -X POST http://localhost:8000/api/gtfs_static/rebuild
+}
+
+netex_rebuild() {
+  activate_venv
+
+  docker compose up -d scorpio postgres
+  wait_for_scorpio
+
+  echo "Starting FastAPI backend..."
+  uvicorn backend_api.main:app --reload &
+  UVICORN_PID=$!
+
+  echo "Waiting for FastAPI to start..."
+
+  until curl -s http://localhost:8000/docs > /dev/null; do
+    sleep 1
+  done
+
+  echo "FastAPI is up!"
+
+  echo "Rebuilding GTFS static data..."
+  curl -X POST http://localhost:8000/api/netex/rebuild
+}
+
+download() {
+
+    case "$1" in
+        gtfs)
+            endpoint="gtfs_static"
+            file="gtfs.zip"
+            ;;
+        netex)
+            endpoint="netex"
+            file="netex.zip"
+            ;;
+        *)
+            echo "Usage: download {gtfs|netex}"
+            return 1
+            ;;
+    esac
+
+    curl -X POST "http://localhost:8000/api/${endpoint}/rebuild"
+
+    echo "Generating ${file}..."
+    sleep 2
+
+    curl -L \
+        "http://localhost:8000/api/${endpoint}/download" \
+        -o "${file}"
 }
 
 otp_build() {
@@ -160,6 +211,12 @@ case "$COMMAND" in
     ;;
   gtfs_static_rebuild)
     gtfs_static_rebuild
+    ;;
+  netex_rebuild)
+    netex_rebuild
+    ;;
+  download)
+    download "$@"
     ;;
   otp_build)
     otp_build "$@"
