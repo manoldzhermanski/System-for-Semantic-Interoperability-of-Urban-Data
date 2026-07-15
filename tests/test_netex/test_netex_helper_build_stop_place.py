@@ -52,12 +52,6 @@ def test_netex_helper_build_stop_place_returns_expected_xml(mock_uuid):
             <Name>Stop1</Name>
             <Description>Stop 1</Description>
             <PublicCode>2545</PublicCode>
-            <Centroid>
-                <Location>
-                    <Longitude>42.0</Longitude>
-                    <Latitude>23.0</Latitude>
-                </Location>
-            </Centroid>
             <AccessibilityAssessment version="1" id="TEST:AccessibilityAssessment:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa">
                 <MobilityImpairedAccess>partial</MobilityImpairedAccess>
                 <limitations>

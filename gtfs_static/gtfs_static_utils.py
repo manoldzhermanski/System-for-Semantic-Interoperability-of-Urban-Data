@@ -119,62 +119,30 @@ def gtfs_static_extract_zip(zip_bytes: bytes, city: str, base_dir: str = "gtfs_s
         zip_file.extractall(extract_to)
     
 # -----------------------------------------------------
-# Read Data
+# Check for Valid CSV files
 # -----------------------------------------------------
 
-def gtfs_static_read_file(file_path: str) -> list[dict[str, Any]]:
-    """
-    Reads a GTFS Static CSV file and returns its contents as a list of dictionaries.
+def gtfs_static_validate_csv(file) -> csv.DictReader:
+    first_line = file.readline()
 
-    The keys come from the header row and the values from the remaining rows
+    if not first_line.strip():
+        return None
 
-    The function enforces basic GTFS Static file integrity checks:
-        - The file must not be empty
-        - The delimiter must be a comma (',') as required by the GTFS specification
-        - A valid, non-empty header row must be present
-        - Header column names must not be purely numeric
+    if "," not in first_line:
+        raise ValueError("Invalid delimiter: GTFS files must use comma ','.")
 
-    Args:
-        file_path (str):
-            Absolute or relative path to the GTFS ".txt" file.
+    file.seek(0)
 
-    Returns:
-        list[dict[str, Any]]:
-            A list of dictionaries representing the parsed GTFS records.
-            Returns an empty list if the file is empty.
+    reader = csv.DictReader(file, delimiter=",")
 
-    Raises:
-        FileNotFoundError:
-            If the specified file path does not exist.
-        ValueError:
-            If the file does not conform to expected GTFS CSV format
-            (invalid delimiter, missing or invalid header).
-    """
-    # Try and read the specified .txt GTFS Static file
-    with open(file_path, mode='r', encoding='utf-8-sig') as file:
-        first_line = file.readline()
-        
-        # If the file is empty, return []
-        if not first_line.strip():
-            return []
+    if (
+        not reader.fieldnames
+        or any(name.strip() == "" for name in reader.fieldnames)
+        or any(name.strip().isdigit() for name in reader.fieldnames)
+    ):
+        raise ValueError("Missing or invalid header row.")
 
-        # Require comma delimiter
-        if "," not in first_line:
-            raise ValueError("Invalid delimiter: GTFS files must use comma ',' as delimiter")
-
-        # Reset pointer after reading first line
-        file.seek(0)  
-        reader = csv.DictReader(file, delimiter=",")
-        
-        # Reject headers that are purely numeric (typical sign of missing header)
-        if reader.fieldnames and any(name.strip().isdigit() for name in reader.fieldnames):
-            raise ValueError("Missing or invalid header row: GTFS files must contain a valid CSV header.")
-        
-        # Reject empty column names
-        if not reader.fieldnames or any(name.strip() == "" for name in reader.fieldnames):
-            raise ValueError("Missing or invalid header row: GTFS files must contain a valid CSV header.")
-        
-        return list(reader)
+    return reader                                                                             
     
 # -----------------------------------------------------
 # Required field checks
@@ -3252,7 +3220,10 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
 
         # Open the file and read it as a CSV stream
         with open(file_path, "r", encoding="utf-8-sig", newline="") as f:
-            reader = csv.DictReader(f, delimiter=",")
+            reader = gtfs_static_validate_csv(f)
+
+            if reader is None:
+                continue
 
             # SPECIAL CASE: shapes are streamed differently because of aggregation by shape_id
             if file_type == "shapes":

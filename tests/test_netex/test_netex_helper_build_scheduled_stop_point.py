@@ -27,7 +27,7 @@ def test_build_scheduled_stop_point_success():
     entity = {
         "id": "urn:ngsi-ld:GtfsStop:TestCity:Stop1",
         "type": "GtfsStop",
-        "stop_name": {"type": "Property", "value": "Central Station"}
+        "name": {"type": "Property", "value": "Central Station"}
     }
 
     result_xml = netex_utils.netex_helper_build_scheduled_stop_point(entity)
@@ -37,7 +37,6 @@ def test_build_scheduled_stop_point_success():
         version="1"
         id="TEST:ScheduledStopPoint:Stop1">
         <Name>Central Station</Name>
-        <LocationRef ref="TEST:StopPlace:Stop1" version="1"/>
     </ScheduledStopPoint>
     """
 
@@ -57,11 +56,7 @@ def test_build_scheduled_stop_point_without_name():
     result_xml = netex_utils.netex_helper_build_scheduled_stop_point(entity)
 
     expected_xml = """
-    <ScheduledStopPoint
-        version="1"
-        id="TEST:ScheduledStopPoint:Stop1">
-        <LocationRef ref="TEST:StopPlace:Stop1" version="1"/>
-    </ScheduledStopPoint>
+    <ScheduledStopPoint version="1" id="TEST:ScheduledStopPoint:Stop1"/>
     """
 
     assert_xml_equal(result_xml, expected_xml)

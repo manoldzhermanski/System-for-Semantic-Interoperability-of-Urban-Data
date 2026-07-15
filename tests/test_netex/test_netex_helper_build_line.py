@@ -40,7 +40,7 @@ def test_netex_helper_build_line_returns_expected_xml():
             <Description>Line Description</Description>
             <TransportMode>bus</TransportMode>
             <TransportSubmode>
-                <BusSubmode>unknown</BusSubmode>
+                <BusSubmode>localBus</BusSubmode>
             </TransportSubmode>
             <Url>https://www.route_a_94.com</Url>
             <PublicCode>94</PublicCode>

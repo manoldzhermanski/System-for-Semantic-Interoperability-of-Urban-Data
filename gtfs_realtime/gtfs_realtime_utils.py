@@ -40,7 +40,6 @@ def unix_to_iso8601(timestamp: int | str | None) -> str | None:
 
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-# NOTE: SHOULD SEE IF IT IS USED AND WHAT FOR
 def iso8601_to_unix(timestamp: str) -> int | None:
     try:
         return int(

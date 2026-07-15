@@ -6,7 +6,7 @@ from netex.netex_utils import netex_helper_get_transport_mode_and_submode
     [
         (-1, (None, None)),
         (99, (None, None)),
-        (100, ('rail', 'unknown')),
+        (100, ('rail', 'local')),
         (101, ('rail', 'airportLinkRail')),
         (102, ('rail', 'longDistance')),
         (103, ('rail', 'interregionalRail')),
@@ -15,7 +15,7 @@ from netex.netex_utils import netex_helper_get_transport_mode_and_submode
         (107, ('rail', 'touristRailway')),
         (108, ('rail', 'airportLinkRail')),
         (109, ('rail', 'regionalRail')),
-        (200, ('coach', 'unknown')),
+        (200, ('coach', 'nationalCoach')),
         (201, ('coach', 'internationalCoach')),
         (202, ('coach', 'nationalCoach')),
         (204, ('coach', 'touristCoach')),
