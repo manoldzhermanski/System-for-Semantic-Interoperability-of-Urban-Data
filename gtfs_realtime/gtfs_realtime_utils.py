@@ -1,5 +1,6 @@
 import re
 import sys
+import json
 import requests
 from typing import Any
 from pathlib import Path
@@ -161,7 +162,7 @@ def to_snake_case(name: str) -> str:
     # Convert the final result to lowercase
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
-def normalize_keys_to_snake_case(data: Any) -> Any:
+def normalize_strings_to_snake_case(data: Any) -> Any:
     """
     Recursively normalize dictionary keys to snake_case.
 
@@ -177,13 +178,13 @@ def normalize_keys_to_snake_case(data: Any) -> Any:
     # Normalize dictionary keys and recurse into values
     if isinstance(data, dict):
         return {
-            to_snake_case(key): normalize_keys_to_snake_case(value)
+            to_snake_case(key): normalize_strings_to_snake_case(value)
             for key, value in data.items()
         }
 
     # Normalize every list element recursively
     if isinstance(data, list):
-        return [normalize_keys_to_snake_case(item) for item in data]
+        return [normalize_strings_to_snake_case(item) for item in data]
 
     # Return non-dict and non-list values unchanged
     return data
@@ -917,7 +918,7 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld() -> list[dict[str, Any]]:
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     
     # Normalize all keys to snake_case for consistent downstream processing
-    normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
+    normal_feed_dict = normalize_strings_to_snake_case(feed_dict)
     
     # Extract GTFS entities from the normalized dict
     entities = normal_feed_dict.get("entity")
@@ -970,7 +971,7 @@ def gtfs_realtime_trip_updates_to_ngsi_ld() -> list[dict[str, Any]]:
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     
     # Normalize all keys to snake_case for consistent downstream processing
-    normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
+    normal_feed_dict = normalize_strings_to_snake_case(feed_dict)
 
     # Extract GTFS entities from the normalized dict
     entities = normal_feed_dict.get("entity", [])
@@ -1023,7 +1024,7 @@ def gtfs_realtime_alerts_to_ngsi_ld() -> list[dict[str, Any]]:
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     
     # Normalize all keys to snake_case for consistent downstream processing
-    normal_feed_dict = normalize_keys_to_snake_case(feed_dict)
+    normal_feed_dict = normalize_strings_to_snake_case(feed_dict)
 
     # Extract GTFS entities from the normalized dict
     entities = normal_feed_dict.get("entity")
@@ -1088,3 +1089,16 @@ def gtfs_realtime_get_ngsi_ld_data(type: str) -> list[dict[str, Any]]:
     # Reject unsupported or unknown GTFS-Realtime types
     else:
         raise ValueError("Unknown / Unsupported GTFS Realtime type")
+
+if __name__ == "__main__":
+    with open("example.json", "w") as file:
+        # Fetch raw GTFS-Realtime feed from the configured source
+        api_response = gtfs_realtime_get_feed(config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    
+        # Parse the feed into a GTFS-Realtime FeedMessage
+        feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+    
+        # Convert the FeedMessage into a Python dictionary
+        feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+        #vehicle_position_data = gtfs_realtime_get_ngsi_ld_data("VehiclePosition")
+        file.write(json.dumps(feed_dict, indent=2))
