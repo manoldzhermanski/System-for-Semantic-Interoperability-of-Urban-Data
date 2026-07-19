@@ -1,4 +1,4 @@
-from gtfs_realtime.gtfs_realtime_utils import normalize_strings_to_snake_case
+from gtfs_realtime.gtfs_realtime_utils import normalize_keys_and_values_to_snake_case
 
 def test_normalize_keys_to_snake_case_simple_key():
     """
@@ -7,7 +7,7 @@ def test_normalize_keys_to_snake_case_simple_key():
     entity = {"Alert": 1}
     
     expected = {"alert": 1}
-    result = normalize_strings_to_snake_case(entity)
+    result = normalize_keys_and_values_to_snake_case(entity)
 
     assert result == expected
 
@@ -18,7 +18,7 @@ def test_normalize_keys_to_snake_case_camel_case_key():
     entity = {"activePeriod": 123}
     expected = {"active_period": 123}
     
-    result = normalize_strings_to_snake_case(entity)
+    result = normalize_keys_and_values_to_snake_case(entity)
 
     assert result == expected
 
@@ -29,7 +29,7 @@ def test_normalize_keys_to_snake_case_nested_dict():
     entity = {"Alert": {"activePeriod": 123}}
     expected = {"alert": {"active_period": 123}}
 
-    result = normalize_strings_to_snake_case(entity)
+    result = normalize_keys_and_values_to_snake_case(entity)
 
     assert result == expected
 
@@ -51,7 +51,7 @@ def test_normalize_keys_to_snake_case_list_of_dicts():
         ]
     }
 
-    result = normalize_strings_to_snake_case(entity)
+    result = normalize_keys_and_values_to_snake_case(entity)
 
     assert result == expected
 
@@ -65,7 +65,7 @@ def test_normalize_keys_to_snake_case_already_snake_case():
         }
     }
 
-    result = normalize_strings_to_snake_case(entity)
+    result = normalize_keys_and_values_to_snake_case(entity)
 
     assert result == entity
 
@@ -119,7 +119,7 @@ def normalize_keys_to_snake_case_gtfs_realtime_vehicle_position():
             }
         }
     
-    result = normalize_strings_to_snake_case(entity)
+    result = normalize_keys_and_values_to_snake_case(entity)
     
     assert result == expected
     
@@ -418,7 +418,7 @@ def normalize_keys_to_snake_case_gtfs_realtime_trip_update():
             }
         }
     
-    result = normalize_strings_to_snake_case(entity)
+    result = normalize_keys_and_values_to_snake_case(entity)
     
     assert result == expected
     
@@ -533,6 +533,6 @@ def normalize_keys_to_snake_case_gtfs_realtime_trip_alerts():
             }
         }
     
-    result = normalize_strings_to_snake_case(entity)
+    result = normalize_keys_and_values_to_snake_case(entity)
     
     assert result == expected

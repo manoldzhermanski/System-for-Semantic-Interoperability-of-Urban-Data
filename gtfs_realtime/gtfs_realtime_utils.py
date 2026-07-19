@@ -162,7 +162,7 @@ def to_snake_case(name: str) -> str:
     # Convert the final result to lowercase
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
-def normalize_strings_to_snake_case(data: Any) -> Any:
+def normalize_keys_and_values_to_snake_case(data: Any) -> Any:
     """
     Recursively normalize dictionary keys to snake_case.
 
@@ -178,13 +178,13 @@ def normalize_strings_to_snake_case(data: Any) -> Any:
     # Normalize dictionary keys and recurse into values
     if isinstance(data, dict):
         return {
-            to_snake_case(key): normalize_strings_to_snake_case(value)
+            to_snake_case(key): normalize_keys_and_values_to_snake_case(value)
             for key, value in data.items()
         }
 
     # Normalize every list element recursively
     if isinstance(data, list):
-        return [normalize_strings_to_snake_case(item) for item in data]
+        return [normalize_keys_and_values_to_snake_case(item) for item in data]
 
     # Return non-dict and non-list values unchanged
     return data
@@ -918,7 +918,7 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld() -> list[dict[str, Any]]:
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     
     # Normalize all keys to snake_case for consistent downstream processing
-    normal_feed_dict = normalize_strings_to_snake_case(feed_dict)
+    normal_feed_dict = normalize_keys_and_values_to_snake_case(feed_dict)
     
     # Extract GTFS entities from the normalized dict
     entities = normal_feed_dict.get("entity")
@@ -971,7 +971,7 @@ def gtfs_realtime_trip_updates_to_ngsi_ld() -> list[dict[str, Any]]:
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     
     # Normalize all keys to snake_case for consistent downstream processing
-    normal_feed_dict = normalize_strings_to_snake_case(feed_dict)
+    normal_feed_dict = normalize_keys_and_values_to_snake_case(feed_dict)
 
     # Extract GTFS entities from the normalized dict
     entities = normal_feed_dict.get("entity", [])
@@ -1024,7 +1024,7 @@ def gtfs_realtime_alerts_to_ngsi_ld() -> list[dict[str, Any]]:
     feed_dict = gtfs_realtime_feed_to_dict(feed_data)
     
     # Normalize all keys to snake_case for consistent downstream processing
-    normal_feed_dict = normalize_strings_to_snake_case(feed_dict)
+    normal_feed_dict = normalize_keys_and_values_to_snake_case(feed_dict)
 
     # Extract GTFS entities from the normalized dict
     entities = normal_feed_dict.get("entity")
