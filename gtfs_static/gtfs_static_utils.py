@@ -3254,9 +3254,3 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
             # Yield any remaining entities
             if batch:
                 yield batch
-
-
-if __name__ == "__main__":
-    for batch in gtfs_static_get_ngsi_ld_batches("translations", "Sofia"):
-        print(json.dumps(batch, indent=2, ensure_ascii=False))
-        
