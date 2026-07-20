@@ -1,4 +1,5 @@
 import pytest
+import config
 from unittest.mock import patch, MagicMock
 from gtfs_static.gtfs_static_utils import gtfs_static_pathways_to_ngsi_ld
 
@@ -8,21 +9,21 @@ def test_gtfs_pathways_to_ngsi_ld():
     - Check for proper function call order (parse, validate, convert, remove_none)
     - Checks if valid NGSI-LD entities are produced
     """
-    city = "Sofia"
-    
+    config.set_operating_city("Sofia")
+
     # Sample input for GTFS Pathway
     sample_raw_data = [
         {
             "pathway_id": "P1",
-            "from_stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S1",
-            "to_stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S2",
+            "from_stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",
+            "to_stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S2",
             "pathway_mode": "1",
             "is_bidirectional": "1",
             },
         {
             "pathway_id": "P2",
-            "from_stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S3",
-            "to_stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S4",
+            "from_stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S3",
+            "to_stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S4",
             "pathway_mode": "1",
             "is_bidirectional": "1",
             },
@@ -32,15 +33,15 @@ def test_gtfs_pathways_to_ngsi_ld():
     parsed_data = [
         {
             "pathway_id": "P1",
-            "from_stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S1",
-            "to_stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S2",
+            "from_stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",
+            "to_stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S2",
             "pathway_mode": 1,
             "is_bidirectional": 1,
             },
         {
             "pathway_id": "P2",
-            "from_stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S3",
-            "to_stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S4",
+            "from_stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S3",
+            "to_stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S4",
             "pathway_mode": 1,
             "is_bidirectional": 1,
             },
@@ -49,18 +50,18 @@ def test_gtfs_pathways_to_ngsi_ld():
     # Mock result from convert_gtfs_pathways_to_ngsi_ld
     converted_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsPathway:{city}:P1",
+            "id": f"urn:ngsi-ld:GtfsPathway:{config.get_operating_city()}:P1",
             "type": "GtfsPathway",
-            "hasOrigin": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:S1",},
-            "hasDestination": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:S2",},
+            "hasOrigin": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",},
+            "hasDestination": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S2",},
             "pathway_mode": {"type": "Property", "value": 1,},
             "isBidirectional": {"type": "Property", "value": 1,}
             },
         {
-            "id": f"urn:ngsi-ld:GtfsPathway:{city}:P2",
+            "id": f"urn:ngsi-ld:GtfsPathway:{config.get_operating_city()}:P2",
             "type": "GtfsPathway",
-            "hasOrigin": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:S3",},
-            "hasDestination": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:S4",},
+            "hasOrigin": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S3",},
+            "hasDestination": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S4",},
             "pathway_mode": {"type": "Property", "value": 1,},
             "isBidirectional": {"type": "Property", "value": 1,}
             },
@@ -69,18 +70,18 @@ def test_gtfs_pathways_to_ngsi_ld():
     # Mock result from remove_none_values
     cleaned_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsPathway:{city}:P1",
+            "id": f"urn:ngsi-ld:GtfsPathway:{config.get_operating_city()}:P1",
             "type": "GtfsPathway",
-            "hasOrigin": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:S1",},
-            "hasDestination": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:S2",},
+            "hasOrigin": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",},
+            "hasDestination": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S2",},
             "pathway_mode": {"type": "Property", "value": 1,},
             "isBidirectional": {"type": "Property", "value": 1,}
             },
         {
-            "id": f"urn:ngsi-ld:GtfsPathway:{city}:P2",
+            "id": f"urn:ngsi-ld:GtfsPathway:{config.get_operating_city()}:P2",
             "type": "GtfsPathway",
-            "hasOrigin": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:S3",},
-            "hasDestination": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:S4",},
+            "hasOrigin": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S3",},
+            "hasDestination": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S4",},
             "pathway_mode": {"type": "Property", "value": 1,},
             "isBidirectional": {"type": "Property", "value": 1,}
             },
@@ -99,7 +100,7 @@ def test_gtfs_pathways_to_ngsi_ld():
         patch("gtfs_static.gtfs_static_utils.remove_none_values", mock_remove_none):
             
             # Function call result from gtfs_static_pathways_to_ngsi_ld
-            result = gtfs_static_pathways_to_ngsi_ld(sample_raw_data, city)
+            result = gtfs_static_pathways_to_ngsi_ld(sample_raw_data)
 
     # Check that result is as expected
     assert result == cleaned_data
@@ -111,8 +112,8 @@ def test_gtfs_pathways_to_ngsi_ld():
 
     # Check that validate_gtfs_pathways_entity is called for every entity
     assert mock_validate.call_count == 2
-    mock_validate.assert_any_call(parsed_data[0], city)
-    mock_validate.assert_any_call(parsed_data[1], city)
+    mock_validate.assert_any_call(parsed_data[0])
+    mock_validate.assert_any_call(parsed_data[1])
 
     # Check that convert_gtfs_pathways_to_ngsi_ld is called for every entity
     assert mock_convert.call_count == 2

@@ -1,25 +1,26 @@
+import config
 from gtfs_static.gtfs_static_utils import convert_gtfs_fare_attributes_to_ngsi_ld
 
 def test_convert_gtfs_fare_attributes_to_ngsi_ld():
     """
     Check for proper conversion from GTFS to NGSI-LD for fare_attributes.txt
     """
+    config.set_operating_city("Sofia")
+
     entity = {
         "fare_id": "F1",
         "price": 1.60,
         "currency_type": "BGN",
         "payment_method": 0,
         "transfers": 1,
-        "agency_id": "urn:ngsi-ld:GtfsAgency:A1",
+        "agency_id": f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:A1",
         "transfer_duration": 3600,
     }
 
-    city = "Berlin"
-
-    result = convert_gtfs_fare_attributes_to_ngsi_ld(entity, city)
+    result = convert_gtfs_fare_attributes_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsFareAttributes:Berlin:F1",
+        "id": f"urn:ngsi-ld:GtfsFareAttributes:{config.get_operating_city()}:F1",
         "type": "GtfsFareAttributes",
         "price": {
             "type": "Property",
@@ -39,7 +40,7 @@ def test_convert_gtfs_fare_attributes_to_ngsi_ld():
         },
         "agency": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsAgency:A1",
+            "object": f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:A1",
         },
         "transfer_duration": {
             "type": "Property",
@@ -51,21 +52,21 @@ def test_convert_gtfs_fare_attributes_to_ngsi_ld_missing_optional_fields():
     """
     Check for proper conversion from GTFS to NGSI-LD for fare_attributes.txt when optional fileds are missing
     """
+    config.set_operating_city("Sofia")
+
     entity = {
         "fare_id": "F1",
         "price": 1.60,
         "currency_type": "BGN",
         "payment_method": 0,
         "transfers": 1,
-        "agency_id": "urn:ngsi-ld:GtfsAgency:A1",
+        "agency_id": f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:A1",
     }
 
-    city = "Berlin"
-
-    result = convert_gtfs_fare_attributes_to_ngsi_ld(entity, city)
+    result = convert_gtfs_fare_attributes_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsFareAttributes:Berlin:F1",
+        "id": f"urn:ngsi-ld:GtfsFareAttributes:{config.get_operating_city()}:F1",
         "type": "GtfsFareAttributes",
         "price": {
             "type": "Property",
@@ -85,7 +86,7 @@ def test_convert_gtfs_fare_attributes_to_ngsi_ld_missing_optional_fields():
         },
         "agency": {
             "type": "Relationship",
-            "object": "urn:ngsi-ld:GtfsAgency:A1",
+            "object": f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:A1",
         },
         "transfer_duration": {
             "type": "Property",

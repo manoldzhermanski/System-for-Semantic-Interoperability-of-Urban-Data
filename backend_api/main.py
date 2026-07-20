@@ -32,7 +32,6 @@ from gtfs_realtime.gtfs_realtime_utils import (
 
 from netex.netex_utils import (
     netex_helper_prepare_output_directory,
-    netex_helper_set_operating_city,
     netex_load_city_dataset,
     netex_build_indexes_and_collections,
     netex_build_authority_dataset,
@@ -313,6 +312,8 @@ async def update_vehicle_positions_loop(interval: int = 30):
     """
     global gtfs_realtime_feed
 
+    config.set_operating_city("Sofia")  # Ensure the operating city is set for Orion-LD operations
+
     # Run continuously as a background update loop
     while True:
         try:
@@ -326,14 +327,13 @@ async def update_vehicle_positions_loop(interval: int = 30):
             fiware_scorpio_batch_replace_entity_data(ngsild_entities, header)
 
             # Fetch the processed GtfsRealtimeVehiclePosition entities
-            entities = fiware_scorpio_get_entities_by_type("GtfsRealtimeVehiclePosition", header)
+            entities = fiware_scorpio_get_entities_by_type("GtfsRealtimeVehiclePosition", header, config.get_operating_city())
 
             # Convert NGSI-LD entities into a GTFS-Realtime feed
             gtfs_realtime_feed = ngsi_ld_vehicle_positions_to_feed_message(entities)
 
             # Log successful feed creation
-            logger.info("GTFS feed built: entities=%d", len(gtfs_realtime_feed.entity) # type: ignore
-)
+            logger.info("GTFS feed built: entities=%d", len(gtfs_realtime_feed.entity))  # type: ignore
 
         except Exception as e:
             logger.exception("Vehicle update failed: %s", e)
@@ -741,21 +741,23 @@ def build_gtfs_zip() -> str:
         "stops.txt": [...]
     }
     """
+    config.set_operating_city("Sofia")
+
     zip_path = os.path.join(config.OTP_DATA_DIR, f"gtfs.zip")
     
     header = fiware_scorpio_define_header("gtfs_static")
-    agencies = fiware_scorpio_get_entities_by_type("GtfsAgency", header, "Sofia")
-    stops = fiware_scorpio_get_entities_by_type("GtfsStop", header, "Sofia")
-    routes = fiware_scorpio_get_entities_by_type("GtfsRoute", header, "Sofia")
-    trips = fiware_scorpio_get_entities_by_type("GtfsTrip", header, "Sofia")
-    stop_times = fiware_scorpio_get_entities_by_type("GtfsStopTime", header, "Sofia")
-    calendar_dates = fiware_scorpio_get_entities_by_type("GtfsCalendarDateRule", header, "Sofia")
-    fare_attributes = fiware_scorpio_get_entities_by_type("GtfsFareAttributes", header, "Sofia")
-    shapes = fiware_scorpio_get_entities_by_type("GtfsShape", header, "Sofia")
-    transfers = fiware_scorpio_get_entities_by_type("GtfsTransferRule", header, "Sofia")
-    pathways = fiware_scorpio_get_entities_by_type("GtfsPathway", header, "Sofia")
-    levels = fiware_scorpio_get_entities_by_type("GtfsLevel", header, "Sofia"),
-    translations = fiware_scorpio_get_entities_by_type("GtfsTranslation", header, "Sofia")
+    agencies = fiware_scorpio_get_entities_by_type("GtfsAgency", header, config.get_operating_city())
+    stops = fiware_scorpio_get_entities_by_type("GtfsStop", header, config.get_operating_city())
+    routes = fiware_scorpio_get_entities_by_type("GtfsRoute", header, config.get_operating_city())
+    trips = fiware_scorpio_get_entities_by_type("GtfsTrip", header, config.get_operating_city())
+    stop_times = fiware_scorpio_get_entities_by_type("GtfsStopTime", header, config.get_operating_city())
+    calendar_dates = fiware_scorpio_get_entities_by_type("GtfsCalendarDateRule", header, config.get_operating_city())
+    fare_attributes = fiware_scorpio_get_entities_by_type("GtfsFareAttributes", header, config.get_operating_city())
+    shapes = fiware_scorpio_get_entities_by_type("GtfsShape", header, config.get_operating_city())
+    transfers = fiware_scorpio_get_entities_by_type("GtfsTransferRule", header, config.get_operating_city())
+    pathways = fiware_scorpio_get_entities_by_type("GtfsPathway", header, config.get_operating_city())
+    levels = fiware_scorpio_get_entities_by_type("GtfsLevel", header, config.get_operating_city()),
+    translations = fiware_scorpio_get_entities_by_type("GtfsTranslation", header, config.get_operating_city())
 
     data = {
         "agency.txt": agencies,
@@ -805,7 +807,7 @@ def build_netex() -> str:
 
     netex_helper_prepare_output_directory()
 
-    netex_helper_set_operating_city("Sofia")
+    config.set_operating_city("Sofia")
 
     gtfs_dataset = netex_load_city_dataset()
 

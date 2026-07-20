@@ -19,9 +19,7 @@ def test_validate_gtfs_pathways_entity_all_valid_fields():
         "min_width": 1.2
     }
     
-    city = "Sofia"
-
-    validate_gtfs_pathways_entity(entity, city)
+    validate_gtfs_pathways_entity(entity)
 
 def test_validate_gtfs_pathways_entity_missing_required_field():
     """
@@ -39,10 +37,8 @@ def test_validate_gtfs_pathways_entity_missing_required_field():
         "min_width": 1.2
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity, city)
+        validate_gtfs_pathways_entity(entity)
 
     assert "Missing required GTFS field:" in str(err.value)
 
@@ -63,9 +59,7 @@ def test_validate_gtfs_pathways_entity_optional_fields_none():
         "min_width": None
     }
     
-    city = "Sofia"
-
-    validate_gtfs_pathways_entity(entity, city)
+    validate_gtfs_pathways_entity(entity)
 
 def test_validate_gtfs_pathways_entity_invalid_pathway_mode():
     """
@@ -84,10 +78,8 @@ def test_validate_gtfs_pathways_entity_invalid_pathway_mode():
         "min_width": 1.2
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity, city)
+        validate_gtfs_pathways_entity(entity)
 
     assert "'pathway_mode' has to be" in str(err.value)
 
@@ -108,10 +100,9 @@ def test_validate_gtfs_pathways_entity_invalid_is_bidirectional():
         "min_width": 1.2
     }
     
-    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity, city)
+        validate_gtfs_pathways_entity(entity)
 
     assert "'is_bidirectional' has to be 0 or 1" in str(err.value)
 
@@ -132,10 +123,9 @@ def test_validate_gtfs_pathways_entity_pathway_mode_7_does_not_allow_is_bidirect
         "min_width": 1.2
     }
     
-    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity, city)
+        validate_gtfs_pathways_entity(entity)
 
     assert "cannot be 1 when 'pathway_mode' is 7" in str(err.value)
 
@@ -156,10 +146,9 @@ def test_validate_gtfs_pathways_entity_negative_length():
         "min_width": 1.2
     }
     
-    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity, city)
+        validate_gtfs_pathways_entity(entity)
 
     assert "'length' must be a non-negative float" in str(err.value)
 
@@ -180,10 +169,9 @@ def test_validate_gtfs_pathways_entity_zero_traversal_time():
         "min_width": 1.2
     }
     
-    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity, city)
+        validate_gtfs_pathways_entity(entity)
 
     assert "'traversal_time' must be a positive integer" in str(err.value)
 
@@ -204,10 +192,9 @@ def test_validate_gtfs_pathways_entity_zero_stair_count():
         "min_width": 1.2
     }
     
-    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity, city)
+        validate_gtfs_pathways_entity(entity)
 
     assert "'stair_count' must be a non-zero integer" in str(err.value)
 
@@ -228,10 +215,9 @@ def test_validate_gtfs_pathways_entity_max_slope_invalid_pathway_mode():
         "min_width": 1.2
     }
     
-    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity, city)
+        validate_gtfs_pathways_entity(entity)
 
     assert "'max_slope' can only be defined" in str(err.value)
 
@@ -252,10 +238,9 @@ def test_validate_gtfs_pathways_entity_zero_min_width():
         "min_width": 0.0
     }
     
-    city = "Sofia"
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_pathways_entity(entity, city)
+        validate_gtfs_pathways_entity(entity)
 
     assert "'min_width' must be a positive float" in str(err.value)
 

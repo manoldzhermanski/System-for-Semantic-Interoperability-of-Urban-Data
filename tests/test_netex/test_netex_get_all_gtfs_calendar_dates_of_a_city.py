@@ -6,9 +6,9 @@ import netex.netex_utils as netex_utils
 
 def test_netex_get_all_gtfs_calendar_dates_of_a_city_success():
     """
-    Test that if config.NETEX_OPERATING_CITY is set, the GET request is sent
+    Test that if get_operating_city() is set, the GET request is sent
     """
-    config.NETEX_OPERATING_CITY = "Sofia"
+    config.set_operating_city("Sofia")
 
     mock_entities = [{"id": "urn:ngsi-ld:GtfsCalendarDateRule:Sofia:CD1"}]
 
@@ -21,9 +21,9 @@ def test_netex_get_all_gtfs_calendar_dates_of_a_city_success():
 
 def test_netex_get_all_gtfs_calendar_dates_of_a_city_without_city():
     """
-    Test that ValueError is raised when config.NETEX_OPERATING_CITY is not set
+    Test that ValueError is raised when get_operating_city() is not set
     """
-    config.NETEX_OPERATING_CITY = None
+    config.OPERATING_CITY = None
 
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError):
         netex_utils.netex_get_all_gtfs_calendar_dates_of_a_city()

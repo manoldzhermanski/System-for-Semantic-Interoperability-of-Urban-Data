@@ -83,238 +83,207 @@ def netex_helper_create_otp_zip() -> None:
 # -----------------------------------------------------
 # Get Data Functions
 # -----------------------------------------------------
-def netex_helper_set_operating_city(city: str) -> None:
-    """
-    Set the parameter config.NETEX_OPERATING_CITY to the city for which we want to get data
-    
-    Args:
-        city (str): Operating city for which we want to get data
-
-    Returns:
-        None
-
-    Raises:
-        TypeError: If `city` is not a string
-        ValueError: If `city` is empty or contains invalid characters
-    """
-    # If not a string, raise TypeError
-    if not isinstance(city, str):
-        raise TypeError("City must be a string")
-
-    # Remove whitespaces around and set to title case
-    city = city.strip().title().replace(" ", "_").replace("-", "_")
-
-    # If empty, raise ValueError
-    if not city:
-        raise ValueError("City cannot be empty")
-
-    # Check that the city contains valid characters
-    if not re.fullmatch(r"[A-Za-zА-Яа-я_]+", city):
-        raise ValueError("City contains invalid characters")
-    
-    # Set the parameter
-    config.NETEX_OPERATING_CITY = city
 
 def netex_get_all_gtfs_agencies_of_a_city() -> list[dict[str, Any]]:
     """
     Get all GtfsAgency entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsAgency entities
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsAgency entities
     for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsAgency entities for the operating city
 
     Raises:
-        ValueError: When config.NETEX_OPERATING_CITY is not set
+        ValueError: When config.OPERATING_CITY is not set
     """
     header = fiware_scorpio_define_header("gtfs_static")
 
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsAgency", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsAgency", header, config.get_operating_city())
     
 def netex_get_all_gtfs_routes_of_a_city() -> list[dict[str, Any]]:
     """
     Get all GtfsRoute entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsRoute entities
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsRoute entities
     for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsRoute entities for the operating city
         
     Raises:
-        ValueError: If config.NETEX_OPERATING_CITY is not set
+        ValueError: If config.OPERATING_CITY is not set
     """
     # Define header
     header = fiware_scorpio_define_header("gtfs_static")
 
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsRoute", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsRoute", header, config.get_operating_city())
 
 def netex_get_all_gtfs_trips_of_a_city() -> list[dict[str, Any]]:
     """
     Get all GtfsTrip entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsTrip entities
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsTrip entities
     for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsTrip entities for the operating city
         
     Raises:
-        ValueError: If config.NETEX_OPERATING_CITY is not set
+        ValueError: If config.OPERATING_CITY is not set
     """
     header = fiware_scorpio_define_header("gtfs_static")
     
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsTrip", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsTrip", header, config.get_operating_city())
 
 def netex_get_all_gtfs_calendar_of_a_city() -> list[dict[str, Any]]:
     """
     Get all GtfsCalendarRule entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsCalendarRule
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsCalendarRule
     entities for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsCalendarRule entities for the operating city
         
     Raises:
-        ValueError: If config.NETEX_OPERATING_CITY is not set
+        ValueError: If config.OPERATING_CITY is not set
     """
     header = fiware_scorpio_define_header("gtfs_static")
     
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsCalendarRule", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsCalendarRule", header, config.get_operating_city())
 
 def netex_get_all_gtfs_calendar_dates_of_a_city() -> list[dict[str, Any]]:
     """
     Get all GtfsCalendarDateRule entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsCalendarDateRule
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsCalendarDateRule
     entities for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsCalendarDateRule entities for the operating city
         
     Raises:
-        ValueError: If config.NETEX_OPERATING_CITY is not set
+        ValueError: If config.OPERATING_CITY is not set
     """
     header = fiware_scorpio_define_header("gtfs_static")
     
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsCalendarDateRule", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsCalendarDateRule", header, config.get_operating_city())
 
 def netex_get_all_gtfs_shapes_of_a_city() -> list[dict[str, Any]]:
     """
     Get all GtfsShape entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsShape
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsShape
     entities for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsShape entities for the operating city
         
     Raises:
-        ValueError: If config.NETEX_OPERATING_CITY is not set
+        ValueError: If config.OPERATING_CITY is not set
     """
     header = fiware_scorpio_define_header("gtfs_static")
     
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsShape", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsShape", header, config.get_operating_city())
 
 def netex_get_all_gtfs_stop_times_of_a_city() -> list[dict[str, Any]]:
     """
     Get all GtfsStopTime entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsStopTime
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsStopTime
     entities for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsStopTime entities for the operating city
         
     Raises:
-        ValueError: If config.NETEX_OPERATING_CITY is not set
+        ValueError: If config.OPERATING_CITY is not set
     """
     header = fiware_scorpio_define_header("gtfs_static")
     
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsStopTime", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsStopTime", header, config.get_operating_city())
 
 def netex_get_all_gtfs_stops_of_city() -> list[dict[str, Any]]:
     """
     Get all GtfsStop entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsStop
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsStop
     entities for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsStop entities for the operating city
         
     Raises:
-        ValueError: If config.NETEX_OPERATING_CITY is not set
+        ValueError: If config.OPERATING_CITY is not set
     """
     header = fiware_scorpio_define_header("gtfs_static")
     
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsStop", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsStop", header, config.get_operating_city())
 
 def netex_get_all_gtfs_transfers_of_city() -> list[dict[str, Any]]:
     """
     Get all GtfsTransfer entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsTransfer
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsTransfer
     entities for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsTransfer entities for the operating city
         
     Raises:
-        ValueError: If config.NETEX_OPERATING_CITY is not set
+        ValueError: If config.OPERATING_CITY is not set
     """
     header = fiware_scorpio_define_header("gtfs_static")
     
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsTransfer", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsTransfer", header, config.get_operating_city())
 
 def netex_get_all_gtfs_translations_of_city() -> list[dict[str, Any]]:
     """
     Get all GtfsTranslation entities of a city
 
-    Based on the set parameter config.NETEX_OPERATING_CITY, the function sets a GET request to retrieve all GtfsTransfer
+    Based on the set parameter config.OPERATING_CITY, the function sets a GET request to retrieve all GtfsTransfer
     entities for the operating city.
     
     Returns:
         list[dict[str, Any]]: A list of all GtfsTranslation entities for the operating city
         
     Raises:
-        ValueError: If config.NETEX_OPERATING_CITY is not set
+        ValueError: If config.OPERATING_CITY is not set
     """
     header = fiware_scorpio_define_header("gtfs_static")
     
-    if not config.NETEX_OPERATING_CITY:
-        raise ValueError("Parameter config.NETEX_OPERATING_CITY is not set ")
+    if not config.get_operating_city():
+        raise ValueError("Parameter config.OPERATING_CITY is not set ")
     
-    return fiware_scorpio_get_entities_by_type("GtfsTranslation", header, config.NETEX_OPERATING_CITY)
+    return fiware_scorpio_get_entities_by_type("GtfsTranslation", header, config.get_operating_city())
 
 def netex_load_city_dataset() -> dict[str, Any]:
     
@@ -3959,7 +3928,7 @@ def netex_create_stops_xml(agency, authority_dataset):
 if __name__ == "__main__":
     netex_helper_prepare_output_directory()
 
-    netex_helper_set_operating_city("Sofia")
+    config.set_operating_city("Sofia")
 
     gtfs_dataset = netex_load_city_dataset()
 

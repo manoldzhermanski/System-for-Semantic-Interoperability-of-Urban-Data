@@ -611,10 +611,14 @@ def fiware_scorpio_batch_delete_entities_by_type(entity_type: str, header: dict[
         logger.debug(f'Remaining entities: {entity_count}')
         
 if __name__ == "__main__":
+    config.set_operating_city("Sofia")
+
+    city = config.get_operating_city()
+
     header = fiware_scorpio_define_header("gtfs_static")
     
     # POST Example
-    fiware_scorpio_batch_load_to_context_broker(gtfs_static_get_ngsi_ld_batches("calendar_dates", "Sofia"), header)
+    fiware_scorpio_batch_load_to_context_broker(gtfs_static_get_ngsi_ld_batches("calendar_dates", city), header)
     
     # Count Example
     # print(fiware_scorpio_get_count_of_entities_by_type("GtfsCalendarDateRule", header))

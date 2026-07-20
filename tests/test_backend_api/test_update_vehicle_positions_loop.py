@@ -1,4 +1,5 @@
 import pytest
+import config
 import asyncio
 from unittest.mock import patch, MagicMock
 
@@ -6,6 +7,9 @@ from backend_api.main import update_vehicle_positions_loop
 
 @pytest.mark.asyncio
 async def test_update_vehicle_positions_loop_happy_path():
+    
+    config.set_operating_city("Sofia")
+
     mock_ngsi_entities = [{"id": "1"}]
     mock_orion_entities = [{"id": "veh1"}]
     mock_feed = MagicMock()
@@ -28,10 +32,7 @@ async def test_update_vehicle_positions_loop_happy_path():
         mock_get_ngsi.assert_called_once_with("VehiclePosition")
         mock_header.assert_called_once_with("gtfs_realtime")
         mock_batch.assert_called_once_with(mock_ngsi_entities, {"header": "x"})
-        mock_get_entities.assert_called_once_with(
-            "GtfsRealtimeVehiclePosition",
-            {"header": "x"}
-        )
+        mock_get_entities.assert_called_once_with("GtfsRealtimeVehiclePosition", {"header": "x"}, config.get_operating_city())
         mock_build_feed.assert_called_once_with(mock_orion_entities)
 
         mock_logger.info.assert_called_once_with(

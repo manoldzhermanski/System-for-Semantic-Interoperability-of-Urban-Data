@@ -17,9 +17,7 @@ def test_validate_gtfs_trips_entity_all_fields_valid():
         "cars_allowed": 0
     }
     
-    city = "Sofia"
-
-    validate_gtfs_trips_entity(entity, city)
+    validate_gtfs_trips_entity(entity)
 
 def test_validate_gtfs_trips_entity_missing_required_field():
     """
@@ -36,10 +34,8 @@ def test_validate_gtfs_trips_entity_missing_required_field():
         "cars_allowed": 0
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_trips_entity(entity, city)
+        validate_gtfs_trips_entity(entity)
 
     assert "Missing required GTFS field" in str(err.value)
 
@@ -59,9 +55,7 @@ def test_validate_gtfs_trips_entity_optional_fields_none():
         "cars_allowed": None
     }
     
-    city = "Sofia"
-
-    validate_gtfs_trips_entity(entity, city)
+    validate_gtfs_trips_entity(entity)
 
 def test_validate_gtfs_trips_entity_invalid_direction_id():
     """
@@ -77,10 +71,8 @@ def test_validate_gtfs_trips_entity_invalid_direction_id():
         "cars_allowed": 0
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_trips_entity(entity, city)
+        validate_gtfs_trips_entity(entity)
 
     assert "'direction_id' must be" in str(err.value)
 
@@ -98,10 +90,8 @@ def test_validate_gtfs_trips_entity_invalid_wheelchair_accessible():
         "cars_allowed": 0
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_trips_entity(entity, city)
+        validate_gtfs_trips_entity(entity)
 
     assert "'wheelchair_accessible' must be" in str(err.value)
 
@@ -120,10 +110,8 @@ def test_validate_gtfs_trips_entity_invalid_bikes_allowed():
         "cars_allowed": 0
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_trips_entity(entity, city)
+        validate_gtfs_trips_entity(entity)
 
     assert "'bikes_allowed' must be" in str(err.value)
 
@@ -140,11 +128,9 @@ def test_validate_gtfs_trips_entity_invalid_cars_allowed():
         "bikes_allowed": 0,
         "cars_allowed": 3
     }
-    
-    city = "Sofia"
-    
+        
     with pytest.raises(ValueError) as err:
-        validate_gtfs_trips_entity(entity, city)
+        validate_gtfs_trips_entity(entity)
 
     assert "'cars_allowed' must be" in str(err.value)
 

@@ -1,4 +1,5 @@
 import pytest
+import config
 from unittest.mock import patch, MagicMock
 from gtfs_static.gtfs_static_utils import gtfs_static_calendar_to_ngsi_ld
 
@@ -11,7 +12,7 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
     - Checks if valid NGSI-LD entities are produced
     """
 
-    city = "Sofia"
+    config.set_operating_city("Sofia")
 
     # Sample input for GTFS Calendar Date
     sample_raw_data = [
@@ -72,9 +73,9 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
     # Mock result from convert_gtfs_calendar_dates_to_ngsi_ld
     converted_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsCalendarRule:{city}:S1",
+            "id": f"urn:ngsi-ld:GtfsCalendarRule:{config.get_operating_city()}:S1",
             "type": "GtfsCalendarRule",
-            "hasService": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsService:{city}:S1"},
+            "hasService": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsService:{config.get_operating_city()}:S1"},
             "monday": {"type": "Property", "value": 1},
             "tuesday": {"type": "Property", "value": 1},
             "wednesday": {"type": "Property", "value": 1},
@@ -86,9 +87,9 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
             "endDate": {"type": "Property", "value": "20260430"}
             },
         {
-            "id": f"urn:ngsi-ld:GtfsCalendarRule:{city}:S2",
+            "id": f"urn:ngsi-ld:GtfsCalendarRule:{config.get_operating_city()}:S2",
             "type": "GtfsCalendarRule",
-            "hasService": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsService:{city}:S2"},
+            "hasService": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsService:{config.get_operating_city()}:S2"},
             "monday": {"type": "Property", "value": 1},
             "tuesday": {"type": "Property", "value": 1},
             "wednesday": {"type": "Property", "value": 1},
@@ -104,9 +105,9 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
     # Mock result from remove_none_values
     cleaned_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsCalendarRule:{city}:S1",
+            "id": f"urn:ngsi-ld:GtfsCalendarRule:{config.get_operating_city()}:S1",
             "type": "GtfsCalendarRule",
-            "hasService": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsService:{city}:S1"},
+            "hasService": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsService:{config.get_operating_city()}:S1"},
             "monday": {"type": "Property", "value": 1},
             "tuesday": {"type": "Property", "value": 1},
             "wednesday": {"type": "Property", "value": 1},
@@ -118,9 +119,9 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
             "endDate": {"type": "Property", "value": "20260430"}
         },
         {
-            "id": f"urn:ngsi-ld:GtfsCalendarRule:{city}:S2",
+            "id": f"urn:ngsi-ld:GtfsCalendarRule:{config.get_operating_city()}:S2",
             "type": "GtfsCalendarRule",
-            "hasService": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsService:{city}:S2"},
+            "hasService": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsService:{config.get_operating_city()}:S2"},
             "monday": {"type": "Property", "value": 1},
             "tuesday": {"type": "Property", "value": 1},
             "wednesday": {"type": "Property", "value": 1},
@@ -145,7 +146,7 @@ def test_gtfs_calendar_dates_to_ngsi_ld():
         patch("gtfs_static.gtfs_static_utils.remove_none_values", mock_remove_none):
              
             # Function call result from gtfs_static_calendar_dates_to_ngsi_ld
-            result = gtfs_static_calendar_to_ngsi_ld(sample_raw_data, city)
+            result = gtfs_static_calendar_to_ngsi_ld(sample_raw_data)
 
     # Check that result is as expected
     assert result == cleaned_data

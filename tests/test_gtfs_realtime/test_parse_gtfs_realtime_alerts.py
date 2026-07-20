@@ -1,9 +1,12 @@
+import config
 from gtfs_realtime.gtfs_realtime_utils import parse_gtfs_realtime_alerts
 
 def test_parse_gtfs_realtime_alerts_partial_payload():
     """
     Check that the entries with data are parsed correctly and the remaining fields have None values
     """
+    config.set_operating_city("Sofia")
+
     entity = {
         "id": "A1",
         "alert": {
@@ -54,7 +57,7 @@ def test_parse_gtfs_realtime_alerts_partial_payload():
         
     
     expected = {
-        "id": "urn:ngsi-ld:GtfsRealtimeAlert:A1",
+        "id": f"urn:ngsi-ld:GtfsRealtimeAlert:{config.get_operating_city()}:A1",
         "active_period": [
             {
                 "start": "1970-01-01T00:00:00Z",

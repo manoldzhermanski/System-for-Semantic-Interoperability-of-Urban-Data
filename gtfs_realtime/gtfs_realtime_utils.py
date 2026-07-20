@@ -217,7 +217,7 @@ def to_ngsi_ld_urn(value: str | None, entity_type: str) -> str | None:
     if stripped_value == "":
         raise ValueError("Entity value must be a non-empty string")
     
-    return f"urn:ngsi-ld:{stripped_entity_type}:{stripped_value}"
+    return f"urn:ngsi-ld:{stripped_entity_type}:{config.get_operating_city()}:{stripped_value}"
 
 # -----------------------------------------------------
 # Normalization Functions
@@ -1091,14 +1091,13 @@ def gtfs_realtime_get_ngsi_ld_data(type: str) -> list[dict[str, Any]]:
         raise ValueError("Unknown / Unsupported GTFS Realtime type")
 
 if __name__ == "__main__":
-    with open("example.json", "w") as file:
-        # Fetch raw GTFS-Realtime feed from the configured source
-        api_response = gtfs_realtime_get_feed(config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    
-        # Parse the feed into a GTFS-Realtime FeedMessage
-        feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-    
-        # Convert the FeedMessage into a Python dictionary
-        feed_dict = gtfs_realtime_feed_to_dict(feed_data)
-        #vehicle_position_data = gtfs_realtime_get_ngsi_ld_data("VehiclePosition")
-        file.write(json.dumps(feed_dict, indent=2))
+    # Fetch raw GTFS-Realtime feed from the configured source
+    api_response = gtfs_realtime_get_feed(config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+
+    # Parse the feed into a GTFS-Realtime FeedMessage
+    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
+
+    # Convert the FeedMessage into a Python dictionary
+    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
+    #vehicle_position_data = gtfs_realtime_get_ngsi_ld_data("VehiclePosition")
+    print(json.dumps(feed_dict, indent=2))

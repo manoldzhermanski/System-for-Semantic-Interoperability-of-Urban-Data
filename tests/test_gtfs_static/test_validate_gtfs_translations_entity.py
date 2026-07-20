@@ -14,7 +14,7 @@ def test_validate_gtfs_translations_entity_valid():
         "field_value": None,
     }
 
-    validate_gtfs_translations_entity(entity, "Sofia")
+    validate_gtfs_translations_entity(entity)
 
     assert entity["record_id"] == "urn:ngsi-ld:GtfsStop:Sofia:Stop_1"
     
@@ -31,7 +31,7 @@ def test_validate_gtfs_translations_entity_missing_required_field():
     }
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_translations_entity(entity, "Sofia")
+        validate_gtfs_translations_entity(entity)
         
     assert "Missing required GTFS field" in str(err.value)
     
@@ -49,7 +49,7 @@ def test_validate_gtfs_translations_entity_invalid_table_name():
     }
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_translations_entity(entity, "Sofia")
+        validate_gtfs_translations_entity(entity)
         
     assert """'table_name' must be agency, stops, routes, trips, stop_times, pathways, 
                          levels, feed_info, attributions""" in str(err.value)
@@ -68,7 +68,7 @@ def test_validate_gtfs_translations_entity_invalid_language():
     }
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_translations_entity(entity, "Sofia")
+        validate_gtfs_translations_entity(entity)
         
     assert "language must be a valid language code" in str(err.value)
     
@@ -86,7 +86,7 @@ def test_validate_gtfs_translations_entity_requires_record_id_or_field_value():
     }
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_translations_entity(entity, "Sofia")
+        validate_gtfs_translations_entity(entity)
         
     assert "Either 'record_id' or 'field_value' has to be defined" in str(err.value)
     
@@ -105,7 +105,7 @@ def test_validate_gtfs_translations_entity_stop_times_requires_record_sub_id():
     }
 
     with pytest.raises(ValueError) as err:
-        validate_gtfs_translations_entity(entity, "Sofia")
+        validate_gtfs_translations_entity(entity)
         
     assert "'record_sub_id' (stop_sequence) is required when table_name is 'stop_times'" in str(err.value)
     
@@ -123,6 +123,6 @@ def test_validate_gtfs_translations_entity_stop_times_valid():
         "field_value": None,
     }
 
-    validate_gtfs_translations_entity(entity, "Sofia")
+    validate_gtfs_translations_entity(entity)
 
     assert entity["record_id"] == "urn:ngsi-ld:GtfsTrip:Sofia:Trip_1"

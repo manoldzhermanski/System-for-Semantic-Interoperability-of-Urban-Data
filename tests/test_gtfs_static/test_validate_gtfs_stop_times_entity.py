@@ -21,10 +21,8 @@ def test_validate_gtfs_stop_times_entity_fields_valid_arrival_departure():
         "pickup_booking_rule_id": "PBR1",
         "drop_off_booking_rule_id": "DBR1"
     }
-    
-    city = "Sofia"
-    
-    validate_gtfs_stop_times_entity(entity, city)
+        
+    validate_gtfs_stop_times_entity(entity)
     
 def test_validate_gtfs_stop_times_entity_fields_valid_pickup_drop_off_window():
     """
@@ -46,10 +44,8 @@ def test_validate_gtfs_stop_times_entity_fields_valid_pickup_drop_off_window():
         "pickup_booking_rule_id": "PBR1",
         "drop_off_booking_rule_id": "DBR1"
     }
-    
-    city = "Sofia"
-    
-    validate_gtfs_stop_times_entity(entity, city)
+        
+    validate_gtfs_stop_times_entity(entity)
 
 def test_validate_gtfs_stop_times_missing_required_field():
     """
@@ -70,11 +66,9 @@ def test_validate_gtfs_stop_times_missing_required_field():
         "pickup_booking_rule_id": "PBR1",
         "drop_off_booking_rule_id": "DBR1"
     }
-    
-    city = "Sofia"
-    
+        
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
         
     assert "Missing required GTFS field" in str(err.value)
 
@@ -98,10 +92,8 @@ def test_validate_gtfs_stop_times_entity_optional_fields_none():
         "pickup_booking_rule_id": None,
         "drop_off_booking_rule_id": None
     }
-    
-    city = "Sofia"
-    
-    validate_gtfs_stop_times_entity(entity, city)
+        
+    validate_gtfs_stop_times_entity(entity)
     
 def test_validate_gtfs_stop_times_invalid_timepoint():
     """
@@ -123,11 +115,9 @@ def test_validate_gtfs_stop_times_invalid_timepoint():
         "pickup_booking_rule_id": "PBR1",
         "drop_off_booking_rule_id": "DBR1"
     }
-    
-    city = "Sofia"
-    
+        
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
 
     assert "'timepoint' should be 0 or 1, got" in str(err.value)
     
@@ -155,10 +145,8 @@ def test_validate_gtfs_stop_times_arrival_and_pickup_window_together_forbidden()
         "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
 
     assert "cannot be defined at the same time" in str(err.value)
     
@@ -182,10 +170,8 @@ def test_validate_gtfs_stop_times_no_time_information_defined():
         "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
 
     assert "must be defined" in str(err.value)
     
@@ -212,10 +198,8 @@ def test_validate_gtfs_stop_times_more_than_one_location_identifier():
         "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
 
     assert "Exactly one" in str(err.value)
     
@@ -239,10 +223,8 @@ def test_validate_gtfs_stop_times_none_location_identifier():
         "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
 
     assert "Exactly one" in str(err.value)
 
@@ -268,10 +250,8 @@ def test_validate_gtfs_stop_times_location_id_requires_pickup_window():
         "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
         
     assert "are required when using location_id or location_group_id" in str(err.value)
 
@@ -295,10 +275,8 @@ def test_validate_gtfs_stop_times_timepoint_1_requires_times():
     "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
 
     assert "arrival_time and departure_time are required when timepoint = 1" in str(err.value)
     
@@ -322,11 +300,9 @@ def test_validate_gtfs_stop_times_invalid_pickup_type_value():
         "pickup_booking_rule_id": "PBR1",
         "drop_off_booking_rule_id": "DBR1"
     }
-    
-    city = "Sofia"
-    
+        
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
 
     assert "must be 0, 1, 2, 3 or empty, got" in str(err.value)
 
@@ -351,11 +327,9 @@ def test_validate_gtfs_stop_times_pickup_type_forbidden_with_location():
         "pickup_booking_rule_id": "PBR1",
         "drop_off_booking_rule_id": "DBR1"
     }
-
-    city = "Sofia"
     
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
         
     assert "cannot be 0 or 3 when using location_group_id or location_id" in str(err.value)
 
@@ -380,10 +354,8 @@ def test_validate_gtfs_stop_times_invalid_drop_off_type_value():
         "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
         
     assert "must be 0, 1, 2, 3 or empty, got" in str(err.value)
 
@@ -408,10 +380,8 @@ def test_validate_gtfs_stop_times_invalid_continuous_pickup():
         "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
         
     assert " must be 0, 1, 2 or 3, got" in str(err.value)
 
@@ -437,10 +407,8 @@ def test_validate_gtfs_stop_times_continuous_pickup_forbidden_with_location():
     "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
         
     assert "cannot be 0, 2 or 3 when using location_group_id or location_id" in str(err.value)
 
@@ -465,9 +433,7 @@ def test_validate_gtfs_stop_times_negative_shape_dist_traveled():
         "drop_off_booking_rule_id": "DBR1"
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stop_times_entity(entity, city)
+        validate_gtfs_stop_times_entity(entity)
         
     assert "should be a non-negative float" in str(err.value)

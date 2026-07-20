@@ -1,9 +1,12 @@
+import config
 from gtfs_realtime.gtfs_realtime_utils import parse_gtfs_realtime_trip_updates
 
 def test_parse_gtfs_realtime_trip_update_partial_payload():
     """
     Check that the entries with data are parsed correctly and the remaining fields have None values
     """
+    config.set_operating_city("Sofia")
+
     entity = {
         "id": "A1",
         "trip_update": {
@@ -21,10 +24,10 @@ def test_parse_gtfs_realtime_trip_update_partial_payload():
         }
         
     expected = {
-        "id": "urn:ngsi-ld:GtfsRealtimeTripUpdate:A1",
+        "id": f"urn:ngsi-ld:GtfsRealtimeTripUpdate:{config.get_operating_city()}:A1",
         "trip": {
-            "trip_id": "urn:ngsi-ld:GtfsTrip:T1",
-            "route_id": "urn:ngsi-ld:GtfsRoute:R1",
+            "trip_id": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T1",
+            "route_id": f"urn:ngsi-ld:GtfsRoute:{config.get_operating_city()}:R1",
             "direction_id": None,
             "start_time": None,
             "start_date": None,
@@ -37,7 +40,7 @@ def test_parse_gtfs_realtime_trip_update_partial_payload():
                 },
             },
         "vehicle": {
-            "id": "urn:ngsi-ld:GtfsVehicle:V1",
+            "id": f"urn:ngsi-ld:GtfsVehicle:{config.get_operating_city()}:V1",
             "label": None,
             "license_plate": None,
             "wheelchair_accessible": None

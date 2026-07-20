@@ -24,9 +24,7 @@ def test_validate_gtfs_stops_entity_all_fields_valid():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
-    validate_gtfs_stops_entity(entity, city)
+    validate_gtfs_stops_entity(entity)
 
 def test_validate_gtfs_stops_entity_missing_required_field():
     """
@@ -50,10 +48,8 @@ def test_validate_gtfs_stops_entity_missing_required_field():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "Missing required GTFS field: stop_id" in str(err.value)
 
@@ -80,9 +76,7 @@ def test_validate_gtfs_stops_entity_optional_fields_none():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
-    validate_gtfs_stops_entity(entity, city)
+    validate_gtfs_stops_entity(entity)
 
 def test_validate_gtfs_stops_entity_invalid_location_type():
     """
@@ -107,10 +101,8 @@ def test_validate_gtfs_stops_entity_invalid_location_type():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "'location_type' must be" in str(err.value)
 
@@ -136,10 +128,8 @@ def test_validate_gtfs_stops_entity_missing_stop_name_for_location_type_0():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "'stop_name' is required when 'location_type' is 0, 1 or 2" in str(err.value)
 
@@ -165,10 +155,8 @@ def test_validate_gtfs_stops_entity_missing_stop_lat_for_location_type_0():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "'stop_lat' is required when 'location_type' is 0, 1 or 2" in str(err.value)
 
@@ -194,10 +182,8 @@ def test_validate_gtfs_stops_entity_missing_stop_lon_for_location_type_0():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "'stop_lon' is required when 'location_type' is 0, 1 or 2" in str(err.value)
 
@@ -224,10 +210,8 @@ def test_validate_gtfs_stops_entity_location_type_2_missing_parent_station():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "'parent_station' is required when 'location_type' is 2, 3 or 4" in str(err.value)
 
@@ -254,10 +238,8 @@ def test_validate_gtfs_stops_entity_location_type_1_parent_station_forbidden():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "'parent_station' is forbidden when 'location_type' is 1" in str(err.value)
 
@@ -284,10 +266,8 @@ def test_validate_gtfs_stops_entity_invalid_stop_url():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "Invalid URL for" in str(err.value)
 
@@ -314,10 +294,8 @@ def test_validate_gtfs_stops_entity_invalid_stop_timezone():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
 
     assert "Invalid timezone for" in str(err.value)
     
@@ -344,10 +322,8 @@ def test_validate_gtfs_stops_entity_invalid_wheelchair_boarding():
         "stop_access": 0,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "'wheelchair_boarding' must be 0, 1 or 2" in str(err.value)
 
@@ -374,10 +350,8 @@ def test_validate_gtfs_stops_entity_invalid_stop_access_value():
         "stop_access": 2,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "'stop_access' must be 0 or 1, got" in str(err.value)
 
@@ -404,10 +378,8 @@ def test_validate_gtfs_stops_entity_stop_access_forbidden_for_location_type_2():
         "stop_access": 1,
     }
     
-    city = "Sofia"
-
     with pytest.raises(ValueError) as err:
-        validate_gtfs_stops_entity(entity, city)
+        validate_gtfs_stops_entity(entity)
         
     assert "is forbidden for location_type 2, 3 and 4" in str(err.value)
 
@@ -434,9 +406,7 @@ def test_validate_gtfs_stops_entity_location_type_1_missing_stop_access():
         "stop_access": 1,
     }
     
-    city = "Sofia"
-
-    with pytest.raises(ValueError, match="stop_access") as err:
-        validate_gtfs_stops_entity(entity, city)
+    with pytest.raises(ValueError) as err:
+        validate_gtfs_stops_entity(entity)
         
     assert "is forbidden when 'parent_station' is empty" in str(err.value)

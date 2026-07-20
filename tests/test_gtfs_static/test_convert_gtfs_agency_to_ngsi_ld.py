@@ -1,9 +1,12 @@
+import config
 from gtfs_static.gtfs_static_utils import convert_gtfs_agency_to_ngsi_ld
 
 def test_convert_gtfs_agency_to_ngsi_ld():
     """
     Check for proper conversion from GTFS to NGSI-LD for agency.txt
     """
+    config.set_operating_city("Sofia")
+
     entity = {
         "agency_id": "A1",
         "agency_name": "Test Agency",
@@ -16,12 +19,10 @@ def test_convert_gtfs_agency_to_ngsi_ld():
         "cemv_support": 1,
     }
     
-    city = "Berlin"
-
-    result = convert_gtfs_agency_to_ngsi_ld(entity, city)
+    result = convert_gtfs_agency_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsAgency:Berlin:A1",
+        "id": f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:A1",
         "type": "GtfsAgency",
         "agency_name": {
             "type": "Property",
@@ -61,6 +62,8 @@ def test_convert_gtfs_agency_to_ngsi_ld_missing_optional_fields():
     """
     Check for proper conversion from GTFS to NGSI-LD for agency.txt when optional fileds are missing
     """
+    config.set_operating_city("Sofia")
+
     entity = {
         "agency_id": "A1",
         "agency_name": "Test Agency",
@@ -68,12 +71,10 @@ def test_convert_gtfs_agency_to_ngsi_ld_missing_optional_fields():
         "agency_timezone": "Europe/Sofia",
     }
     
-    city = "Berlin"
-
-    result = convert_gtfs_agency_to_ngsi_ld(entity, city)
+    result = convert_gtfs_agency_to_ngsi_ld(entity)
 
     assert result == {
-        "id": "urn:ngsi-ld:GtfsAgency:Berlin:A1",
+        "id": f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:A1",
         "type": "GtfsAgency",
         "agency_name": {
             "type": "Property",

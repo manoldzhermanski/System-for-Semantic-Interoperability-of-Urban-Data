@@ -1,9 +1,12 @@
+import config
 from gtfs_realtime.gtfs_realtime_utils import parse_gtfs_realtime_vehicle_position
 
 def test_parse_gtfs_realtime_vehicle_position_partial_payload():
     """
     Check that the entries with data are parsed correctly and the remaining fields have None values
     """
+    config.set_operating_city("Sofia")
+
     entity = {
         "id": "VP1",
         "vehicle": {
@@ -20,9 +23,9 @@ def test_parse_gtfs_realtime_vehicle_position_partial_payload():
     }
     
     expected = {
-        "id": "urn:ngsi-ld:GtfsRealtimeVehiclePosition:VP1",
+        "id": f"urn:ngsi-ld:GtfsRealtimeVehiclePosition:{config.get_operating_city()}:VP1",
         "trip": {
-            "trip_id": "urn:ngsi-ld:GtfsTrip:T1",
+            "trip_id": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T1",
             "route_id": None,
             "direction_id": None,
             "start_time": None,
@@ -36,7 +39,7 @@ def test_parse_gtfs_realtime_vehicle_position_partial_payload():
                 }
             },
         "vehicle": {
-            "id": "urn:ngsi-ld:GtfsVehicle:V1",
+            "id": f"urn:ngsi-ld:GtfsVehicle:{config.get_operating_city()}:V1",
             "label": "Bus 42",
             "license_plate": None,
             "wheelchair_accessible": None
@@ -48,7 +51,7 @@ def test_parse_gtfs_realtime_vehicle_position_partial_payload():
             "odometer": None,
             "speed": 50},
         "current_stop_sequence": 10,
-        "stop_id": "urn:ngsi-ld:GtfsStop:S1",
+        "stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",
         "current_status": None,
         "timestamp": "1970-01-01T00:00:00Z",
         "congestion_level": None,
@@ -56,7 +59,7 @@ def test_parse_gtfs_realtime_vehicle_position_partial_payload():
         "occupancy_percentage": None,
         "multi_carriage_details": [
             {
-                "id": "urn:ngsi-ld:GtfsRealtimeCarriage:C1",
+                "id": f"urn:ngsi-ld:GtfsRealtimeCarriage:{config.get_operating_city()}:C1",
                 "label": "Carriage A",
                 "occupancy_status": "FULL",
                 "occupancy_percentage": 100,

@@ -897,7 +897,7 @@ def validate_gtfs_calendar_dates_entity(entity: dict[str, Any]) -> None:
     if not validation_utils.is_valid_exception_type(exception_type):
         raise ValueError(f"exception_type must be 1 or 2, got {exception_type}")
 
-def validate_gtfs_fare_attributes_entity(entity: dict[str, Any], city: str) -> None:
+def validate_gtfs_fare_attributes_entity(entity: dict[str, Any]) -> None:
     """
     Validates a parsed GTFS fare attributes entity.
 
@@ -943,7 +943,7 @@ def validate_gtfs_fare_attributes_entity(entity: dict[str, Any], city: str) -> N
     # If present, write 'agency_id' as NGSI URN
     agency_id = entity.get("agency_id")
     if agency_id:
-        entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{city}:{entity["agency_id"]}"
+        entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:{entity["agency_id"]}"
 
     # Validate 'transfer_duration'
     transfer_duration = entity.get("transfer_duration")
@@ -966,7 +966,7 @@ def validate_gtfs_levels_entity(entity: dict[str, Any]) -> None:
     required_fields = ["level_id", "level_index"]
     validate_required_fields(entity, required_fields)
 
-def validate_gtfs_pathways_entity(entity: dict[str, Any], city: str) -> None:
+def validate_gtfs_pathways_entity(entity: dict[str, Any]) -> None:
     """
     Validates a parsed GTFS pathway entity.
 
@@ -991,8 +991,8 @@ def validate_gtfs_pathways_entity(entity: dict[str, Any], city: str) -> None:
     validate_required_fields(entity, required_fields)
 
     # If present, write 'from_stop_id' and 'to_stop_id' as NGSI URN
-    entity["from_stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity["from_stop_id"]}"
-    entity["to_stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity["to_stop_id"]}"    
+    entity["from_stop_id"] = f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:{entity["from_stop_id"]}"
+    entity["to_stop_id"] = f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:{entity["to_stop_id"]}"    
   
 
     # Validate 'pathway_mode'
@@ -1034,7 +1034,7 @@ def validate_gtfs_pathways_entity(entity: dict[str, Any], city: str) -> None:
     if min_width is not None and min_width <= 0:
         raise ValueError(f"'min_width' must be a positive float, got {min_width}")
 
-def validate_gtfs_routes_entity(entity: dict[str, Any], city: str) -> None:
+def validate_gtfs_routes_entity(entity: dict[str, Any]) -> None:
     """
     Validates a parsed GTFS route entity.
 
@@ -1061,7 +1061,7 @@ def validate_gtfs_routes_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'agency_id' as NGSI URN
     agency_id = entity.get("agency_id")
     if agency_id:
-        entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{city}:{agency_id}"
+        entity["agency_id"] = f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:{agency_id}"
 
     # Validate that either 'route_short_name' or 'route_long_name' are defined
     has_route_short_name = bool(entity.get("route_short_name"))
@@ -1114,7 +1114,7 @@ def validate_gtfs_routes_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'network_id' as NGSI URN
     network_id = entity.get("network_id")
     if network_id is not None:
-        entity["network_id"] = f"urn:ngsi-ld:Network:{city}:{entity["network_id"]}"
+        entity["network_id"] = f"urn:ngsi-ld:Network:{config.get_operating_city()}:{entity["network_id"]}"
 
     # Validate 'cemv_support' values
     cemv_support = entity.get("cemv_support")
@@ -1149,7 +1149,7 @@ def validate_gtfs_shapes_entity(entity: dict[str, Any]) -> None:
     if shape_dist_traveled is not None and shape_dist_traveled < 0:
         raise ValueError(f"'shape_dist_traveled' must be a non-negative float, got {shape_dist_traveled}") 
 
-def validate_gtfs_stop_times_entity(entity: dict[str, Any], city: str) -> None:
+def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
     """
     Validates a parsed GTFS stop time entity.
 
@@ -1218,13 +1218,13 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any], city: str) -> None:
 
     # Write NGSI-LD URNs based on which location identifier is defined
     if has_stop_id:
-        entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['stop_id']}"
+        entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:{entity['stop_id']}"
 
     if has_location_group_id:
-        entity["location_group_id"] = f"urn:ngsi-ld:LocationGroup:{city}:{entity['location_group_id']}"
+        entity["location_group_id"] = f"urn:ngsi-ld:LocationGroup:{config.get_operating_city()}:{entity['location_group_id']}"
 
     if has_location_id:
-        entity["location_id"] = f"urn:ngsi-ld:Location:{city}:{entity['location_id']}"
+        entity["location_id"] = f"urn:ngsi-ld:Location:{config.get_operating_city()}:{entity['location_id']}"
         
     # Validate that if 'location_id' or 'location_group_id' are defined, 
     # start_pickup_drop_off_window and end_pickup_drop_off_window must also be defined
@@ -1294,14 +1294,14 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'pickup_booking_rule_id' as a NGSI URN
     pickup_booking_rule_id = entity.get("pickup_booking_rule_id")
     if pickup_booking_rule_id is not None:
-        entity["pickup_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{pickup_booking_rule_id}"
+        entity["pickup_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{config.get_operating_city()}:{pickup_booking_rule_id}"
 
     # If present, write 'drop_off_booking_rule_id' as a NGSI URN
     drop_off_booking_rule_id = entity.get("drop_off_booking_rule_id")
     if drop_off_booking_rule_id is not None:
-        entity["drop_off_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{city}:{drop_off_booking_rule_id}"
+        entity["drop_off_booking_rule_id"] = f"urn:ngsi-ld:GtfsBookingRule:{config.get_operating_city()}:{drop_off_booking_rule_id}"
 
-def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
+def validate_gtfs_stops_entity(entity: dict[str, Any]) -> None:
     """
     Validates a parsed GTFS stop entity.
 
@@ -1324,7 +1324,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
     required_fields = ["stop_id"]
     validate_required_fields(entity, required_fields)
 
-    entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{city}:{entity["stop_id"]}"
+    entity["stop_id"] = f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:{entity["stop_id"]}"
     
     # Validate 'location_type' values
     location_type = entity.get("location_type")
@@ -1355,12 +1355,12 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
             raise ValueError(f"'parent_station' is forbidden when 'location_type' is 1")
         
     if parent_station:
-        entity["parent_station"] = f"urn:ngsi-ld:GtfsStop:{city}:{parent_station}"
+        entity["parent_station"] = f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:{parent_station}"
     
     # If present, write zone_id as NGSI URN 
     zone_id = entity.get("zone_id")
     if zone_id is not None:
-        entity["zone_id"] = f"urn:ngsi-ld:GtfsZone:{city}:{zone_id}"
+        entity["zone_id"] = f"urn:ngsi-ld:GtfsZone:{config.get_operating_city()}:{zone_id}"
 
     # Validate that 'stop_url' is a valid URL
     stop_url = entity.get("stop_url")
@@ -1380,7 +1380,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
     # Validate that 'level_id' is a valid URL
     level_id = entity.get("level_id")
     if level_id is not None:
-        entity["level_id"] = f"urn:ngsi-ld:GtfsLevel:{city}:{level_id}"
+        entity["level_id"] = f"urn:ngsi-ld:GtfsLevel:{config.get_operating_city()}:{level_id}"
 
     # Validate 'stop_access' values
     stop_access = entity.get("stop_access")
@@ -1395,7 +1395,7 @@ def validate_gtfs_stops_entity(entity: dict[str, Any], city: str) -> None:
         if stop_access:
             raise ValueError(f"'stop_access' is forbidden when 'parent_station' is empty, which happens only when 'location_type' is 1")
 
-def validate_gtfs_transfers_entity(entity: dict[str, Any], city: str) -> None:
+def validate_gtfs_transfers_entity(entity: dict[str, Any]) -> None:
     """
     Validates a parsed GTFS transfers entity.
 
@@ -1444,19 +1444,19 @@ def validate_gtfs_transfers_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'from_route_id' as NGSI URN
     from_route_id = entity.get("from_route_id")
     if from_route_id is not None:
-        entity["from_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{from_route_id}"
+        entity["from_route_id"] = f"urn:ngsi-ld:GtfsRoute:{config.get_operating_city()}:{from_route_id}"
 
     # If present, write 'to_route_id' as NGSI URN
     to_route_id = entity.get("to_route_id")
     if to_route_id is not None:
-        entity["to_route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{to_route_id}"
+        entity["to_route_id"] = f"urn:ngsi-ld:GtfsRoute:{config.get_operating_city()}:{to_route_id}"
     
     # Check that 'min_transfer_time' is a non-negative integer
     min_transfer_time = entity.get("min_transfer_time")
     if min_transfer_time is not None and min_transfer_time < 0:
         raise ValueError(f"'min_transfer_time' must be a non-negative integer, got {min_transfer_time}")
 
-def validate_gtfs_trips_entity(entity: dict[str, Any], city: str) -> None:
+def validate_gtfs_trips_entity(entity: dict[str, Any]) -> None:
     """
     Validates a parsed GTFS trip entity.
 
@@ -1476,10 +1476,10 @@ def validate_gtfs_trips_entity(entity: dict[str, Any], city: str) -> None:
     validate_required_fields(entity, required_fields)
 
     # Write 'route_id' as NGSI URN
-    entity["route_id"] = f"urn:ngsi-ld:GtfsRoute:{city}:{entity["route_id"]}"
+    entity["route_id"] = f"urn:ngsi-ld:GtfsRoute:{config.get_operating_city()}:{entity["route_id"]}"
 
     # Write 'service_id' as NGSI URN
-    entity["service_id"] = f"urn:ngsi-ld:GtfsService:{city}:{entity["service_id"]}"
+    entity["service_id"] = f"urn:ngsi-ld:GtfsService:{config.get_operating_city()}:{entity["service_id"]}"
 
     # Validate 'direction_id' value
     direction_id = entity.get("direction_id")
@@ -1489,12 +1489,12 @@ def validate_gtfs_trips_entity(entity: dict[str, Any], city: str) -> None:
     # If present, write 'block_id' as NGSI URN 
     block_id = entity.get("block_id")
     if block_id is not None:
-        entity["block_id"] = f"urn:ngsi-ld:GtfsBlock:{city}:{entity["block_id"]}"
+        entity["block_id"] = f"urn:ngsi-ld:GtfsBlock:{config.get_operating_city()}:{entity["block_id"]}"
 
     # If present, write 'shape_id' as NGSI URN 
     shape_id = entity.get("shape_id")
     if shape_id is not None:
-        entity["shape_id"] = f"urn:ngsi-ld:GtfsShape:{city}:{entity["shape_id"]}"
+        entity["shape_id"] = f"urn:ngsi-ld:GtfsShape:{config.get_operating_city()}:{entity["shape_id"]}"
 
     # Validate 'wheelchair_accessible' value
     wheelchair_accessible = entity.get("wheelchair_accessible")
@@ -1511,7 +1511,7 @@ def validate_gtfs_trips_entity(entity: dict[str, Any], city: str) -> None:
     if cars_allowed is not None and not validation_utils.is_valid_cars_allowed(cars_allowed):
         raise ValueError(f"'cars_allowed' must be 0, 1 or 2, got {cars_allowed}")
 
-def validate_gtfs_translations_entity(entity: dict[str, Any], city: str) -> None:
+def validate_gtfs_translations_entity(entity: dict[str, Any]) -> None:
     """
     Validates a parsed GTFS translations entity.
 
@@ -1549,13 +1549,13 @@ def validate_gtfs_translations_entity(entity: dict[str, Any], city: str) -> None
     if record_id is not None:
     
         ngsi_ld_handle = {
-            "agency": f"urn:ngsi-ld:GtfsAgency:{city}:",
-            "stops": f"urn:ngsi-ld:GtfsStop:{city}:",
-            "routes": f"urn:ngsi-ld:GtfsRoute:{city}:",
-            "trips": f"urn:ngsi-ld:GtfsTrip:{city}:",
-            "stop_times": f"urn:ngsi-ld:GtfsTrip:{city}:",
-            "pathways": f"urn:ngsi-ld:GtfsPathway:{city}:",
-            "levels": f"urn:ngsi-ld:GtfsLevel:{city}:"
+            "agency": f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:",
+            "stops": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:",
+            "routes": f"urn:ngsi-ld:GtfsRoute:{config.get_operating_city()}:",
+            "trips": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:",
+            "stop_times": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:",
+            "pathways": f"urn:ngsi-ld:GtfsPathway:{config.get_operating_city()}:",
+            "levels": f"urn:ngsi-ld:GtfsLevel:{config.get_operating_city()}:"
             # feed_info is not implemented in the project
         }
     
@@ -1580,7 +1580,7 @@ def validate_gtfs_translations_entity(entity: dict[str, Any], city: str) -> None
 # Convert GTFS-Static data to NGSI-LD
 # -----------------------------------------------------
 
-def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS agency entity to an NGSI-LD GtfsAgency entity.
 
@@ -1596,7 +1596,7 @@ def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[st
         dict: An NGSI-LD entity of type GtfsAgency.
     """
     return {
-        "id": f"urn:ngsi-ld:GtfsAgency:{city}:{entity.get('agency_id')}",
+        "id": f"urn:ngsi-ld:GtfsAgency:{config.get_operating_city()}:{entity.get('agency_id')}",
         "type": "GtfsAgency",
             
         "agency_name":{
@@ -1640,7 +1640,7 @@ def convert_gtfs_agency_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[st
         }
     }
 
-def convert_gtfs_calendar_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_calendar_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS calendar entity to an NGSI-LD GtfsCalendarRule entity.
 
@@ -1654,12 +1654,12 @@ def convert_gtfs_calendar_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[
         dict: An NGSI-LD entity of type GtfsCalendarRule.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsCalendarRule:{city}:{entity.get('service_id')}",
+            "id": f"urn:ngsi-ld:GtfsCalendarRule:{config.get_operating_city()}:{entity.get('service_id')}",
             "type": "GtfsCalendarRule",
             
             "hasService": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsService:{city}:{entity.get("service_id")}"
+                "object": f"urn:ngsi-ld:GtfsService:{config.get_operating_city()}:{entity.get("service_id")}"
             },
             
             "monday": {
@@ -1708,7 +1708,7 @@ def convert_gtfs_calendar_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[
             }
         }
 
-def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS calendar date entity to an NGSI-LD GtfsCalendarDateRule entity.
 
@@ -1722,12 +1722,12 @@ def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str) ->
         dict: An NGSI-LD entity of type GtfsCalendarDateRule.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{city}:{entity.get('service_id')}:{entity.get('date')}",
+            "id": f"urn:ngsi-ld:GtfsCalendarDateRule:{config.get_operating_city()}:{entity.get('service_id')}:{entity.get('date')}",
             "type": "GtfsCalendarDateRule",
             
             "hasService": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsService:{city}:{entity.get("service_id")}"
+                "object": f"urn:ngsi-ld:GtfsService:{config.get_operating_city()}:{entity.get("service_id")}"
             },
             
             "appliesOn": {
@@ -1741,7 +1741,7 @@ def convert_gtfs_calendar_dates_to_ngsi_ld(entity: dict[str, Any], city: str) ->
             }
         }
 
-def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS fare attributes entity to an NGSI-LD GtfsFareAttributes entity.
 
@@ -1755,7 +1755,7 @@ def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any], city: str) -
         dict: An NGSI-LD entity of type GtfsFareAttributes.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsFareAttributes:{city}:{entity.get("fare_id")}",
+            "id": f"urn:ngsi-ld:GtfsFareAttributes:{config.get_operating_city()}:{entity.get("fare_id")}",
             "type": "GtfsFareAttributes",
             
             "price": {
@@ -1789,7 +1789,7 @@ def convert_gtfs_fare_attributes_to_ngsi_ld(entity: dict[str, Any], city: str) -
             }
         }
 
-def convert_gtfs_levels_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_levels_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS level entity to an NGSI-LD GtfsLevel entity.
 
@@ -1803,7 +1803,7 @@ def convert_gtfs_levels_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[st
         dict: An NGSI-LD entity of type GtfsLevel.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsLevel:{city}:{entity.get("level_id")}",
+            "id": f"urn:ngsi-ld:GtfsLevel:{config.get_operating_city()}:{entity.get("level_id")}",
             "type": "GtfsLevel",
             "name": {
                 "type": "Property",
@@ -1816,7 +1816,7 @@ def convert_gtfs_levels_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[st
             }
         }
 
-def convert_gtfs_pathways_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_pathways_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS pathway entity to an NGSI-LD GtfsPathway entity.
 
@@ -1830,7 +1830,7 @@ def convert_gtfs_pathways_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[
         dict: An NGSI-LD entity of type GtfsPathway.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsPathway:{city}:{entity.get("pathway_id")}",
+            "id": f"urn:ngsi-ld:GtfsPathway:{config.get_operating_city()}:{entity.get("pathway_id")}",
             "type": "GtfsPathway",
             
             "hasOrigin": {
@@ -1889,7 +1889,7 @@ def convert_gtfs_pathways_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[
             }
         }
 
-def convert_gtfs_routes_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_routes_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS route entity to an NGSI-LD GtfsRoute entity.
 
@@ -1903,7 +1903,7 @@ def convert_gtfs_routes_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[st
         dict: An NGSI-LD entity of type GtfsRoute.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsRoute:{city}:{entity.get("route_id")}",
+            "id": f"urn:ngsi-ld:GtfsRoute:{config.get_operating_city()}:{entity.get("route_id")}",
             "type": "GtfsRoute",
             
             "operatedBy": {
@@ -1972,7 +1972,7 @@ def convert_gtfs_routes_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[st
             }
         }
 
-def convert_gtfs_shapes_to_ngsi_ld(shape_id: str, points: list[dict], city: str) -> dict[str, Any]:
+def convert_gtfs_shapes_to_ngsi_ld(shape_id: str, points: list[dict]) -> dict[str, Any]:
     """
     Converts a GTFS shape into an NGSI-LD GtfsShape entity.
 
@@ -2000,7 +2000,7 @@ def convert_gtfs_shapes_to_ngsi_ld(shape_id: str, points: list[dict], city: str)
         dist_traveled = None
         
     return {
-            "id": f"urn:ngsi-ld:GtfsShape:{city}:{shape_id}",
+            "id": f"urn:ngsi-ld:GtfsShape:{config.get_operating_city()}:{shape_id}",
             "type": "GtfsShape",
             
             "name": {
@@ -2022,7 +2022,7 @@ def convert_gtfs_shapes_to_ngsi_ld(shape_id: str, points: list[dict], city: str)
             }
         }
 
-def convert_gtfs_stop_times_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_stop_times_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS stop time entity to an NGSI-LD GtfsStopTime entity.
 
@@ -2037,12 +2037,12 @@ def convert_gtfs_stop_times_to_ngsi_ld(entity: dict[str, Any], city: str) -> dic
         dict: An NGSI-LD entity of type GtfsStopTime.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsStopTime:{city}:{entity.get("trip_id")}:{entity.get("stop_sequence")}",
+            "id": f"urn:ngsi-ld:GtfsStopTime:{config.get_operating_city()}:{entity.get("trip_id")}:{entity.get("stop_sequence")}",
             "type": "GtfsStopTime",
             
             "hasTrip": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}"
+                "object": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:{entity.get("trip_id")}"
             },
             
             "arrivalTime": {
@@ -2225,7 +2225,7 @@ def convert_gtfs_stops_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
             }
         }
 
-def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Converts a parsed GTFS transfer rule into an NGSI-LD GtfsTransferRule entity.
 
@@ -2246,21 +2246,21 @@ def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict
         
     if entity.get("from_stop_id") is not None:
         id_parts.append(f"fromStop:{entity.get("from_stop_id")}")
-        entity['from_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['from_stop_id']}"
+        entity['from_stop_id'] = f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:{entity['from_stop_id']}"
             
     if entity.get("to_stop_id") is not None:
         id_parts.append(f"toStop:{entity.get("to_stop_id")}")
-        entity['to_stop_id'] = f"urn:ngsi-ld:GtfsStop:{city}:{entity['to_stop_id']}"
+        entity['to_stop_id'] = f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:{entity['to_stop_id']}"
         
     if entity.get("from_trip_id") is not None:
         id_parts.append(f"fromTrip:{entity.get("from_trip_id")}")
-        entity["from_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["from_trip_id"]}"
+        entity["from_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:{entity["from_trip_id"]}"
 
     if entity.get("to_trip_id") is not None:
         id_parts.append(f"toTrip:{entity.get("to_trip_id")}")
-        entity["to_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{city}:{entity["to_trip_id"]}"
+        entity["to_trip_id"] = f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:{entity["to_trip_id"]}"
             
-    entity_id = f"urn:ngsi-ld:GtfsTransferRule:{city}:" + ":".join(id_parts)
+    entity_id = f"urn:ngsi-ld:GtfsTransferRule:{config.get_operating_city()}:" + ":".join(id_parts)
     
     return {
             "id": entity_id,
@@ -2307,7 +2307,7 @@ def convert_gtfs_transfers_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict
             }
         }
 
-def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS trip entity to an NGSI-LD GtfsTrip entity.
 
@@ -2321,7 +2321,7 @@ def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str
         dict: An NGSI-LD entity of type GtfsTrip.
     """
     return {
-            "id": f"urn:ngsi-ld:GtfsTrip:{city}:{entity.get("trip_id")}",
+            "id": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:{entity.get("trip_id")}",
             "type": "GtfsTrip",
             
             "route": {
@@ -2375,7 +2375,7 @@ def convert_gtfs_trips_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str
             }
         }
 
-def convert_gtfs_translations_to_ngsi_ld(entity: dict[str, Any], city: str) -> dict[str, Any]:
+def convert_gtfs_translations_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Maps a parsed GTFS translation entity to an NGSI-LD GtfsTranslation entity.
 
@@ -2388,7 +2388,7 @@ def convert_gtfs_translations_to_ngsi_ld(entity: dict[str, Any], city: str) -> d
         dict: An NGSI-LD entity of type GtfsTrip.
     """
     return {
-        "id": f"urn:ngsi-ld:GtfsTranslation:{city}:{entity.get("table_name")}:{entity.get("field_name")}:{entity.get("language")}:{entity.get("translation")}",
+        "id": f"urn:ngsi-ld:GtfsTranslation:{config.get_operating_city()}:{entity.get("table_name")}:{entity.get("field_name")}:{entity.get("language")}:{entity.get("translation")}",
         "type": "GtfsTranslation",
         
         "table_name": {
@@ -2483,7 +2483,7 @@ def remove_none_values(entity: dict[str, Any]) -> dict[str, Any]:
 # Main conversion functions
 # ----------------------------------------------------- 
 
-def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static agency data into NGSI-LD entities.
 
@@ -2520,7 +2520,7 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
         validate_gtfs_agency_entity(parsed_entity)
 
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_agency_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_agency_to_ngsi_ld(parsed_entity)
 
         # Remove attributes with None values to ensure a clean NGSI-LD payload
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2531,7 +2531,7 @@ def gtfs_static_agency_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
     # Return the list of NGSI-LD GtfsAgency entities
     return ngsi_ld_data
 
-def gtfs_static_calendar_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_calendar_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static calendar rules into NGSI-LD entities.
 
@@ -2567,7 +2567,7 @@ def gtfs_static_calendar_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -
         validate_gtfs_calendar_entity(parsed_entity)
 
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_calendar_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_calendar_to_ngsi_ld(parsed_entity)
 
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2578,7 +2578,7 @@ def gtfs_static_calendar_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -
     # Return the list of NGSI-LD GtfsCalendarRule entities
     return ngsi_ld_data
 
-def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static calendar date rules into NGSI-LD entities.
 
@@ -2614,7 +2614,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]], city: 
         validate_gtfs_calendar_dates_entity(parsed_entity)
 
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_calendar_dates_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_calendar_dates_to_ngsi_ld(parsed_entity)
 
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2625,7 +2625,7 @@ def gtfs_static_calendar_dates_to_ngsi_ld(raw_data: list[dict[str, Any]], city: 
     # Return the list of NGSI-LD GtfsCalendarDateRule entities
     return ngsi_ld_data
     
-def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static fare attributes into NGSI-LD entities.
 
@@ -2658,10 +2658,10 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]], city:
         parsed_entity = parse_gtfs_fare_attributes_data(fare)
         
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_fare_attributes_entity(parsed_entity, city)
+        validate_gtfs_fare_attributes_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_fare_attributes_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_fare_attributes_to_ngsi_ld(parsed_entity)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2672,7 +2672,7 @@ def gtfs_static_fare_attributes_to_ngsi_ld(raw_data: list[dict[str, Any]], city:
     # Return the list of NGSI-LD GtfsFareAttributes entities
     return ngsi_ld_data
 
-def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static levels into NGSI-LD entities.
 
@@ -2708,7 +2708,7 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
         validate_gtfs_levels_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_levels_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_levels_to_ngsi_ld(parsed_entity)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2719,7 +2719,7 @@ def gtfs_static_levels_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
     # Return the list of NGSI-LD GtfsLevel entities
     return ngsi_ld_data
     
-def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static pathways into NGSI-LD entities.
 
@@ -2751,10 +2751,10 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -
         parsed_entity = parse_gtfs_pathways_data(pathway)
         
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_pathways_entity(parsed_entity, city)
+        validate_gtfs_pathways_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_pathways_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_pathways_to_ngsi_ld(parsed_entity)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2765,7 +2765,7 @@ def gtfs_static_pathways_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -
     # Return the list of NGSI-LD GtfsPathway entities
     return ngsi_ld_data
     
-def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static routes into NGSI-LD entities.
 
@@ -2797,10 +2797,10 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
         parsed_entity = parse_gtfs_routes_data(route)
         
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_routes_entity(parsed_entity, city)
+        validate_gtfs_routes_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_routes_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_routes_to_ngsi_ld(parsed_entity)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2811,7 +2811,7 @@ def gtfs_static_routes_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> 
     # Return the list of NGSI-LD GtfsRoute
     return ngsi_ld_data
 
-def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city: str, batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
+def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
     """
     Stream and convert GTFS shapes.txt rows into NGSI-LD entities.
 
@@ -2875,7 +2875,7 @@ def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city:
             if len(points) >= 2:
                 
                 # Convert the collected points into an NGSI-LD entity
-                entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points, city)
+                entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points)
 
                 # Remove attributes with None values for NGSI-LD compliance
                 entity = remove_none_values(entity)
@@ -2901,7 +2901,7 @@ def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city:
         # If the shape has at least two points, convert it into an NGSI-LD entity and add to batch
         if len(points) >= 2:
             # Convert the collected points into an NGSI-LD entity
-            entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points, city)
+            entity = convert_gtfs_shapes_to_ngsi_ld(current_shape_id, points)
             
             # Remove attributes with None values for NGSI-LD compliance
             entity = remove_none_values(entity)
@@ -2913,7 +2913,7 @@ def gtfs_static_shapes_to_ngsi_ld_stream(reader: Iterator[dict[str, Any]], city:
     if batch:
         yield batch
 
-def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static stop times into NGSI-LD entities.
 
@@ -2946,10 +2946,10 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str)
         parsed_entity = parse_gtfs_stop_times_data(stop_time)
         
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_stop_times_entity(parsed_entity, city)
+        validate_gtfs_stop_times_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_stop_times_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_stop_times_to_ngsi_ld(parsed_entity)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -2960,7 +2960,7 @@ def gtfs_static_stop_times_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str)
     # Return the list of NGSI-LD GtfsStopTime entities
     return ngsi_ld_data
 
-def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static stops into NGSI-LD entities.
 
@@ -2992,7 +2992,7 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
         parsed_entity = parse_gtfs_stops_data(stop)
         
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_stops_entity(parsed_entity, city)
+        validate_gtfs_stops_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
         ngsi_ld_entity = convert_gtfs_stops_to_ngsi_ld(parsed_entity)
@@ -3006,7 +3006,7 @@ def gtfs_static_stops_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
     # Return the list of NGSI-LD GtfsStop entities
     return ngsi_ld_data
 
-def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static transfers into NGSI-LD entities.
 
@@ -3039,10 +3039,10 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) 
         parsed_entity = parse_gtfs_transfers_data(transfer)
         
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_transfers_entity(parsed_entity, city)
+        validate_gtfs_transfers_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_transfers_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_transfers_to_ngsi_ld(parsed_entity)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -3053,7 +3053,7 @@ def gtfs_static_transfers_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) 
     # Return the list of NGSI-LD GtfsTransfer entities
     return ngsi_ld_data
 
-def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static trips into NGSI-LD entities.
 
@@ -3086,10 +3086,10 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
         parsed_entity = parse_gtfs_trips_data(trip)
         
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_trips_entity(parsed_entity, city)
+        validate_gtfs_trips_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_trips_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_trips_to_ngsi_ld(parsed_entity)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -3100,7 +3100,7 @@ def gtfs_static_trips_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> l
     # Return the list of NGSI-LD GtfsTrip entities
     return ngsi_ld_data
 
-def gtfs_static_translations_to_ngsi_ld(raw_data: list[dict[str, Any]], city: str) -> list[dict[str, Any]]:
+def gtfs_static_translations_to_ngsi_ld(raw_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Converts GTFS static translations into NGSI-LD entities.
 
@@ -3132,10 +3132,10 @@ def gtfs_static_translations_to_ngsi_ld(raw_data: list[dict[str, Any]], city: st
         parsed_entity = parse_gtfs_translations_data(translation)
         
         # Validate the parsed entity (mandatory fields, formats, domain constraints)
-        validate_gtfs_translations_entity(parsed_entity, city)
+        validate_gtfs_translations_entity(parsed_entity)
         
         # Convert the validated entity into NGSI-LD representation
-        ngsi_ld_entity = convert_gtfs_translations_to_ngsi_ld(parsed_entity, city)
+        ngsi_ld_entity = convert_gtfs_translations_to_ngsi_ld(parsed_entity)
         
         # Remove attributes with None values for NGSI-LD compliance
         ngsi_ld_entity = remove_none_values(ngsi_ld_entity)
@@ -3149,7 +3149,7 @@ def gtfs_static_translations_to_ngsi_ld(raw_data: list[dict[str, Any]], city: st
 # High-level function to get NGSI-LD data
 # -----------------------------------------------------  
   
-def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "gtfs_static", batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
+def gtfs_static_get_ngsi_ld_batches(file_type: str, base_dir: str = "gtfs_static", batch_size: int = 1000) -> Iterator[list[dict[str, Any]]]:
     """
     Stream GTFS static data and convert it to NGSI-LD entities in batches.
 
@@ -3210,7 +3210,7 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
     pattern, transformer = mapping[file_type]
 
     # Resolve the folder containing the GTFS files for the city
-    folder = os.path.join(base_dir, city.lower())
+    folder = os.path.join(base_dir, config.get_operating_city().lower())
 
     # Locate all matching GTFS files
     files = sorted(glob.glob(os.path.join(folder, pattern)))
@@ -3227,7 +3227,7 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
 
             # SPECIAL CASE: shapes are streamed differently because of aggregation by shape_id
             if file_type == "shapes":
-                yield from gtfs_static_shapes_to_ngsi_ld_stream(reader, city, batch_size)
+                yield from gtfs_static_shapes_to_ngsi_ld_stream(reader, config.get_operating_city(), batch_size)
                 continue
 
             # Standard batch processing
@@ -3235,7 +3235,7 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, city: str, base_dir: str = "
 
             for row in reader:
                 # Convert the GTFS row into NGSI-LD entities
-                result = transformer([row], city)
+                result = transformer([row], config.get_operating_city())
                 
                 if isinstance(result, dict):
                     entities = [result]

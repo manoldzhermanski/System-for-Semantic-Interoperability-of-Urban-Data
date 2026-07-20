@@ -1,4 +1,5 @@
 import pytest
+import config
 from unittest.mock import patch, MagicMock
 from gtfs_static.gtfs_static_utils import gtfs_static_levels_to_ngsi_ld
     
@@ -8,7 +9,7 @@ def test_gtfs_levels_to_ngsi_ld():
     - Check for proper function call order (parse, validate, convert, remove_none)
     - Checks if valid NGSI-LD entities are produced
     """
-    city = "Sofia"
+    config.set_operating_city("Sofia")
 
     # Sample input for GTFS Level
     sample_raw_data = [
@@ -41,7 +42,7 @@ def test_gtfs_levels_to_ngsi_ld():
     # Mock result from convert_gtfs_levels_to_ngsi_ld
     converted_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsLevel:{city}:L1",
+            "id": f"urn:ngsi-ld:GtfsLevel:{config.get_operating_city()}:L1",
             "type": "GtfsLevel",
             "name": {"type": "Property", "value": "Platform Level",},
             "level_index": {"type": "Property", "value": 1.0,},
@@ -57,7 +58,7 @@ def test_gtfs_levels_to_ngsi_ld():
     # Mock result from remove_none_values
     cleaned_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsLevel:{city}:L1",
+            "id": f"urn:ngsi-ld:GtfsLevel:{config.get_operating_city()}:L1",
             "type": "GtfsLevel",
             "name": {"type": "Property", "value": "Platform Level",},
             "level_index": {"type": "Property", "value": 1.0,},
@@ -83,7 +84,7 @@ def test_gtfs_levels_to_ngsi_ld():
         patch("gtfs_static.gtfs_static_utils.remove_none_values", mock_remove_none):
             
             # Function call result from gtfs_static_levels_to_ngsi_ld
-            result = gtfs_static_levels_to_ngsi_ld(sample_raw_data, city)
+            result = gtfs_static_levels_to_ngsi_ld(sample_raw_data)
 
     # Check that result is as expected
     assert result == cleaned_data

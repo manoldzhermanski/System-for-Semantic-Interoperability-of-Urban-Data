@@ -1,9 +1,12 @@
+import config
 from gtfs_static.gtfs_static_utils import convert_gtfs_calendar_to_ngsi_ld
 
 def test_convert_gtfs_calendar_dates_to_ngsi_ld():
     """
     Check for proper conversion from GTFS to NGSI-LD for calendar_dates.txt
     """
+    config.set_operating_city("Sofia")
+
     entity = {
         "service_id": "S1",
         "monday": 1,
@@ -17,17 +20,15 @@ def test_convert_gtfs_calendar_dates_to_ngsi_ld():
         "end_date": "20260430"
     }
     
-    city = "Berlin"
-
-    result = convert_gtfs_calendar_to_ngsi_ld(entity, city)
+    result = convert_gtfs_calendar_to_ngsi_ld(entity)
 
     assert result == {
-            "id": f"urn:ngsi-ld:GtfsCalendarRule:Berlin:S1",
+            "id": f"urn:ngsi-ld:GtfsCalendarRule:{config.get_operating_city()}:S1",
             "type": "GtfsCalendarRule",
             
             "hasService": {
                 "type": "Relationship",
-                "object": f"urn:ngsi-ld:GtfsService:Berlin:S1"
+                "object": f"urn:ngsi-ld:GtfsService:{config.get_operating_city()}:S1"
             },
             
             "monday": {

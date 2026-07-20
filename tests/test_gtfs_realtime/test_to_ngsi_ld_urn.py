@@ -1,11 +1,15 @@
 import pytest
+import config
 from gtfs_realtime.gtfs_realtime_utils import to_ngsi_ld_urn
 
+
 def test_to_ngsi_ld_urn_valid_urn():
-    assert to_ngsi_ld_urn("123", "Device") == "urn:ngsi-ld:Device:123"
+    config.set_operating_city("Sofia")
+    assert to_ngsi_ld_urn("123", "Device") == f"urn:ngsi-ld:Device:{config.get_operating_city()}:123"
 
 def test_to_ngsi_ld_urn_valid_urn_with_alphanumeric_value():
-    assert to_ngsi_ld_urn("Device_01", "Sensor") == "urn:ngsi-ld:Sensor:Device_01"
+    config.set_operating_city("Sofia")
+    assert to_ngsi_ld_urn("Device_01", "Sensor") == f"urn:ngsi-ld:Sensor:{config.get_operating_city()}:Device_01"
 
 def test_to_ngsi_ld_urn_none_value_returns_none():
     assert to_ngsi_ld_urn(None, "Device") is None

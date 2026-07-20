@@ -1,17 +1,17 @@
+import config
 from gtfs_static.gtfs_static_utils import convert_gtfs_stop_times_to_ngsi_ld
-
 
 def test_convert_gtfs_stop_times_to_ngsi_ld():
     """
     Check for proper conversion from GTFS to NGSI-LD for stop_times.txt
     """
-    city = "Helsinki"
+    config.set_operating_city("Sofia")
     
     entity = {
         "trip_id": "1040_20260216_Ti_2_1806",
         "arrival_time": "18:32:00",
         "departure_time": "18:32:00",
-        "stop_id": f"urn:ngsi-ld:GtfsStop:{city}:1180206",
+        "stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:1180206",
         "location_group_id": None,
         "location_id": None,
         "stop_sequence": 19,
@@ -28,14 +28,14 @@ def test_convert_gtfs_stop_times_to_ngsi_ld():
         "drop_off_booking_rule_id": None,
     }
 
-    result = convert_gtfs_stop_times_to_ngsi_ld(entity, city)
+    result = convert_gtfs_stop_times_to_ngsi_ld(entity)
 
     assert result == {
-        "id": f"urn:ngsi-ld:GtfsStopTime:{city}:1040_20260216_Ti_2_1806:19",
+        "id": f"urn:ngsi-ld:GtfsStopTime:{config.get_operating_city()}:1040_20260216_Ti_2_1806:19",
         "type": "GtfsStopTime",
         "hasTrip": {
             "type": "Relationship",
-            "object": f"urn:ngsi-ld:GtfsTrip:{city}:1040_20260216_Ti_2_1806",
+            "object": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:1040_20260216_Ti_2_1806",
         },
         "arrivalTime": {
             "type": "Property",
@@ -47,7 +47,7 @@ def test_convert_gtfs_stop_times_to_ngsi_ld():
         },
         "hasStop": {
             "type": "Relationship",
-            "object": f"urn:ngsi-ld:GtfsStop:{city}:1180206",
+            "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:1180206",
         },
         "location_group_id": {
             "type": "Relationship",
@@ -111,15 +111,15 @@ def test_convert_gtfs_stop_times_to_ngsi_ld_missing_optional_fields():
     """
     Check for proper conversion from GTFS to NGSI-LD for stop_times.txt when optional fileds are missing
     """
-    city = "Sofia"
+    config.set_operating_city("Sofia")
     
     entity = {
         "trip_id": "T1",
         "arrival_time": "08:15:00",
         "departure_time": "08:17:00",
-        "stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S1",
-        "location_group_id": f"urn:ngsi-ld:GtfsLocationGroup:{city}:LG1",
-        "location_id": f"urn:ngsi-ld:GtfsLocation:{city}:L1",
+        "stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",
+        "location_group_id": f"urn:ngsi-ld:GtfsLocationGroup:{config.get_operating_city()}:LG1",
+        "location_id": f"urn:ngsi-ld:GtfsLocation:{config.get_operating_city()}:L1",
         "stop_sequence": 5,
         "start_pickup_drop_off_window": "07:00:00",
         "end_pickup_drop_off_window": "22:00:00",
@@ -129,14 +129,14 @@ def test_convert_gtfs_stop_times_to_ngsi_ld_missing_optional_fields():
         "continuous_drop_off": 1
     }
 
-    result = convert_gtfs_stop_times_to_ngsi_ld(entity, city)
+    result = convert_gtfs_stop_times_to_ngsi_ld(entity)
 
     assert result == {
-        "id": f"urn:ngsi-ld:GtfsStopTime:{city}:T1:5",
+        "id": f"urn:ngsi-ld:GtfsStopTime:{config.get_operating_city()}:T1:5",
         "type": "GtfsStopTime",
         "hasTrip": {
             "type": "Relationship",
-            "object": f"urn:ngsi-ld:GtfsTrip:{city}:T1",
+            "object": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T1",
         },
         "arrivalTime": {
             "type": "Property",
@@ -148,15 +148,15 @@ def test_convert_gtfs_stop_times_to_ngsi_ld_missing_optional_fields():
         },
         "hasStop": {
             "type": "Relationship",
-            "object": f"urn:ngsi-ld:GtfsStop:{city}:S1",
+            "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",
         },
         "location_group_id": {
             "type": "Relationship",
-            "object": f"urn:ngsi-ld:GtfsLocationGroup:{city}:LG1",
+            "object": f"urn:ngsi-ld:GtfsLocationGroup:{config.get_operating_city()}:LG1",
         },
         "location_id": {
             "type": "Relationship",
-            "object": f"urn:ngsi-ld:GtfsLocation:{city}:L1",
+            "object": f"urn:ngsi-ld:GtfsLocation:{config.get_operating_city()}:L1",
         },
         "stopSequence": {
             "type": "Property",

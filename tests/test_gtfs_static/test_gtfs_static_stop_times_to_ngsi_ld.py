@@ -1,4 +1,5 @@
 import pytest
+import config
 from unittest.mock import patch, MagicMock
 from gtfs_static.gtfs_static_utils import gtfs_static_stop_times_to_ngsi_ld
 
@@ -10,22 +11,22 @@ def test_gtfs_static_stop_times_to_ngsi_ld():
     - Checks if valid NGSI-LD entities are produced
     """
     
-    city = "Sofia"
-    
+    config.set_operating_city("Sofia")
+
     # Sample input for GTFS Stop Time
     sample_raw_data = [
         {
-            "trip_id": f"urn:ngsi-ld:GtfsTrip:{city}:T1",
+            "trip_id": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T1",
             "arrival_time": "08:15:00",
             "departure_time": "08:17:00",
-            "stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S1",
+            "stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",
             "stop_sequence": "5",
             },
         {
-            "trip_id": f"urn:ngsi-ld:GtfsTrip:{city}:T2",
+            "trip_id": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T2",
             "arrival_time": "08:17:00",
             "departure_time": "08:19:00",
-            "stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S2",
+            "stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S2",
             "stop_sequence": "6",
             }
         ]
@@ -33,17 +34,17 @@ def test_gtfs_static_stop_times_to_ngsi_ld():
     # Mock result from parse_gtfs_stop_times_data
     parsed_data = [
         {
-            "trip_id": f"urn:ngsi-ld:GtfsTrip:{city}:T1",
+            "trip_id": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T1",
             "arrival_time": "08:15:00",
             "departure_time": "08:17:00",
-            "stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S1",
+            "stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",
             "stop_sequence": 5,
             },
         {
-            "trip_id": f"urn:ngsi-ld:GtfsTrip:{city}:T2",
+            "trip_id": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T2",
             "arrival_time": "08:17:00",
             "departure_time": "08:19:00",
-            "stop_id": f"urn:ngsi-ld:GtfsStop:{city}:S2",
+            "stop_id": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S2",
             "stop_sequence": 6,
             }
         ]
@@ -51,21 +52,21 @@ def test_gtfs_static_stop_times_to_ngsi_ld():
     # Mock result from convert_gtfs_stop_times_to_ngsi_ld
     converted_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsStopTime:{city}:T1:5",
+            "id": f"urn:ngsi-ld:GtfsStopTime:{config.get_operating_city()}:T1:5",
             "type": "GtfsStopTime",
-            "hasTrip": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:T1",},
+            "hasTrip": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T1",},
             "arrivalTime": {"type": "Property", "value": "08:15:00",},
             "departureTime": {"type": "Property","value": "08:17:00",},
-            "hasStop": {"type": "Relationship","object": f"urn:ngsi-ld:GtfsStop:{city}:S1",},
+            "hasStop": {"type": "Relationship","object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",},
             "stopSequence": {"type": "Property", "value": 5},
             },
         {
-            "id": f"urn:ngsi-ld:GtfsStopTime{city}:T2:6",
+            "id": f"urn:ngsi-ld:GtfsStopTime{config.get_operating_city()}:T2:6",
             "type": "GtfsStopTime",
-            "hasTrip": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:T2",},
+            "hasTrip": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T2",},
             "arrivalTime": {"type": "Property", "value": "08:17:00",},
             "departureTime": {"type": "Property","value": "08:19:00",},
-            "hasStop": {"type": "Relationship","object": f"urn:ngsi-ld:GtfsStop:{city}:S2",},
+            "hasStop": {"type": "Relationship","object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S2",},
             "stopSequence": {"type": "Property", "value": 6},
             },
         ]
@@ -73,21 +74,21 @@ def test_gtfs_static_stop_times_to_ngsi_ld():
     # Mock result from remove_none_values
     cleaned_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsStopTime:{city}:T1:5",
+            "id": f"urn:ngsi-ld:GtfsStopTime:{config.get_operating_city()}:T1:5",
             "type": "GtfsStopTime",
-            "hasTrip": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:T1",},
+            "hasTrip": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T1",},
             "arrivalTime": {"type": "Property", "value": "08:15:00",},
             "departureTime": {"type": "Property","value": "08:17:00",},
-            "hasStop": {"type": "Relationship","object": f"urn:ngsi-ld:GtfsStop:{city}:S1",},
+            "hasStop": {"type": "Relationship","object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S1",},
             "stopSequence": {"type": "Property", "value": 5},
             },
         {
-            "id": f"urn:ngsi-ld:GtfsStopTime:{city}:T2:6",
+            "id": f"urn:ngsi-ld:GtfsStopTime:{config.get_operating_city()}:T2:6",
             "type": "GtfsStopTime",
-            "hasTrip": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{city}:T2",},
+            "hasTrip": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsTrip:{config.get_operating_city()}:T2",},
             "arrivalTime": {"type": "Property", "value": "08:17:00",},
             "departureTime": {"type": "Property","value": "08:19:00",},
-            "hasStop": {"type": "Relationship","object": f"urn:ngsi-ld:GtfsStop:{city}:S2",},
+            "hasStop": {"type": "Relationship","object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:S2",},
             "stopSequence": {"type": "Property", "value": 6},
             },
         ]
@@ -104,7 +105,7 @@ def test_gtfs_static_stop_times_to_ngsi_ld():
         patch("gtfs_static.gtfs_static_utils.convert_gtfs_stop_times_to_ngsi_ld", mock_convert), \
         patch("gtfs_static.gtfs_static_utils.remove_none_values", mock_remove_none):
             # Function call result from gtfs_static_stop_times_to_ngsi_ld
-            result = gtfs_static_stop_times_to_ngsi_ld(sample_raw_data, city)
+            result = gtfs_static_stop_times_to_ngsi_ld(sample_raw_data)
 
     # Check that result is as expected
     assert result == cleaned_data
@@ -116,8 +117,8 @@ def test_gtfs_static_stop_times_to_ngsi_ld():
 
     # Check that validate_gtfs_stop_times_entity is called for every entity
     assert mock_validate.call_count == 2
-    mock_validate.assert_any_call(parsed_data[0], city)
-    mock_validate.assert_any_call(parsed_data[1], city)
+    mock_validate.assert_any_call(parsed_data[0])
+    mock_validate.assert_any_call(parsed_data[1])
 
     # Check that convert_gtfs_stop_times_to_ngsi_ld is called for every entity
     assert mock_convert.call_count == 2

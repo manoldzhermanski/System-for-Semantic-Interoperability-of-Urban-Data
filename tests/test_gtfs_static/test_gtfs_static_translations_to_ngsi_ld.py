@@ -1,8 +1,11 @@
 import pytest
+import config
 from unittest.mock import patch, MagicMock
 from gtfs_static.gtfs_static_utils import gtfs_static_translations_to_ngsi_ld
 
 def test_gtfs_static_translations_to_ngsi_ld():
+    
+    config.set_operating_city("Sofia")
     
     # Sample input for GTFS Translation
     sample_raw_data = [
@@ -43,30 +46,28 @@ def test_gtfs_static_translations_to_ngsi_ld():
             "field_value": ""
          }
         ]
-    
-    city = "Sofia"
-    
+        
     # Mock result from convert_gtfs_transfers_to_ngsi_ld
     converted_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsTranslation:{city}:stops:stop_name:en:TSentralna_gara",
+            "id": f"urn:ngsi-ld:GtfsTranslation:{config.get_operating_city()}:stops:stop_name:en:TSentralna_gara",
             "type": "GtfsTranslation",
             "table_name": {"type": "Property", "value": "stops"},
             "field_name": {"type": "Property", "value": "stop_name"},
             "language": {"type": "Property", "value": "en"},
             "translation": {"type": "Property", "value": "TSentralna_gara"},
-            "record_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:Stop_1"},
+            "record_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:Stop_1"},
             "record_sub_id": {"type": "Property", "value": None},
             "field_value": {"type": "Property", "value": None}
             },
         {
-            "id": f"urn:ngsi-ld:GtfsTranslation:{city}:stops:stop_name:en:Serdik_gara",
+            "id": f"urn:ngsi-ld:GtfsTranslation:{config.get_operating_city()}:stops:stop_name:en:Serdik_gara",
             "type": "GtfsTranslation",
             "table_name": {"type": "Property", "value": "stops"},
             "field_name": {"type": "Property", "value": "stop_name"},
             "language": {"type": "Property", "value": "en"},
             "translation": {"type": "Property", "value": "Serdik_gara"},
-            "record_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:Stop_2"},
+            "record_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:Stop_2"},
             "record_sub_id": {"type": "Property", "value": None},
             "field_value": {"type": "Property", "value": None}
             }
@@ -75,22 +76,22 @@ def test_gtfs_static_translations_to_ngsi_ld():
     # Mock result from remove_none_values
     cleaned_data = [
         {
-            "id": f"urn:ngsi-ld:GtfsTranslation:{city}:stops:stop_name:en:TSentralna_gara",
+            "id": f"urn:ngsi-ld:GtfsTranslation:{config.get_operating_city()}:stops:stop_name:en:TSentralna_gara",
             "type": "GtfsTranslation",
             "table_name": {"type": "Property", "value": "stops"},
             "field_name": {"type": "Property", "value": "stop_name"},
             "language": {"type": "Property", "value": "en"},
             "translation": {"type": "Property", "value": "TSentralna_gara"},
-            "record_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:Stop_1"},
+            "record_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:Stop_1"},
             },
         {
-            "id": f"urn:ngsi-ld:GtfsTranslation:{city}:stops:stop_name:en:Serdik_gara",
+            "id": f"urn:ngsi-ld:GtfsTranslation:{config.get_operating_city()}:stops:stop_name:en:Serdik_gara",
             "type": "GtfsTranslation",
             "table_name": {"type": "Property", "value": "stops"},
             "field_name": {"type": "Property", "value": "stop_name"},
             "language": {"type": "Property", "value": "en"},
             "translation": {"type": "Property", "value": "Serdik_gara"},
-            "record_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{city}:Stop_2"},
+            "record_id": {"type": "Relationship", "object": f"urn:ngsi-ld:GtfsStop:{config.get_operating_city()}:Stop_2"},
             }
         ]
     
@@ -107,7 +108,7 @@ def test_gtfs_static_translations_to_ngsi_ld():
         patch("gtfs_static.gtfs_static_utils.remove_none_values", mock_remove_none):
              
         # Function call result from gtfs_static_transfers_to_ngsi_ld
-        result = gtfs_static_translations_to_ngsi_ld(sample_raw_data, city)
+        result = gtfs_static_translations_to_ngsi_ld(sample_raw_data)
 
     # Check that result is as expected
     assert result == cleaned_data
@@ -119,8 +120,8 @@ def test_gtfs_static_translations_to_ngsi_ld():
 
     # Check that validate_gtfs_transfers_entity is called for every entity
     assert mock_validate.call_count == 2
-    mock_validate.assert_any_call(parsed_data[0], city)
-    mock_validate.assert_any_call(parsed_data[1], city)
+    mock_validate.assert_any_call(parsed_data[0])
+    mock_validate.assert_any_call(parsed_data[1])
 
     # Check that convert_gtfs_transfers_to_ngsi_ld is called for every entity
     assert mock_convert.call_count == 2
