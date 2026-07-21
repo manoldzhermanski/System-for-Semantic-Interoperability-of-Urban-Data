@@ -1,5 +1,5 @@
 import config
-from gtfs_realtime.gtfs_realtime_utils import parse_gtfs_realtime_trip_updates
+from gtfs_realtime.gtfs_realtime_utils import gtfs_realtime_normalize_trip_updates
 
 def test_parse_gtfs_realtime_trip_update_partial_payload():
     """
@@ -58,7 +58,7 @@ def test_parse_gtfs_realtime_trip_update_partial_payload():
             }
         }
     
-    result = parse_gtfs_realtime_trip_updates(entity)
+    result = gtfs_realtime_normalize_trip_updates(entity)
    
     assert result == expected
 
@@ -103,6 +103,6 @@ def test_parse_gtfs_realtime_alerts_empty_entity():
             }
         }
     
-    result = parse_gtfs_realtime_trip_updates(entity)
+    result = gtfs_realtime_normalize_trip_updates(entity)
     
     assert result == expected

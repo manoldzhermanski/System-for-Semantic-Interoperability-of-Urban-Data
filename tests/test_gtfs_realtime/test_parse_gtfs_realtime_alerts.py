@@ -1,5 +1,5 @@
 import config
-from gtfs_realtime.gtfs_realtime_utils import parse_gtfs_realtime_alerts
+from gtfs_realtime.gtfs_realtime_utils import gtfs_realtime_normalize_alerts
 
 def test_parse_gtfs_realtime_alerts_partial_payload():
     """
@@ -103,7 +103,7 @@ def test_parse_gtfs_realtime_alerts_partial_payload():
         }
     
     
-    result = parse_gtfs_realtime_alerts(entity)
+    result = gtfs_realtime_normalize_alerts(entity)
    
     assert result == expected
 
@@ -149,6 +149,6 @@ def test_parse_gtfs_realtime_alerts_empty_entity():
             }
     }  
     
-    result = parse_gtfs_realtime_alerts(entity)
+    result = gtfs_realtime_normalize_alerts(entity)
     
     assert result == expected

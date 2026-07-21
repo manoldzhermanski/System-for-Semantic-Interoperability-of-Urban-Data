@@ -347,58 +347,7 @@ def gtfs_realtime_normalize_vehicle_descriptor_message(vehicle: dict[str, Any] |
         "wheelchair_accessible": vehicle.get("wheelchair_accessible")
     }
 
-def gtfs_realtime_clean_empty_values(value: Any) -> Any:
-    """
-    Recursively remove empty values from a data structure.
-    This process gets the structure ready for NGSI-LD mapping
-
-    The function removes:
-    - None values
-    - empty dictionaries {}
-    - empty lists []
-
-    If, after cleaning, a list or dictionary becomes empty,
-    it is removed as well (represented as None).
-
-    Args:
-        value (Any): Input value which may be a dictionary, list, or any
-            other type.
-
-    Returns:
-        Any: The cleaned data structure with empty values removed,
-            or None if the resulting structure is empty.
-    """
-
-    # Base case: remove None values
-    if value is None:
-        return None
-
-    # Recursively clean list items and drop empty results
-    if isinstance(value, list):
-        result = []
-        for item in value:
-            pruned = gtfs_realtime_clean_empty_values(item)
-            if pruned is not None:
-                result.append(pruned)
-        return result if result else None
-
-    # Recursively clean dictionary values and drop empty entries
-    if isinstance(value, dict):
-        result = {}
-        for key, val in value.items():
-            pruned = gtfs_realtime_clean_empty_values(val)
-            if pruned is not None:
-                result[key] = pruned
-        return result if result else None
-
-    # Base case: return other types of values as unchanged
-    return value
-
-# -----------------------------------------------------
-# GTFS Realtime to NGSI-LD Parsing Functions
-# -----------------------------------------------------
-
-def parse_gtfs_realtime_vehicle_position(entity: dict[str, Any]) -> dict[str, Any]:
+def gtfs_realtime_normalize_vehicle_position(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Normalize a GTFS Realtime VehiclePosition feed entity into a consistent Python dictionary
     suitable for further processing and transformation into NGSI-LD.
@@ -465,7 +414,7 @@ def parse_gtfs_realtime_vehicle_position(entity: dict[str, Any]) -> dict[str, An
         "multi_carriage_details": carriage_details
     }
 
-def parse_gtfs_realtime_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
+def gtfs_realtime_normalize_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Normalize a GTFS Realtime TripUpdate feed entity into a consistent Python dictionary
     suitable for further processing and transformation into NGSI-LD.
@@ -541,7 +490,7 @@ def parse_gtfs_realtime_trip_updates(entity: dict[str, Any]) -> dict[str, Any]:
             }
         }
 
-def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
+def gtfs_realtime_normalize_alerts(entity: dict[str, Any]) -> dict[str, Any]:
     """
     Normalize a GTFS Realtime Alert feed entity into a consistent Python dictionary
     suitable for further processing and transformation into NGSI-LD.
@@ -658,6 +607,53 @@ def parse_gtfs_realtime_alerts(entity: dict[str, Any]) -> dict[str, Any]:
             "translation": translations["image_alternative_text"]
             }
     }  
+
+def gtfs_realtime_clean_empty_values(value: Any) -> Any:
+    """
+    Recursively remove empty values from a data structure.
+    This process gets the structure ready for NGSI-LD mapping
+
+    The function removes:
+    - None values
+    - empty dictionaries {}
+    - empty lists []
+
+    If, after cleaning, a list or dictionary becomes empty,
+    it is removed as well (represented as None).
+
+    Args:
+        value (Any): Input value which may be a dictionary, list, or any
+            other type.
+
+    Returns:
+        Any: The cleaned data structure with empty values removed,
+            or None if the resulting structure is empty.
+    """
+
+    # Base case: remove None values
+    if value is None:
+        return None
+
+    # Recursively clean list items and drop empty results
+    if isinstance(value, list):
+        result = []
+        for item in value:
+            pruned = gtfs_realtime_clean_empty_values(item)
+            if pruned is not None:
+                result.append(pruned)
+        return result if result else None
+
+    # Recursively clean dictionary values and drop empty entries
+    if isinstance(value, dict):
+        result = {}
+        for key, val in value.items():
+            pruned = gtfs_realtime_clean_empty_values(val)
+            if pruned is not None:
+                result[key] = pruned
+        return result if result else None
+
+    # Base case: return other types of values as unchanged
+    return value
 
 # -----------------------------------------------------
 # GTFS Realtime to NGSI-LD Conversion Functions
@@ -927,7 +923,7 @@ def gtfs_realtime_vehicle_position_to_ngsi_ld() -> list[dict[str, Any]]:
     for entity in entities:
         
         # Normalize the GTFS VehiclePosition entity into an internal model
-        normalized_entity = parse_gtfs_realtime_vehicle_position(entity)
+        normalized_entity = gtfs_realtime_normalize_vehicle_position(entity)
         
         # Remove empty or unused fields from the normalized structure
         cleaned_entity = gtfs_realtime_clean_empty_values(normalized_entity)
@@ -980,7 +976,7 @@ def gtfs_realtime_trip_updates_to_ngsi_ld() -> list[dict[str, Any]]:
     for entity in entities:
         
         # Normalize the GTFS TripUpdate entity into an internal model
-        normalized_entity = parse_gtfs_realtime_trip_updates(entity)
+        normalized_entity = gtfs_realtime_normalize_trip_updates(entity)
         
         # Remove empty or unused fields from the normalized structure
         cleaned_entity = gtfs_realtime_clean_empty_values(normalized_entity)
@@ -1033,7 +1029,7 @@ def gtfs_realtime_alerts_to_ngsi_ld() -> list[dict[str, Any]]:
     for entity in entities:
         
         # Normalize the GTFS Alert entity into an internal model
-        normalized_entity = parse_gtfs_realtime_alerts(entity)
+        normalized_entity = gtfs_realtime_normalize_alerts(entity)
 
         # Remove empty or unused fields from the normalized structure
         cleaned_entity =gtfs_realtime_clean_empty_values(normalized_entity)
@@ -1091,13 +1087,6 @@ def gtfs_realtime_get_ngsi_ld_data(type: str) -> list[dict[str, Any]]:
         raise ValueError("Unknown / Unsupported GTFS Realtime type")
 
 if __name__ == "__main__":
-    # Fetch raw GTFS-Realtime feed from the configured source
-    api_response = gtfs_realtime_get_feed(config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-
-    # Parse the feed into a GTFS-Realtime FeedMessage
-    feed_data = gtfs_realtime_parse_feed(api_response, config.GtfsSource.SOFIA_GTFS_REALTIME_VEHICLE_POSITIONS_URL)
-
-    # Convert the FeedMessage into a Python dictionary
-    feed_dict = gtfs_realtime_feed_to_dict(feed_data)
-    #vehicle_position_data = gtfs_realtime_get_ngsi_ld_data("VehiclePosition")
-    print(json.dumps(feed_dict, indent=2))
+    config.set_operating_city("Sofia")
+    vehicle_position_data = gtfs_realtime_get_ngsi_ld_data("VehiclePosition")
+    print(json.dumps(vehicle_position_data, indent=2))

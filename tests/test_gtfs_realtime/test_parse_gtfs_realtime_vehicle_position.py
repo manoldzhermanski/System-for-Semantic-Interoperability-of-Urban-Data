@@ -1,5 +1,5 @@
 import config
-from gtfs_realtime.gtfs_realtime_utils import parse_gtfs_realtime_vehicle_position
+from gtfs_realtime.gtfs_realtime_utils import gtfs_realtime_normalize_vehicle_position
 
 def test_parse_gtfs_realtime_vehicle_position_partial_payload():
     """
@@ -69,7 +69,7 @@ def test_parse_gtfs_realtime_vehicle_position_partial_payload():
         }
     
     
-    result = parse_gtfs_realtime_vehicle_position(entity)
+    result = gtfs_realtime_normalize_vehicle_position(entity)
    
     assert result == expected
 
@@ -118,6 +118,6 @@ def test_parse_gtfs_realtime_vehicle_position_empty_entity():
         "multi_carriage_details": []
         
     }
-    result = parse_gtfs_realtime_vehicle_position(entity)
+    result = gtfs_realtime_normalize_vehicle_position(entity)
     
     assert result == expected
