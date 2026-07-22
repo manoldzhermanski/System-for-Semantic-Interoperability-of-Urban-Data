@@ -3227,7 +3227,7 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, base_dir: str = "gtfs_static
 
             # SPECIAL CASE: shapes are streamed differently because of aggregation by shape_id
             if file_type == "shapes":
-                yield from gtfs_static_shapes_to_ngsi_ld_stream(reader, config.get_operating_city(), batch_size)
+                yield from gtfs_static_shapes_to_ngsi_ld_stream(reader, batch_size)
                 continue
 
             # Standard batch processing
