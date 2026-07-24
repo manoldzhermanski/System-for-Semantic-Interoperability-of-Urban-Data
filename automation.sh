@@ -2,6 +2,7 @@
 set -euo pipefail
 
 COMMAND=${1:-}
+shift || true
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -98,7 +99,7 @@ netex_rebuild() {
 
 download() {
 
-    case "$1" in
+    case "${1:-}" in
         gtfs)
             endpoint="gtfs_static"
             file="gtfs.zip"
@@ -113,14 +114,13 @@ download() {
             ;;
     esac
 
-    curl -X POST "http://localhost:8000/api/${endpoint}/rebuild"
-
-    echo "Generating ${file}..."
-    sleep 2
+    echo "Downloading ${file}..."
 
     curl -L \
         "http://localhost:8000/api/${endpoint}/download" \
-        -o "${file}"
+        -o "otp/data/${file}"
+
+    echo "${file} downloaded successfully."
 }
 
 otp_build() {
@@ -181,7 +181,6 @@ pytest() {
 }
 
 load() {
-  shift
 
   if [[ $# -eq 0 ]]; then
     echo "Specify what to load: gtfs, pois"
