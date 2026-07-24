@@ -2388,7 +2388,7 @@ def convert_gtfs_translations_to_ngsi_ld(entity: dict[str, Any]) -> dict[str, An
         dict: An NGSI-LD entity of type GtfsTrip.
     """
     return {
-        "id": f"urn:ngsi-ld:GtfsTranslation:{config.get_operating_city()}:{entity.get("table_name")}:{entity.get("field_name")}:{entity.get("language")}:{entity.get("translation")}",
+        "id": f"urn:ngsi-ld:GtfsTranslation:{config.get_operating_city()}:{entity.get("table_name")}:{entity.get("field_name")}:{entity.get("language")}:{entity.get("translation")}".replace('"', ''),
         "type": "GtfsTranslation",
         
         "table_name": {

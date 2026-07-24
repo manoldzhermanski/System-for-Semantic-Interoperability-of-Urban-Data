@@ -17,7 +17,7 @@ GTFS_STATIC_TYPES = (
     "stops",
     "transfers",
     "trips",
-    "translations"
+    "translations",
 )
 
 POIS_TYPES = (
@@ -33,7 +33,7 @@ POIS_TYPES = (
 
 GTFS_CITIES = (
     "Sofia", 
-    "Helsinki"
+    "Helsinki",
 )
 
 LOAD_GTFS = "gtfs"
