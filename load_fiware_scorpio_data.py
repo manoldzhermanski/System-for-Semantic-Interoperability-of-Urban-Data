@@ -3,7 +3,7 @@ import sys
 from fiware_scorpio import fiware_scorpio_crud_operations as olcd
 from gtfs_static import gtfs_static_utils as gsu
 from json_ld import json_ld_utils as jlu
-
+import config
 
 GTFS_STATIC_TYPES = (
     "agency",
@@ -57,6 +57,7 @@ def load_gtfs_static(cities: list[str]):
 
     # Iterate through the selected cities
     for city in cities:
+        config.set_operating_city(city.title())
         print(f"\nCity: {city}")
 
         # Iterate through the selected GTFS Static Data Types
@@ -64,7 +65,7 @@ def load_gtfs_static(cities: list[str]):
             print(f"  • {entity_type}")
 
             # Read GTFS Static Data Sources and get the data in NGSI-LD format
-            data = gsu.gtfs_static_get_ngsi_ld_batches(entity_type, city)
+            data = gsu.gtfs_static_get_ngsi_ld_batches(entity_type)
 
             # Skip the unsupported Data Types
             if not data:

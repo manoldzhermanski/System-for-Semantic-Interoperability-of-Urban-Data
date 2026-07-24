@@ -122,7 +122,7 @@ def gtfs_static_extract_zip(zip_bytes: bytes, city: str, base_dir: str = "gtfs_s
 # Check for Valid CSV files
 # -----------------------------------------------------
 
-def gtfs_static_validate_csv(file) -> csv.DictReader:
+def gtfs_static_validate_csv(file) -> csv.DictReader | None:
     first_line = file.readline()
 
     if not first_line.strip():
