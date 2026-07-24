@@ -3235,7 +3235,7 @@ def gtfs_static_get_ngsi_ld_batches(file_type: str, base_dir: str = "gtfs_static
 
             for row in reader:
                 # Convert the GTFS row into NGSI-LD entities
-                result = transformer([row], config.get_operating_city())
+                result = transformer([row])
                 
                 if isinstance(result, dict):
                     entities = [result]
