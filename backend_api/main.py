@@ -519,6 +519,7 @@ def _strip_urn(value: str | None):
     return value
 
 def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> list[dict[str, Any]]:
+    
     rows: list[dict[str, Any]] = []
     row: dict[str, Any] = {}
 
@@ -710,6 +711,7 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> list[dict
     return rows
 
 def entities_to_csv_bytes(entities: list[dict[str, Any]]) -> bytes:
+    
     if not entities:
         return b""
 
@@ -756,7 +758,7 @@ def build_gtfs_zip() -> str:
     shapes = fiware_scorpio_get_entities_by_type("GtfsShape", header, config.get_operating_city())
     transfers = fiware_scorpio_get_entities_by_type("GtfsTransferRule", header, config.get_operating_city())
     pathways = fiware_scorpio_get_entities_by_type("GtfsPathway", header, config.get_operating_city())
-    levels = fiware_scorpio_get_entities_by_type("GtfsLevel", header, config.get_operating_city()),
+    levels = fiware_scorpio_get_entities_by_type("GtfsLevel", header, config.get_operating_city())
     translations = fiware_scorpio_get_entities_by_type("GtfsTranslation", header, config.get_operating_city())
 
     data = {
@@ -771,7 +773,7 @@ def build_gtfs_zip() -> str:
         "transfers.txt": transfers,
         "pathways.txt": pathways,
         "levels.txt": levels,
-        "translations.txt": translations
+        "translations.txt": translations,
     }
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
