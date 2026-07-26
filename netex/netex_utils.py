@@ -14,6 +14,7 @@ from collections import defaultdict
 from shapely.geometry import LineString, Point as ShapelyPoint
 from shapely.ops import substring
 from datetime import datetime, timedelta
+from urllib.parse import quote, unquote
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
@@ -686,7 +687,7 @@ def netex_build_field_value_index(translations: list[dict[str, Any]]) -> dict[tu
         if not field_value:
             continue
 
-        field_value = field_value.strip().replace(" ", "_")
+        field_value = quote(field_value.strip(), safe="")
         
         key = (table_name, field_name, field_value)
         index[key][language] = translation
@@ -735,7 +736,7 @@ def netex_resolve_translation(indexes, table_name, field_name,
     # 2. field-based index
     if not translations and field_value is not None:
         key = (table_name, field_name, field_value)
-        field_value = field_value.strip().replace(" ", "_")
+        field_value = quote(field_value.strip(), safe="")
         translations = indexes["by_field_value"].get(key, {})
 
     return translations.get(language)
@@ -1210,8 +1211,8 @@ def netex_helper_build_authority(gtfs_agency: dict[str, Any], company_number: in
     authority = etree.Element("Authority", version="1", id=f"{config.NETEX_AUTHORITY}:Authority:{agency_id_value}_ID")
 
     etree.SubElement(authority, "CompanyNumber").text = str(company_number)
-    etree.SubElement(authority, "Name").text = agency_name
-    etree.SubElement(authority, "LegalName").text = agency_name
+    etree.SubElement(authority, "Name").text = unquote(agency_name)
+    etree.SubElement(authority, "LegalName").text = unquote(agency_name)
 
     agency_phone = gtfs_agency.get("agency_phone", {}).get("value")
     agency_fare_url = gtfs_agency.get("agency_fare_url", {}).get("value")
@@ -1299,8 +1300,8 @@ def netex_helper_build_operator(entity: dict[str, Any], company_number: int) -> 
     operator = etree.Element("Operator", version="1", id=f"{config.NETEX_AUTHORITY}:Operator:{agency_id_value}")
 
     etree.SubElement(operator, "CompanyNumber").text = str(company_number)
-    etree.SubElement(operator, "Name").text = agency_name
-    etree.SubElement(operator, "LegalName").text = agency_name
+    etree.SubElement(operator, "Name").text = unquote(agency_name)
+    etree.SubElement(operator, "LegalName").text = unquote(agency_name)
 
     agency_phone = entity.get("agency_phone", {}).get("value")
     agency_fare_url = entity.get("agency_fare_url", {}).get("value")
@@ -1420,7 +1421,7 @@ def netex_helper_build_network(agency: dict[str, Any]) -> etree.Element | None:
     # Build <Network> element with it's info
     network = etree.Element("Network", version="1", id=f"{config.NETEX_AUTHORITY}:Network:{network_id_value}Nett")
 
-    etree.SubElement(network, "Name").text = agency_name
+    etree.SubElement(network, "Name").text = unquote(agency_name)
 
     etree.SubElement(network, "AuthorityRef", ref = f"{config.NETEX_AUTHORITY}:Authority:{network_id_value}_ID", version="1")
 
@@ -2559,11 +2560,11 @@ def netex_helper_build_line(route: dict[str, Any]) -> etree.Element | None:
 
     route_long_name = route.get("name", {}).get("value")
     if route_long_name:
-        etree.SubElement(line, "Name").text = route_long_name
+        etree.SubElement(line, "Name").text = unquote(route_long_name)
 
     route_description = route.get("description", {}).get("value")
     if route_description:
-        etree.SubElement(line, "Description").text = route_description
+        etree.SubElement(line, "Description").text = unquote(route_description)
 
     route_type = route.get("routeType", {}).get("value")
 
@@ -2682,10 +2683,14 @@ def netex_helper_build_destionation_display(stop: dict[str, Any]) -> etree.Eleme
     # Bild <DestinationDisplay> element
     stop_name = stop.get("name", {}).get("value")
     
+    if not isinstance(stop_name, str):
+        logger.error("Invalid stop name in stop %s: %r", route_id, stop_name)
+        return None
+    
     destination_display = etree.Element("DestinationDisplay", version="1", id=f"{config.NETEX_AUTHORITY}:DestinationDisplay:{stop_id_value}")
-    etree.SubElement(destination_display, "Name").text = stop_name
-    etree.SubElement(destination_display, "SideText").text = stop_name
-    etree.SubElement(destination_display, "FrontText").text = stop_name
+    etree.SubElement(destination_display, "Name").text = unquote(stop_name)
+    etree.SubElement(destination_display, "SideText").text = unquote(stop_name)
+    etree.SubElement(destination_display, "FrontText").text = unquote(stop_name)
     
     return destination_display
 
@@ -2770,7 +2775,7 @@ def netex_helper_build_scheduled_stop_point(gtfs_stop: dict[str, Any]) -> etree.
                                          id=f"{config.NETEX_AUTHORITY}:ScheduledStopPoint:{stop_id_value}")
 
     if stop_name:
-        etree.SubElement(scheduled_stop_point,"Name").text = stop_name
+        etree.SubElement(scheduled_stop_point,"Name").text = unquote(stop_name)
 
     return scheduled_stop_point
 
@@ -2895,10 +2900,10 @@ def netex_helper_build_stop_place(gtfs_stop_entity: dict[str, Any], transport_mo
 
     # Add Name, Description, PublicCode and Centroid elements if values are present
     if name_value:
-        etree.SubElement(stop_place, "Name").text = name_value
+        etree.SubElement(stop_place, "Name").text = unquote(name_value)
 
     if description_value:
-        etree.SubElement(stop_place, "Description").text = description_value
+        etree.SubElement(stop_place, "Description").text = unquote(description_value)
 
     if stop_code_value:
         etree.SubElement(stop_place, "PublicCode").text = str(stop_code_value)
@@ -3323,10 +3328,10 @@ def netex_build_route_structures(route_dataset: dict[str, Any]) -> list[dict[str
             route_structure["direction"] = direction
 
         if route_short_name:
-            route_structure["route_short_name"] = route_short_name
+            route_structure["route_short_name"] = unquote(route_short_name)
 
         if route_long_name:
-            route_structure["route_long_name"] = route_long_name
+            route_structure["route_long_name"] = unquote(route_long_name)
 
         route_structures.append(route_structure)
 
@@ -3348,12 +3353,12 @@ def netex_helper_build_route(route_structure: dict[str, Any]) -> etree.Element:
     route_long_name = route_structure.get("route_long_name")
 
     if route_long_name:
-        etree.SubElement(route, "Name").text = route_long_name
+        etree.SubElement(route, "Name").text = unquote(route_long_name)
 
     route_short_name = route_structure.get("route_short_name")
 
     if route_short_name:
-        etree.SubElement(route, "ShortName").text = route_short_name
+        etree.SubElement(route, "ShortName").text = unquote(route_short_name)
 
     etree.SubElement(route, "LineRef", ref=f"{config.NETEX_AUTHORITY}:Line:{route_id_value}", version="1")
 
@@ -3425,7 +3430,7 @@ def netex_helper_build_journey_pattern(route_structure: dict[str, Any]) -> etree
     route_long_name = route_structure.get("route_long_name")
 
     if route_long_name:
-        etree.SubElement(journey_pattern, "Name").text = route_long_name
+        etree.SubElement(journey_pattern, "Name").text = unquote(route_long_name)
 
     etree.SubElement(journey_pattern, "RouteRef", ref=f"{config.NETEX_AUTHORITY}:Route:{route_id_value}_{sequence[0]}_{sequence[-1]}_{unique_identifier}", version="1")
 
@@ -3613,7 +3618,7 @@ def netex_helper_build_service_journeys(route_structure: dict[str, Any]) -> list
         route_long_name = route_structure.get("route_long_name")
 
         if route_long_name:
-            etree.SubElement(service_journey, "Name").text = route_long_name
+            etree.SubElement(service_journey, "Name").text = unquote(route_long_name)
 
         day_types = etree.SubElement(service_journey, "dayTypes")
         etree.SubElement(day_types, "DayTypeRef", ref=f"{config.NETEX_AUTHORITY}:DayType:{service_id_value}")
@@ -3871,11 +3876,12 @@ def netex_create_line_xml(route_dataset: dict[str, Any], authority_dataset) -> N
 
     route_name = (route_dataset["route"].get("name", {}).get("value") or route_dataset["route"].get("shortName", {}).get("value"))
 
-    route_name = route_name.strip().replace(" ", "_")
+    route_name = quote(route_name.strip(), safe="")
     
     translated_route_name = netex_resolve_translation(authority_dataset["translations"], "routes", "long_name", route_name)
             
     route_name_str = translated_route_name if translated_route_name is not None else route_name
+    route_name_str = unquote(route_name_str)
         
     route_name_str = re.sub(r"[^\w\s]", "_", route_name_str)
     route_name_str = "_".join(route_name_str.split())

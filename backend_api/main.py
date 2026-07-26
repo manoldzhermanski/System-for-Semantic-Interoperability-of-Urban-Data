@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from google.transit import gtfs_realtime_pb2
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from urllib.parse import quote, unquote
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
@@ -515,7 +516,7 @@ def get_json_ld_pois():
 
 def _strip_urn(value: str | None):
     if isinstance(value, str) and value.startswith("urn:ngsi-ld:"):
-        return value.rsplit(":", 1)[-1]
+        return unquote(value).rsplit(":", 1)[-1]
     return value
 
 def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> list[dict[str, Any]]:
@@ -628,7 +629,8 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> list[dict
     for prop_attr, csv_name in PROP_MAP.get(entity_type, {}).items():
         prop = entity.get(prop_attr)
         if isinstance(prop, dict):
-            row[csv_name] = prop.get("value")
+            val = prop.get("value")
+            row[csv_name] = unquote(val) if isinstance(val, str) else val
 
     # -------------------------------------------------
     # STOP LOCATION
@@ -700,7 +702,8 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> list[dict
 
         if isinstance(value, dict) and "type" in value:
             if value.get("type") == "Property":
-                row[attr] = value.get("value")
+                val = value.get("value")
+                row[attr] = unquote(val) if isinstance(val, str) else val
 
             elif value.get("type") == "Relationship":
                 obj = value.get("object")
@@ -805,7 +808,7 @@ def download():
 # -----------------------------------------------------
 # NGSI-LD → NeTEx Nordic conversion
 # -----------------------------------------------------
-def build_netex() -> str:
+def build_netex():
 
     netex_helper_prepare_output_directory()
 

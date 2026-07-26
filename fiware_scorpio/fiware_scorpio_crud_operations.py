@@ -618,7 +618,7 @@ if __name__ == "__main__":
     header = fiware_scorpio_define_header("gtfs_static")
     
     # POST Example
-    fiware_scorpio_batch_load_to_context_broker(gtfs_static_get_ngsi_ld_batches("calendar_dates", city), header)
+    #fiware_scorpio_batch_load_to_context_broker(gtfs_static_get_ngsi_ld_batches("calendar_dates", city), header)
     
     # Count Example
     # print(fiware_scorpio_get_count_of_entities_by_type("GtfsCalendarDateRule", header))
@@ -627,5 +627,5 @@ if __name__ == "__main__":
     # fiware_scorpio_batch_delete_entities_by_type("GtfsCalendarDateRule", header)
     
     # GET Example
-    # print(json.dumps(fiware_scorpio_get_entities_by_type("GtfsAgency", header), indent=2, ensure_ascii=False))
+    print(json.dumps(fiware_scorpio_get_entities_by_type("GtfsStop", header), indent=2, ensure_ascii=False))
     
