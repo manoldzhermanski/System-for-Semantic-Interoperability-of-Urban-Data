@@ -21,11 +21,11 @@ def test_parse_gtfs_agency_data_all_fields_present():
 
     assert result == {
         "agency_id": "AG1",
-        "agency_name": "Test Agency",
+        "agency_name": "Test%20Agency",
         "agency_url": "https://example.com",
         "agency_timezone": "Europe/Sofia",
         "agency_lang": "bg",
-        "agency_phone": "+359123456",
+        "agency_phone": "%2B359123456",
         "agency_fare_url": "https://example.com/fare",
         "agency_email": "info@example.com",
         "cemv_support": 1,
@@ -66,7 +66,7 @@ def test_parse_gtfs_agency_data_whitespace_cleanup():
 
     assert result == {
         "agency_id": "AG1",
-        "agency_name": "Test Agency",
+        "agency_name": "Test%20Agency",
         "agency_url": None,
         "agency_timezone": None,
         "agency_lang": None,

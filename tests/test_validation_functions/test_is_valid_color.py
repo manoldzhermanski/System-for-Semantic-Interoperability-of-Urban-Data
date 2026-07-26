@@ -7,10 +7,10 @@ def test_is_valid_color_valid_strings():
     assert is_valid_color("a1b2c3") is True
     assert is_valid_color("A1B2C3") is True
     assert is_valid_color("  AABBCC  ") is True
+    assert is_valid_color("") is True
+    assert is_valid_color("   ") is True
 
 def test_is_valid_color_invalid_strings():
-    assert is_valid_color("") is False
-    assert is_valid_color("   ") is False
     assert is_valid_color("FFF") is False
     assert is_valid_color("FFFFFFF") is False
     assert is_valid_color("GHIJKL") is False

@@ -383,7 +383,7 @@ def test_validate_gtfs_stop_times_invalid_continuous_pickup():
     with pytest.raises(ValueError) as err:
         validate_gtfs_stop_times_entity(entity)
         
-    assert " must be 0, 1, 2 or 3, got" in str(err.value)
+    assert " must be 0, 1, 2, 3 or empty, got" in str(err.value)
 
 def test_validate_gtfs_stop_times_continuous_pickup_forbidden_with_location():
     """

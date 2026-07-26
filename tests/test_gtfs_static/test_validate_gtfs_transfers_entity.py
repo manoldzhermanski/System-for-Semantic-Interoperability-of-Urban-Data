@@ -73,8 +73,8 @@ def test_validate_gtfs_transfers_entity_type_1_missing_from_stop_id():
     with pytest.raises(ValueError) as err:
         validate_gtfs_transfers_entity(entity)
         
-    assert "is required when transfer_type is 1, 2 or 3" in str(err.value)
-    
+    assert "is required when transfer_type is 0, 1, 2, 3 or empty" in str(err.value)
+
 def test_validate_gtfs_transfers_entity_type_1_missing_to_stop_id():
     """
     Check that if 'transfer_type' is 1 and 'to_stop_id' is None, ValueError is raised
@@ -93,7 +93,7 @@ def test_validate_gtfs_transfers_entity_type_1_missing_to_stop_id():
     with pytest.raises(ValueError) as err:
         validate_gtfs_transfers_entity(entity)
         
-    assert "is required when transfer_type is 1, 2 or 3" in str(err.value)
+    assert "is required when transfer_type is 0, 1, 2, 3 or empty" in str(err.value)
 
 def test_validate_gtfs_transfers_entity_type_4_missing_from_trip_id():
     """

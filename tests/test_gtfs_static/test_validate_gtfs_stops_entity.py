@@ -108,7 +108,7 @@ def test_validate_gtfs_stops_entity_invalid_location_type():
 
 def test_validate_gtfs_stops_entity_missing_stop_name_for_location_type_0():
     """
-    Check that if 'location_type' is 0,1 or 2 and if 'stop_name' is missing, ValueError is raised
+    Check that if 'location_type' is 0, 1 or 2 and if 'stop_name' is missing, ValueError is raised
     """
     entity = {
         "stop_id": "S1",
@@ -131,7 +131,7 @@ def test_validate_gtfs_stops_entity_missing_stop_name_for_location_type_0():
     with pytest.raises(ValueError) as err:
         validate_gtfs_stops_entity(entity)
         
-    assert "'stop_name' is required when 'location_type' is 0, 1 or 2" in str(err.value)
+    assert "'stop_name' is required when 'location_type' is 0, 1, 2 or empty" in str(err.value)
 
 def test_validate_gtfs_stops_entity_missing_stop_lat_for_location_type_0():
     """
@@ -158,7 +158,7 @@ def test_validate_gtfs_stops_entity_missing_stop_lat_for_location_type_0():
     with pytest.raises(ValueError) as err:
         validate_gtfs_stops_entity(entity)
         
-    assert "'stop_lat' is required when 'location_type' is 0, 1 or 2" in str(err.value)
+    assert "'stop_lat' is required when 'location_type' is 0, 1, 2 or empty" in str(err.value)
 
 def test_validate_gtfs_stops_entity_missing_stop_lon_for_location_type_0():
     """
@@ -185,7 +185,7 @@ def test_validate_gtfs_stops_entity_missing_stop_lon_for_location_type_0():
     with pytest.raises(ValueError) as err:
         validate_gtfs_stops_entity(entity)
         
-    assert "'stop_lon' is required when 'location_type' is 0, 1 or 2" in str(err.value)
+    assert "'stop_lon' is required when 'location_type' is 0, 1, 2 or empty" in str(err.value)
 
 def test_validate_gtfs_stops_entity_location_type_2_missing_parent_station():
     """
@@ -325,7 +325,7 @@ def test_validate_gtfs_stops_entity_invalid_wheelchair_boarding():
     with pytest.raises(ValueError) as err:
         validate_gtfs_stops_entity(entity)
         
-    assert "'wheelchair_boarding' must be 0, 1 or 2" in str(err.value)
+    assert "'wheelchair_boarding' must be 0, 1, 2 or empty" in str(err.value)
 
 def test_validate_gtfs_stops_entity_invalid_stop_access_value():
     """

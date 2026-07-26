@@ -5,6 +5,7 @@ def test_is_valid_bikes_allowed_valid_values():
     assert is_valid_bikes_allowed(0) is True
     assert is_valid_bikes_allowed(1) is True
     assert is_valid_bikes_allowed(2) is True
+    assert is_valid_bikes_allowed("") is True
 
 def test_is_valid_bikes_allowed_invalid_values():
     assert is_valid_bikes_allowed(-1) is False

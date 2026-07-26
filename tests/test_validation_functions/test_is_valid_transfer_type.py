@@ -8,6 +8,7 @@ def test_is_valid_transfer_type_valid_values():
     assert is_valid_transfer_type(3) is True
     assert is_valid_transfer_type(4) is True
     assert is_valid_transfer_type(5) is True
+    assert is_valid_transfer_type("") is True
 
 def test_is_valid_transfer_type_invalid_values():
     assert is_valid_transfer_type(-1) is False

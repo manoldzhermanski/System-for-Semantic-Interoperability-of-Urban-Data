@@ -5,6 +5,7 @@ def test_is_valid_cemv_support_valid_values():
     assert is_valid_cemv_support(0) is True
     assert is_valid_cemv_support(1) is True
     assert is_valid_cemv_support(2) is True
+    assert is_valid_cemv_support("") is True
 
 def test_is_valid_cemv_support_invalid_values():
     assert is_valid_cemv_support(-1) is False

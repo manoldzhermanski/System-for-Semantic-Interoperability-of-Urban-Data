@@ -21,10 +21,10 @@ def test_parse_gtfs_translations_data_all_fields_present():
         "table_name": "route",
         "field_name": "long_name",
         "language": "en",
-        "translation": "Route_1",
+        "translation": "Route%201",
         "record_id": "R1",
         "record_sub_id": None,
-        "field_value": "Route_1"
+        "field_value": "Route%201"
     }
     
 def test_parse_gtfs_translations_data_missing_fields():
@@ -65,8 +65,8 @@ def test_parse_gtfs_translations_data_whitespace_cleanup():
         "table_name": "route",
         "field_name": "long_name",
         "language": "en",
-        "translation": "Route_1",
+        "translation": "Route%201",
         "record_id": "R1",
         "record_sub_id": None,
-        "field_value": "Route_1"
+        "field_value": "Route%201"
     }

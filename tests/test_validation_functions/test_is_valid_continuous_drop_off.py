@@ -6,6 +6,7 @@ def test_is_valid_continuous_drop_off_valid_values():
     assert is_valid_continuous_drop_off(1) is True
     assert is_valid_continuous_drop_off(2) is True
     assert is_valid_continuous_drop_off(3) is True
+    assert is_valid_continuous_drop_off("") is True
 
 def test_is_valid_continuous_drop_off_invalid_values():
     assert is_valid_continuous_drop_off(-1) is False

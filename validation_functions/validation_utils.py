@@ -128,9 +128,9 @@ def is_valid_color(color_code: Any) -> bool:
     # Remove white spaces around the string
     color_code = color_code.strip()
     
-    # Return False, if empty string
+    # Return True, if empty string
     if color_code == "":
-        return False
+        return True
 
     # True if string is a valid six-digit hex code, otherwise False
     return bool(re.fullmatch(r"[A-Fa-f0-9]{6}", color_code))
@@ -249,6 +249,9 @@ def is_valid_cemv_support(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
+    if value == "":
+        return True
+    
     if type(value) is not int:
         return False
     return value in {0, 1, 2}
@@ -288,7 +291,7 @@ def is_valid_transfers(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
-    if value == "" or value == " ":
+    if value == "":
         return True
     
     if type(value) is not int:
@@ -348,8 +351,12 @@ def is_valid_continuous_pickup(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
+    if value == "":
+        return True
+    
     if type(value) is not int:
         return False
+    
     return value in {0, 1, 2, 3}
 
 def is_valid_continuous_drop_off(value: Any) -> bool:
@@ -361,8 +368,12 @@ def is_valid_continuous_drop_off(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
+    if value == "":
+        return True
+    
     if type(value) is not int:
         return False
+    
     return value in {0, 1, 2, 3}
 
 def is_valid_pickup_type(value: Any) -> bool:
@@ -374,7 +385,7 @@ def is_valid_pickup_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range or empty, False otherwise
     """
-    if value == "" or value == " ":
+    if value == "":
         return True
 
     if type(value) is not int:
@@ -390,7 +401,7 @@ def is_valid_drop_off_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range or empty, False otherwise
     """
-    if value == "" or value == " ":
+    if value == "":
         return True
 
     if type(value) is not int:
@@ -406,8 +417,12 @@ def is_valid_location_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
+    if value == "":
+        return True
+    
     if type(value) is not int:
         return False
+    
     return value in {0, 1, 2, 3, 4}
 
 def is_valid_wheelchair_boarding(value: Any) -> bool:
@@ -419,8 +434,12 @@ def is_valid_wheelchair_boarding(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
+    if value == "":
+        return True
+    
     if type(value) is not int:
         return False
+    
     return value in {0, 1, 2}
 
 def is_valid_stop_access(value: Any) -> bool:
@@ -445,8 +464,12 @@ def is_valid_transfer_type(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
+    if value == "":
+        return True
+    
     if type(value) is not int:
         return False
+    
     return value in {0, 1, 2, 3, 4, 5}
 
 def is_valid_direction_id(value: Any) -> bool:
@@ -471,8 +494,12 @@ def is_valid_wheelchair_accessible(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
+    if value == "":
+        return True
+    
     if type(value) is not int:
         return False
+    
     return value in {0, 1, 2}
 
 def is_valid_bikes_allowed(value: Any) -> bool:
@@ -484,8 +511,12 @@ def is_valid_bikes_allowed(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
+    if value == "":
+        return True
+    
     if type(value) is not int:
         return False
+    
     return value in {0, 1, 2}
 
 def is_valid_cars_allowed(value: Any) -> bool:
@@ -497,8 +528,12 @@ def is_valid_cars_allowed(value: Any) -> bool:
     Returns:
         bool: True if value in enum range, False otherwise
     """
+    if value == "":
+        return True
+    
     if type(value) is not int:
         return False
+    
     return value in {0, 1, 2}
 
 def is_valid_timepoint(value: Any) -> bool:

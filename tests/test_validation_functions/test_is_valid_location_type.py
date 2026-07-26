@@ -7,6 +7,7 @@ def test_is_valid_location_type_valid_values():
     assert is_valid_location_type(2) is True
     assert is_valid_location_type(3) is True
     assert is_valid_location_type(4) is True
+    assert is_valid_location_type("") is True
 
 def test_is_valid_location_type_invalid_values():
     assert is_valid_location_type(-1) is False

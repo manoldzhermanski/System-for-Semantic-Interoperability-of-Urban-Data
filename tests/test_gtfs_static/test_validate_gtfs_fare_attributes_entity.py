@@ -126,4 +126,4 @@ def test_validate_gtfs_fare_attributes_entity_invalid_transfers():
     with pytest.raises(ValueError) as err:
         validate_gtfs_fare_attributes_entity(entity)
 
-    assert "'transfers' should be 0, 1 or 2" in str(err.value)
+    assert "'transfers' should be 0, 1, 2 or empty" in str(err.value)

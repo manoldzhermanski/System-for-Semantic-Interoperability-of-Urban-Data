@@ -28,7 +28,7 @@ def test_parse_gtfs_routes_data_all_fields_present():
         "route_id": "R1",
         "agency_id": "AG1",
         "route_short_name": "10",
-        "route_long_name": "Main Street",
+        "route_long_name": "Main%20Street",
         "route_desc": "Description",
         "route_type": 3,
         "route_url": "https://example.com",

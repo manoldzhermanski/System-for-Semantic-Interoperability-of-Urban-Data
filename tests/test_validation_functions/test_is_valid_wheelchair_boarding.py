@@ -5,6 +5,7 @@ def test_is_valid_wheelchair_boarding_valid_values():
     assert is_valid_wheelchair_boarding(0) is True
     assert is_valid_wheelchair_boarding(1) is True
     assert is_valid_wheelchair_boarding(2) is True
+    assert is_valid_wheelchair_boarding("") is True
 
 def test_is_valid_wheelchair_boarding_invalid_values():
     assert is_valid_wheelchair_boarding(-1) is False

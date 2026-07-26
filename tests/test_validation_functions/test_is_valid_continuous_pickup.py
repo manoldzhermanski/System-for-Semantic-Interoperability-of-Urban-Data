@@ -6,6 +6,7 @@ def test_is_valid_continuous_pickup_valid_values():
     assert is_valid_continuous_pickup(1) is True
     assert is_valid_continuous_pickup(2) is True
     assert is_valid_continuous_pickup(3) is True
+    assert is_valid_continuous_pickup("") is True
 
 def test_is_valid_continuous_pickup_invalid_values():
     assert is_valid_continuous_pickup(-1) is False

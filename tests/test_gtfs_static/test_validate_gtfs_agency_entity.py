@@ -201,4 +201,4 @@ def test_validate_gtfs_agency_entity_invalid_cemv_support():
     with pytest.raises(ValueError) as err:
         validate_gtfs_agency_entity(entity)
 
-    assert "cemv_support must be 0, 1 or 2" in str(err.value)
+    assert "cemv_support must be 0, 1, 2 or empty" in str(err.value)

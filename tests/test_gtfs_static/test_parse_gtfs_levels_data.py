@@ -48,7 +48,7 @@ def test_parse_gtfs_levels_data_whitespace_cleanup():
     assert result == {
         "level_id": "L1",
         "level_index": 2.0,
-        "level_name": "Main Platform"
+        "level_name": "Main%20Platform"
     }
 
 def test_parse_gtfs_levels_data_invalid_level_index_raises_error():

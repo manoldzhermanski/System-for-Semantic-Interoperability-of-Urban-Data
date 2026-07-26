@@ -703,6 +703,10 @@ def ngsi_ld_extract_data_for_csv_conversion(entity: dict[str, Any]) -> list[dict
         if isinstance(value, dict) and "type" in value:
             if value.get("type") == "Property":
                 val = value.get("value")
+                
+                if val == "__EMPTY__":
+                    val = ""
+            
                 row[attr] = unquote(val) if isinstance(val, str) else val
 
             elif value.get("type") == "Relationship":
