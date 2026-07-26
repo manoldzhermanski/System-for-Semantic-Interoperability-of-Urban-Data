@@ -166,6 +166,9 @@ def validate_required_fields(data: dict[str, Any],required_fields: list[str]) ->
             raise ValueError(f"Missing required GTFS field: {field}")
 
         value = data.get(field)
+        
+        if field == "transfers" and (value == "" or value is None):
+            continue
 
         if value is None:
             raise ValueError(f"Missing required GTFS field: {field}")
