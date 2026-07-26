@@ -995,8 +995,9 @@ def validate_gtfs_fare_attributes_entity(entity: dict[str, Any]) -> None:
 
     # Validate 'transfers'
     transfers = entity.get("transfers")
-    if transfers == "":
+    if transfers == "" or transfers is None:
         entity["transfers"] = "__EMPTY__"
+        transfers = ""
     if not validation_utils.is_valid_transfers(transfers):
         raise ValueError(f"'transfers' should be 0, 1, 2 or empty, got {transfers}")
     
