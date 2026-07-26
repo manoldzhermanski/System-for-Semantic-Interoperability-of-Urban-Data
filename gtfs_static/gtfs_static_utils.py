@@ -899,8 +899,9 @@ def validate_gtfs_agency_entity(entity: dict[str, Any]) -> None:
 
     # Validate 'cemv_support' value (if provided)
     cemv_support = entity.get("cemv_support")
-    if cemv_support == "":
+    if cemv_support == "" or cemv_support is None:
         entity["cemv_support"] = "__EMPTY__"
+        cemv_support = ""
     if cemv_support is not None and not validation_utils.is_valid_cemv_support(cemv_support):
         raise ValueError(f"cemv_support must be 0, 1, 2 or empty, got {cemv_support}")
 
@@ -1170,15 +1171,17 @@ def validate_gtfs_routes_entity(entity: dict[str, Any]) -> None:
 
     # Validate 'continuous_pickup' values
     continuous_pickup = entity.get("continuous_pickup")
-    if continuous_pickup == "":
+    if continuous_pickup == "" or continuous_pickup is None:
         entity["continuous_pickup"] = "__EMPTY__"
+        continuous_pickup = ""
     if continuous_pickup is not None and not validation_utils.is_valid_continuous_pickup(continuous_pickup):
         raise ValueError(f"'continuous_pickup' has to be 0, 1, 2, 3 or empty, got {continuous_pickup}")
     
     # Validate 'continuous_drop_off' values
     continuous_drop_off = entity.get("continuous_drop_off")
-    if continuous_drop_off == "":
+    if continuous_drop_off == "" or continuous_drop_off is None:
         entity["continuous_drop_off"] = "__EMPTY__"
+        continuous_drop_off = ""
     if continuous_drop_off is not None and not validation_utils.is_valid_continuous_drop_off(continuous_drop_off):
         raise ValueError(f"'continuous_drop_off' has to be 0, 1, 2, 3 or empty, got {continuous_drop_off}")
     
@@ -1189,8 +1192,9 @@ def validate_gtfs_routes_entity(entity: dict[str, Any]) -> None:
 
     # Validate 'cemv_support' values
     cemv_support = entity.get("cemv_support")
-    if cemv_support == "":
+    if cemv_support == "" or cemv_support is None:
         entity["cemv_support"] = "__EMPTY__"
+        cemv_support = ""
     if cemv_support is not None and not validation_utils.is_valid_cemv_support(cemv_support):
         raise ValueError(f"'cemv_support' has to be 0, 1, 2 or empty, got {cemv_support}")
 
@@ -1341,8 +1345,9 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
     
     # Validate 'continuous_pickup' values    
     continuous_pickup = entity.get("continuous_pickup")
-    if continuous_pickup == "":
+    if continuous_pickup == "" or continuous_pickup is None:
         entity["continuous_pickup"] = "__EMPTY__"
+        continuous_pickup = ""
     if continuous_pickup is not None and not validation_utils.is_valid_continuous_pickup(continuous_pickup):
         raise ValueError(f"'continuous_pickup' must be 0, 1, 2, 3 or empty, got {continuous_pickup}")
     
@@ -1353,8 +1358,9 @@ def validate_gtfs_stop_times_entity(entity: dict[str, Any]) -> None:
     
     # Validate 'continuous_drop_off' values
     continuous_drop_off = entity.get("continuous_drop_off")
-    if continuous_drop_off == "":
+    if continuous_drop_off == "" or continuous_drop_off is None:
         entity["continuous_drop_off"] = "__EMPTY__"
+        continuous_drop_off = ""
     if continuous_drop_off is not None and not validation_utils.is_valid_continuous_drop_off(continuous_drop_off):
         raise ValueError(f"'continuous_drop_off' must be 0, 1, 2, 3 or empty, got {continuous_drop_off}")
     
@@ -1405,13 +1411,14 @@ def validate_gtfs_stops_entity(entity: dict[str, Any]) -> None:
     
     # Validate 'location_type' values
     location_type = entity.get("location_type")
-    if location_type == "":
+    if location_type == "" or location_type is None:
         entity["location_type"] = "__EMPTY__"
+        location_type = ""
     if location_type is not None and not validation_utils.is_valid_location_type(location_type):
         raise ValueError(f"'location_type' must be 0, 1, 2, 3, 4 or empty, got {location_type}")
     
     # Check that 'stop_name', 'stop_lat' and 'stop_lon' are present when 'location_type' is 0, 1 or 2
-    if location_type in {0, 1, 2, "__EMPTY__"}:
+    if location_type in {0, 1, 2, ""}:
         stop_name = entity.get("stop_name")
         if stop_name is None:
             raise ValueError("'stop_name' is required when 'location_type' is 0, 1, 2 or empty")
@@ -1453,8 +1460,9 @@ def validate_gtfs_stops_entity(entity: dict[str, Any]) -> None:
     
     # Validate 'wheelchair_boarding' values
     wheelchair_boarding = entity.get("wheelchair_boarding")
-    if wheelchair_boarding == "":
+    if wheelchair_boarding == "" or wheelchair_boarding is None:
         entity["wheelchair_boarding"] = "__EMPTY__"
+        wheelchair_boarding = ""
     if wheelchair_boarding is not None and not validation_utils.is_valid_wheelchair_boarding(wheelchair_boarding):
         raise ValueError(f"'wheelchair_boarding' must be 0, 1, 2 or empty, got {wheelchair_boarding}")
     
@@ -1498,13 +1506,14 @@ def validate_gtfs_transfers_entity(entity: dict[str, Any]) -> None:
 
     # Validate 'transfer_type' values
     transfer_type = entity.get("transfer_type")
-    if transfer_type == "":
+    if transfer_type == "" or transfer_type is None:
         entity["transfer_type"] = "__EMPTY__"
+        transfer_type = ""
     if not validation_utils.is_valid_transfer_type(transfer_type):
         raise ValueError(f"'transfer_type' must be 0, 1, 2, 3, 4, 5 or empty, got {transfer_type}")
     
     # Validate that 'from_stop_id' and 'to_stop_id' are present when 'transfer_type' is 1, 2 or 3
-    if transfer_type in {0, 1, 2, 3, "__EMPTY__"}:
+    if transfer_type in {0, 1, 2, 3, ""}:
         from_stop_id = entity.get("from_stop_id")
         if from_stop_id is None:
             raise ValueError("'from_stop_id' is required when transfer_type is 0, 1, 2, 3 or empty")
@@ -1581,22 +1590,25 @@ def validate_gtfs_trips_entity(entity: dict[str, Any]) -> None:
 
     # Validate 'wheelchair_accessible' value
     wheelchair_accessible = entity.get("wheelchair_accessible")
-    if wheelchair_accessible == "":
+    if wheelchair_accessible == "" or wheelchair_accessible is None:
         entity["wheelchair_accessible"] = "__EMPTY__"
+        wheelchair_accessible = ""
     if wheelchair_accessible is not None and not validation_utils.is_valid_wheelchair_accessible(wheelchair_accessible):
         raise ValueError(f"'wheelchair_accessible' must be 0, 1, 2 or empty, got {wheelchair_accessible}")
 
     # Validate 'bikes_allowed' value
     bikes_allowed = entity.get("bikes_allowed")
-    if bikes_allowed == "":
+    if bikes_allowed == "" or bikes_allowed is None:
         entity["bikes_allowed"] = "__EMPTY__"
+        bikes_allowed = ""
     if bikes_allowed is not None and not validation_utils.is_valid_bikes_allowed(bikes_allowed):
         raise ValueError(f"'bikes_allowed' must be 0, 1, 2 or empty, got {bikes_allowed}")
     
     # Validate 'cars_allowed' value
     cars_allowed = entity.get("cars_allowed")
-    if cars_allowed == "":
+    if cars_allowed == "" or cars_allowed is None:
         entity["cars_allowed"] = "__EMPTY__"
+        cars_allowed = ""
     if cars_allowed is not None and not validation_utils.is_valid_cars_allowed(cars_allowed):
         raise ValueError(f"'cars_allowed' must be 0, 1, 2 or empty, got {cars_allowed}")
 
