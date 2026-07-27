@@ -327,22 +327,24 @@ def parse_gtfs_agency_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If 'cemv_support' cannot be parsed as an integer.
     """
-
-    agency_id = cleanup_string(entity.get("agency_id"))
-    agency_name = cleanup_string(entity.get("agency_name"))
-    agency_phone = cleanup_string(entity.get("agency_phone"))
-
-    return {
-        "agency_id": quote(agency_id, safe="") if agency_id else None,
-        "agency_name": quote(agency_name, safe="") if agency_name else None,
-        "agency_url": cleanup_string(entity.get("agency_url")),
-        "agency_timezone": cleanup_string(entity.get("agency_timezone")),
-        "agency_lang": cleanup_string(entity.get("agency_lang")),
-        "agency_phone": quote(agency_phone, safe="") if agency_phone else None,
-        "agency_fare_url": cleanup_string(entity.get("agency_fare_url")),
-        "agency_email": cleanup_string(entity.get("agency_email")),
-        "cemv_support": parse_int(entity.get("cemv_support"), "cemv_support"),
-    }
+    
+    parsed_entity: dict[str, Any] = {}
+    
+    # Clean strings
+    for field in ("agency_url", "agency_timezone", "agency_lang", "agency_fare_url", "agency_email"):
+        if field in entity:
+            parsed_entity[field] = cleanup_string(entity.get(field))
+    
+    # Quote strings
+    for field in ("agency_id", "agency_name", "agency_phone"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
+    
+    if "cemv_support" in entity:
+        parsed_entity["cemv_support"] = parse_int(entity.get("cemv_support"), "cemv_support")
+        
+    return parsed_entity
 
 def parse_gtfs_calendar_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -370,20 +372,24 @@ def parse_gtfs_calendar_data(entity: dict[str, str]) -> dict[str, Any]:
           'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday' or 'sunday' cannot be parsed as integer.
     """
 
-    service_id = cleanup_string(entity.get("service_id"))
-    return {
-        "service_id": quote(service_id, safe="") if service_id else None,
-        "monday": parse_int(entity.get("monday"), "monday"),
-        "tuesday": parse_int(entity.get("tuesday"), "tuesday"),
-        "wednesday": parse_int(entity.get("wednesday"), "wednesday"),
-        "thursday": parse_int(entity.get("thursday"), "thursday"),
-        "friday": parse_int(entity.get("friday"), "friday"),
-        "saturday": parse_int(entity.get("saturday"), "saturday"),
-        "sunday": parse_int(entity.get("sunday"), "sunday"),
-        "start_date": parse_date(entity.get("start_date"), "start_date"),
-        "end_date": parse_date(entity.get("end_date"), "end_date")
-    }
-
+    parsed_entity: dict[str, Any] = {}
+    
+    if "service_id" in entity:
+        service_id = cleanup_string(entity.get("service_id"))
+        parsed_entity["service_id"] = quote(service_id, safe="") if service_id else None
+    
+    # Integer fields
+    for field in ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"):
+        if field in entity:
+            parsed_entity[field] = parse_int(entity.get(field), field)
+            
+    # Date fields
+    for field in ("start_date", "end_date"):
+        if field in entity:
+            parsed_entity[field] = parse_date(entity.get(field), field)
+            
+    return parsed_entity
+    
 def parse_gtfs_calendar_dates_data(entity: dict[str, str]) -> dict[str, Any]:
     """
     Parses a single GTFS calendar_dates record into a cleaned and typed dictionary.
@@ -431,18 +437,27 @@ def parse_gtfs_fare_attributes_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any float or integer field cannot be parsed correctly.
     """
-    fare_id = cleanup_string(entity.get("fare_id"))
-    agency_id = cleanup_string(entity.get("agency_id"))
+
+    parsed_entity: dict[str, Any] = {}
     
-    return {
-        "fare_id": quote(fare_id, safe="") if fare_id else None,
-        "price": parse_float(entity.get("price"), "price"),
-        "currency_type": cleanup_string(entity.get("currency_type")),
-        "payment_method": parse_int(entity.get("payment_method"), "payment_method"),
-        "transfers": parse_int(entity.get("transfers"), "transfers"),
-        "agency_id": quote(agency_id, safe="") if agency_id else None,
-        "transfer_duration": parse_int(entity.get("transfer_duration"), "transfer_duration")
-    }
+    if "price" in entity:
+        parsed_entity["price"] = parse_float(entity.get("price"), "price")
+    
+    if "currency_type" in entity:
+        parsed_entity["currency_type"] = cleanup_string(entity.get("currency_type"))
+    
+    # Integer fields
+    for field in ("payment_method", "transfers", "transfer_duration"):
+        if field in entity:
+            parsed_entity[field] = parse_int(entity.get(field), field)
+    
+    # Quote strings
+    for field in ("fare_id", "agency_id"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
+    
+    return parsed_entity
 
 def parse_gtfs_levels_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -460,15 +475,20 @@ def parse_gtfs_levels_data(entity: dict[str, str]) -> dict[str, Any]:
 
     Raises:
         ValueError: If 'level_index' cannot be parsed as a float.
-    """
-    level_id = cleanup_string(entity.get("level_id"))
-    level_name = cleanup_string(entity.get("level_name"))
+    """    
     
-    return {
-        "level_id": quote(level_id, safe="") if level_id else None,
-        "level_index": parse_float(entity.get("level_index"), "level_index"),
-        "level_name": quote(level_name, safe="") if level_name else None
-    }
+    parsed_entity: dict[str, Any] = {}
+    
+    # Quote strings
+    for field in ("level_id", "level_name"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
+            
+    if "level_index" in entity:
+        parsed_entity["level_index"] = parse_float(entity.get("level_index"), "level_index")
+        
+    return parsed_entity
 
 def parse_gtfs_pathways_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -496,27 +516,26 @@ def parse_gtfs_pathways_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any integer or float field cannot be parsed correctly.
     """
-
-    pathway_id = cleanup_string(entity.get("pathway_id"))
-    from_stop_id = cleanup_string(entity.get("from_stop_id"))
-    to_stop_id = cleanup_string(entity.get("to_stop_id"))
-    signposted_as = cleanup_string(entity.get("signposted_as"))
-    reversed_signposted_as = cleanup_string(entity.get("reversed_signposted_as"))
+        
+    parsed_entity: dict[str, Any] = {}
     
-    return {
-        "pathway_id": quote(pathway_id, safe="") if pathway_id else None,
-        "from_stop_id": quote(from_stop_id, safe="") if from_stop_id else None,
-        "to_stop_id": quote(to_stop_id, safe="") if to_stop_id else None,
-        "pathway_mode": parse_int(entity.get("pathway_mode"), "pathway_mode"),
-        "is_bidirectional": parse_int(entity.get("is_bidirectional"), "is_bidirectional"),
-        "length": parse_float(entity.get("length"), "length"),
-        "traversal_time": parse_int(entity.get("traversal_time"), "traversal_time"),
-        "stair_count": parse_int(entity.get("stair_count"), "stair_count"),
-        "max_slope": parse_float(entity.get("max_slope"), "max_slope"),
-        "min_width": parse_float(entity.get("min_width"), "min_width"),
-        "signposted_as": quote(signposted_as, safe="") if signposted_as else None,
-        "reversed_signposted_as": quote(reversed_signposted_as, safe="") if reversed_signposted_as else None
-    }
+    # Integer fields
+    for field in ("pathway_mode", "is_bidirectional", "traversal_time", "stair_count"):
+        if field in entity:
+            parsed_entity[field] = parse_int(entity.get(field), field)
+            
+    # Float fields
+    for field in ("length", "max_slope", "min_width"):
+        if field in entity:
+            parsed_entity[field] = parse_float(entity.get(field), field)
+        
+    # Quote strings
+    for field in ("pathway_id", "from_stop_id", "to_stop_id", "signposted_as", "reversed_signposted_as"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
+            
+    return parsed_entity
 
 def parse_gtfs_routes_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -546,30 +565,26 @@ def parse_gtfs_routes_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any integer field cannot be parsed correctly.
     """
+    
+    parsed_entity: dict[str, Any] = {}
+                
+    # Clean strings
+    for field in ("route_url", "route_color", "route_text_color"):
+        if field in entity:
+            parsed_entity[field] = cleanup_string(entity.get(field))
+                    
+    # Integer fields
+    for field in ("route_type", "route_sort_order", "continuous_pickup", "continuous_drop_off", "cemv_support"):
+        if field in entity:
+            parsed_entity[field] = parse_int(entity.get(field), field)
+        
+    # Quote string
+    for field in ("route_id", "agency_id", "route_short_name","route_long_name", "route_desc", "network_id"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
 
-    route_id = cleanup_string(entity.get("route_id"))
-    agency_id = cleanup_string(entity.get("agency_id"))
-    route_short_name = cleanup_string(entity.get("route_short_name"))
-    route_long_name = cleanup_string(entity.get("route_long_name"))
-    route_desc = cleanup_string(entity.get("route_desc"))
-    network_id = cleanup_string(entity.get("network_id"))
-
-    return {
-        "route_id": quote(route_id, safe="") if route_id else None,
-        "agency_id": quote(agency_id, safe="") if agency_id else None,
-        "route_short_name": quote(route_short_name, safe="") if route_short_name else None,
-        "route_long_name": quote(route_long_name, safe="") if route_long_name else None,
-        "route_desc": quote(route_desc, safe="") if route_desc else None,
-        "route_type": parse_int(entity.get("route_type"), "route_type"),
-        "route_url": cleanup_string(entity.get("route_url")),
-        "route_color": cleanup_string(entity.get("route_color")),
-        "route_text_color": cleanup_string(entity.get("route_text_color")),
-        "route_sort_order": parse_int(entity.get("route_sort_order"), "route_sort_order"),
-        "continuous_pickup": parse_int(entity.get("continuous_pickup"), "continuous_pickup"),
-        "continuous_drop_off": parse_int(entity.get("continuous_drop_off"), "continuous_drop_off"),
-        "network_id": quote(network_id, safe="") if network_id else None,
-        "cemv_support": parse_int(entity.get("cemv_support"), "cemv_support")
-    }
+    return parsed_entity
 
 def parse_gtfs_shapes_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -590,15 +605,24 @@ def parse_gtfs_shapes_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any float or integer field cannot be parsed correctly.
     """
-
-    shape_id = cleanup_string(entity.get("shape_id"))
-    return {
-        "shape_id": quote(shape_id, safe="") if shape_id else None,
-        "shape_pt_lat": parse_float(entity.get("shape_pt_lat"), "shape_pt_lat"),
-        "shape_pt_lon": parse_float(entity.get("shape_pt_lon"), "shape_pt_lon"),
-        "shape_pt_sequence": parse_int(entity.get("shape_pt_sequence"), "shape_pt_sequence"),
-        "shape_dist_traveled": parse_float(entity.get("shape_dist_traveled"), "shape_dist_traveled")
-    }
+    
+    parsed_entity: dict[str, Any] = {}
+    
+    #Quote string
+    if "shape_id" in entity:
+        shape_id = cleanup_string(entity.get("shape_id"))
+        parsed_entity["shape_id"] = quote(shape_id, safe="") if shape_id else None
+        
+    # Integer field
+    if "shape_pt_sequence" in entity:
+        parsed_entity["shape_pt_sequence"] = parse_int(entity.get("shape_pt_sequence"), "shape_pt_sequence")
+    
+    # Float fields
+    for field in ("shape_pt_lat", "shape_pt_lon", "shape_dist_traveled"):
+        if field in entity:
+            parsed_entity[field] = parse_float(entity.get(field), field)
+        
+    return parsed_entity
 
 def parse_gtfs_stop_times_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -632,36 +656,30 @@ def parse_gtfs_stop_times_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any integer field ('stop_sequence', 'pickup_type', etc.) or float field 
         ('shape_dist_traveled') cannot be parsed, or if any GTFS time field cannot be parsed.
-    """
+    """    
+    parsed_entity: dict[str, Any] = {}
     
-    trip_id = cleanup_string(entity.get("trip_id"))
-    stop_id = cleanup_string(entity.get("stop_id"))
-    location_group_id = cleanup_string(entity.get("location_group_id"))
-    location_id = cleanup_string(entity.get("location_id"))
-    stop_headsign = cleanup_string(entity.get("stop_headsign"))
-    pickup_booking_rule_id = cleanup_string(entity.get("pickup_booking_rule_id"))
-    drop_off_booking_rule_id = cleanup_string(entity.get("drop_off_booking_rule_id"))
-    
-    return {
-        "trip_id": quote(trip_id, safe="") if trip_id else None,
-        "arrival_time": parse_time(entity.get("arrival_time"), "arrival_time"),
-        "departure_time": parse_time(entity.get("departure_time"), "departure_time"),
-        "stop_id": quote(stop_id, safe="") if stop_id else None,
-        "location_group_id": quote(location_group_id, safe="") if location_group_id else None,
-        "location_id": quote(location_id, safe="") if location_id else None,
-        "stop_sequence": parse_int(entity.get("stop_sequence"), "stop_sequence"),
-        "stop_headsign": quote(stop_headsign, safe="") if stop_headsign else None,
-        "start_pickup_drop_off_window": parse_time(entity.get("start_pickup_drop_off_window"), "start_pickup_drop_off_window"),
-        "end_pickup_drop_off_window": parse_time(entity.get("end_pickup_drop_off_window"), "end_pickup_drop_off_window"),
-        "pickup_type": parse_int(entity.get("pickup_type"), "pickup_type"),
-        "drop_off_type": parse_int(entity.get("drop_off_type"), "drop_off_type"),
-        "continuous_pickup": parse_int(entity.get("continuous_pickup"), "continuous_pickup"),
-        "continuous_drop_off": parse_int(entity.get("continuous_drop_off"), "continuous_drop_off"),
-        "shape_dist_traveled": parse_float(entity.get("shape_dist_traveled"), "shape_dist_traveled"),
-        "timepoint": parse_int(entity.get("timepoint"), "timepoint"),
-        "pickup_booking_rule_id": quote(pickup_booking_rule_id, safe="") if pickup_booking_rule_id else None,
-        "drop_off_booking_rule_id": quote(drop_off_booking_rule_id, safe="") if drop_off_booking_rule_id else None
-    }
+    # Time fields
+    for field in ("arrival_time", "departure_time", "start_pickup_drop_off_window", "end_pickup_drop_off_window"):
+        if field in entity:
+            parsed_entity[field] = parse_time(entity.get(field), field)
+
+    # Integer fields
+    for field in ("stop_sequence", "pickup_type", "drop_off_type", "continuous_pickup", "continuous_drop_off", "timepoint"):
+        if field in entity:
+            parsed_entity[field] = parse_int(entity.get(field), field)
+
+    # Float fields
+    if "shape_dist_traveled" in entity:
+        parsed_entity["shape_dist_traveled"] = parse_float(entity.get("shape_dist_traveled"),"shape_dist_traveled")
+
+    # Quoted string 
+    for field in ("trip_id", "stop_id", "location_group_id", "location_id", "pickup_booking_rule_id", "drop_off_booking_rule_id", "stop_headsign"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
+
+    return parsed_entity
 
 def parse_gtfs_stops_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -693,35 +711,32 @@ def parse_gtfs_stops_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any integer or float field cannot be parsed correctly.
     """
+        
+    parsed_entity: dict[str, Any] = {}
     
-    stop_id = cleanup_string(entity.get("stop_id"))
-    stop_code = cleanup_string(entity.get("stop_code"))
-    stop_name = cleanup_string(entity.get("stop_name"))
-    tts_stop_name = cleanup_string(entity.get("tts_stop_name"))
-    stop_desc = cleanup_string(entity.get("stop_desc"))
-    zone_id = cleanup_string(entity.get("zone_id"))
-    parent_station = cleanup_string(entity.get("parent_station"))
-    level_id = cleanup_string(entity.get("level_id"))
-    platform_code = cleanup_string(entity.get("platform_code"))
+    # Integer fields
+    for field in ("location_type", "wheelchair_boarding", "stop_access"):
+        if field in entity:
+            parsed_entity[field] = parse_int(entity.get(field), field)
+            
+    # Float fields
+    for field in ("stop_lat", "stop_lon"):
+        if field in entity:
+            parsed_entity[field] = parse_float(entity.get(field), field)
     
-    return {
-        "stop_id": quote(stop_id, safe="") if stop_id else None,
-        "stop_code": quote(stop_code, safe="") if stop_code else None,
-        "stop_name": quote(stop_name, safe="") if stop_name else None,
-        "tts_stop_name": quote(tts_stop_name, safe="") if tts_stop_name else None,
-        "stop_desc": quote(stop_desc, safe="") if stop_desc else None,
-        "stop_lat": parse_float(entity.get("stop_lat"), "stop_lat"),
-        "stop_lon": parse_float(entity.get("stop_lon"), "stop_lon"),
-        "zone_id": quote(zone_id, safe="") if zone_id else None,
-        "stop_url": cleanup_string(entity.get("stop_url")),
-        "location_type": parse_int(entity.get("location_type"), "location_type"),
-        "parent_station": quote(parent_station, safe="") if parent_station else None,
-        "stop_timezone": cleanup_string(entity.get("stop_timezone")),
-        "wheelchair_boarding": parse_int(entity.get("wheelchair_boarding"), "wheelchair_boarding"),
-        "level_id": quote(level_id, safe = "") if level_id else None,
-        "platform_code": quote(platform_code, safe="") if platform_code else None,
-        "stop_access": parse_int(entity.get("stop_access"), "stop_access")
-    }
+    # Clean strings
+    for field in ("stop_url", "stop_timezone"):
+        if field in entity:
+            parsed_entity[field] = cleanup_string(entity.get(field))
+    
+    # Quoted string 
+    for field in ("stop_id", "stop_code", "stop_name", "tts_stop_name", "stop_desc", "zone_id", 
+                  "parent_station", "level_id", "platform_code"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
+            
+    return parsed_entity
 
 def parse_gtfs_transfers_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -744,23 +759,21 @@ def parse_gtfs_transfers_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If 'transfer_type' or 'min_transfer_time' cannot be parsed as integer.
     """
-    from_stop_id = cleanup_string(entity.get("from_stop_id"))
-    to_stop_id = cleanup_string(entity.get("to_stop_id"))
-    from_route_id = cleanup_string(entity.get("from_route_id"))
-    to_route_id = cleanup_string(entity.get("to_route_id"))
-    from_trip_id = cleanup_string(entity.get("from_trip_id"))
-    to_trip_id = cleanup_string(entity.get("to_trip_id"))
+
+    parsed_entity: dict[str, Any] = {}
     
-    return {
-        "from_stop_id": quote(from_stop_id, safe = "") if from_stop_id else None,
-        "to_stop_id": quote(to_stop_id, safe = "") if to_stop_id else None,
-        "from_route_id": quote(from_route_id, safe = "") if from_route_id else None,
-        "to_route_id": quote(to_route_id, safe = "") if to_route_id else None,
-        "from_trip_id": quote(from_trip_id, safe = "") if from_trip_id else None,
-        "to_trip_id": quote(to_trip_id, safe = "") if to_trip_id else None,
-        "transfer_type": parse_int(entity.get("transfer_type"), "transfer_type"),
-        "min_transfer_time": parse_int(entity.get("min_transfer_time"), "min_transfer_time")
-    }
+    # Quoted string 
+    for field in ("from_stop_id", "to_stop_id", "from_route_id", "to_route_id", "from_trip_id", "to_trip_id"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
+            
+    # Integer fields
+    for field in ("transfer_type", "min_transfer_time"):
+        if field in entity:
+            parsed_entity[field] = parse_int(entity.get(field), field)
+            
+    return parsed_entity
 
 def parse_gtfs_trips_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -786,27 +799,21 @@ def parse_gtfs_trips_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any integer field cannot be parsed correctly.
     """
-    route_id = cleanup_string(entity.get("route_id"))
-    service_id = cleanup_string(entity.get("service_id"))
-    trip_id = cleanup_string(entity.get("trip_id"))
-    trip_headsign = cleanup_string(entity.get("trip_headsign"))
-    trip_short_name = cleanup_string(entity.get("trip_short_name"))
-    block_id = cleanup_string(entity.get("block_id"))
-    shape_id = cleanup_string(entity.get("shape_id"))
     
-    return {
-        "route_id": quote(route_id, safe="") if route_id else None,
-        "service_id": quote(service_id, safe="") if service_id else None,
-        "trip_id": quote(trip_id, safe="") if trip_id else None,
-        "trip_headsign": quote(trip_headsign, safe="") if trip_headsign else None,
-        "trip_short_name": quote(trip_short_name, safe="") if trip_short_name else None,
-        "direction_id": parse_int(entity.get("direction_id"), "direction_id"),
-        "block_id": quote(block_id, safe="") if block_id else None,
-        "shape_id": quote(shape_id, safe="") if shape_id else None,
-        "wheelchair_accessible": parse_int(entity.get("wheelchair_accessible"), "wheelchair_accessible"),
-        "bikes_allowed": parse_int(entity.get("bikes_allowed"), "bikes_allowed"),
-        "cars_allowed": parse_int(entity.get("cars_allowed"), "cars_allowed")
-    }
+    parsed_entity: dict[str, Any] = {}
+    
+    # Quoted string 
+    for field in ("route_id", "service_id", "trip_id", "trip_headsign", "trip_short_name", "block_id", "shape_id"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
+    
+    # Integer fields
+    for field in ("direction_id", "wheelchair_accessible", "bikes_allowed", "cars_allowed"):
+        if field in entity:
+            parsed_entity[field] = parse_int(entity.get(field), field)
+            
+    return parsed_entity
 
 def parse_gtfs_translations_data(entity: dict[str, str]) -> dict[str, Any]:
     """
@@ -828,23 +835,16 @@ def parse_gtfs_translations_data(entity: dict[str, str]) -> dict[str, Any]:
     Raises:
         ValueError: If any integer field cannot be parsed correctly.
     """
-    table_name = cleanup_string(entity.get("table_name"))
-    field_name = cleanup_string(entity.get("field_name"))
-    language = cleanup_string(entity.get("language"))
-    translation = cleanup_string(entity.get("translation"))
-    record_id = cleanup_string(entity.get("record_id"))
-    record_sub_id = cleanup_string(entity.get("record_sub_id"))
-    field_value = cleanup_string(entity.get("field_value"))
     
-    return {
-        "table_name": quote(table_name, safe="") if table_name else None,
-        "field_name": quote(field_name, safe="") if field_name else None,
-        "language": quote(language, safe="") if language else None ,
-        "translation": quote(translation, safe="") if translation else None,
-        "record_id": quote(record_id, safe="") if record_id else None,
-        "record_sub_id": quote(record_sub_id, safe="") if record_sub_id else None,
-        "field_value": quote(field_value, safe="") if field_value else None,
-    }
+    parsed_entity: dict[str, Any] = {}
+    
+    # Quoted string 
+    for field in ("table_name", "field_name", "language", "translation", "record_id", "record_sub_id", "field_value"):
+        if field in entity:
+            value = cleanup_string(entity.get(field))
+            parsed_entity[field] = quote(value, safe="") if value else None
+            
+    return parsed_entity
 
 # -----------------------------------------------------
 # Validate GTFS-Static data
