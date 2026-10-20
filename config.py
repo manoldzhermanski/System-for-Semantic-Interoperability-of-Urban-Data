@@ -14,13 +14,13 @@ class GtfsSource(Enum):
     HELSINKI_GTFS_REALTIME_VEHICLE_POSITIONS_URL = os.getenv("HELSINKI_GTFS_REALTIME_VEHICLE_POSITIONS_URL")
     HELSINKI_GTFS_STATIC_ZIP_URL = os.getenv("HELSINKI_GTFS_STATIC_ZIP_URL")
 
-ORION_LD_BASE_URL = os.getenv("ORION_LD_BASE_URL")
+SCORPIO_BASE_URL = os.getenv("SCORPIO_BASE_URL")
 
 class OrionLDEndpoint(Enum):
-    ENTITIES_ENDPOINT = f"{ORION_LD_BASE_URL}/entities"
-    BATCH_CREATE_ENDPOINT = f"{ORION_LD_BASE_URL}/entityOperations/create"
-    BATCH_DELETE_ENDPOINT = f"{ORION_LD_BASE_URL}/entityOperations/delete"
-    BATCH_UPDATE_ENDPOINT = f"{ORION_LD_BASE_URL}/entityOperations/upsert?options=update"
+    ENTITIES_ENDPOINT = f"{SCORPIO_BASE_URL}/entities"
+    BATCH_CREATE_ENDPOINT = f"{SCORPIO_BASE_URL}/entityOperations/create"
+    BATCH_DELETE_ENDPOINT = f"{SCORPIO_BASE_URL}/entityOperations/delete"
+    BATCH_UPDATE_ENDPOINT = f"{SCORPIO_BASE_URL}/entityOperations/upsert?options=update"
 
 NETEX_AUTHORITY = None
 
