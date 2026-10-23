@@ -79,6 +79,15 @@ def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
         "geometry": None,
         "properties": {}
     }
+    
+    encoded_attributes = {
+        "agency_name",
+        "route_short_name",
+        "route_long_name",
+        "route_desc",
+        "stop_name",
+        "field_value"
+    }
 
     for attr, value in entity.items():
         # Skip "id" and "type" keys
@@ -98,7 +107,12 @@ def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
 
         # Regular attributes are flattened into properties
         elif attr_type == "Property":
-            feature["properties"][attr] = value.get("value")
+            attr_value = value.get("value")
+            
+            if attr in encoded_attributes and isinstance(attr_value, str):
+                attr_value = unquote(attr_value)
+                
+            feature["properties"][attr] = attr_value
 
         # Relationships expose their target as a property
         elif attr_type == "Relationship":
