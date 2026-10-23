@@ -12,7 +12,7 @@
           "id": "sofia-map",
           "name": "Sofia Map",
           "type": "open-street-map",
-          "url": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+          "url": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_4sm8_1_21216bbf6adf0d4a2f2309b3",
           "attribution": "© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>, © <a href='https://carto.com/attributions'>CARTO</a>",
           "subdomains": ["a", "b", "c", "d"],
           "opacity": 1.0
