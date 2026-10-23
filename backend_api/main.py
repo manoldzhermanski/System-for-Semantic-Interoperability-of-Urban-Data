@@ -2,6 +2,7 @@ import io
 import os
 import csv
 import sys
+import json
 import zipfile
 import logging
 import asyncio
@@ -81,12 +82,13 @@ def ngsi_ld_entity_to_geojson_feature(entity: dict) -> dict:
     }
     
     encoded_attributes = {
-        "agency_name",
-        "route_short_name",
-        "route_long_name",
-        "route_desc",
-        "stop_name",
-        "field_value"
+        # "agency_name",
+        # "route_short_name",
+        # "route_long_name",
+        # "route_desc",
+        # "stop_name",
+        # "field_value",
+        "name"
     }
 
     for attr, value in entity.items():
@@ -457,6 +459,8 @@ def get_gtfs_stops():
         for entity in entities
         if "location" in entity and entity["location"].get("value")
     ]
+    
+    print(json.dumps(features, ensure_ascii=False, indent=2))
 
     # Return GeoJSON FeatureCollection
     return {
