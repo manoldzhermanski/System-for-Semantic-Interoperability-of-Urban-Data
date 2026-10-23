@@ -459,8 +459,6 @@ def get_gtfs_stops():
         for entity in entities
         if "location" in entity and entity["location"].get("value")
     ]
-    
-    print(json.dumps(features, ensure_ascii=False, indent=2))
 
     # Return GeoJSON FeatureCollection
     return {
